@@ -1,0 +1,29 @@
+# Python - Archivos temporales de ejecución
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales (No subas las librerías instaladas)
+.venv/
+venv/
+ENV/
+env/
+
+# Configuración y Secretos (¡Muy importante!)
+.env
+local_settings.py
+
+# Base de datos SQLite (Por si quedó algún resto)
+*.sqlite3
+
+# Archivos de medios (Fotos/Videos subidos por usuarios)
+media/
+
+# Archivos del editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
