@@ -1,7 +1,9 @@
 Este documento detalla la arquitectura del sistema, explicando cómo se comunican las diferentes capas, el propósito de cada librería utilizada y la estructura de carpetas del proyecto.
 
 El sistema sigue una arquitectura **Desacoplada (Decoupled Architecture)**, donde el Frontend (React) y el Backend (Django) son aplicaciones completamente independientes que se comunican exclusivamente mediante una **API REST** usando formato JSON.
-![[Pasted image 20260329000228.png]] ![[Pasted image 20260329000259.png]]
+<img width="1536" height="1024" alt="Flujo de datos Django" src="https://github.com/user-attachments/assets/1d783a2e-1842-46e9-92a3-af49d49a5bbd" />
+<img width="1536" height="1024" alt="Conceptos claves" src="https://github.com/user-attachments/assets/c92be764-520c-4720-bdf6-05e060dc6538" />
+
 
 ## 1. Arquitectura del Backend (Django + API REST)
 
