@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -8,35 +8,55 @@ import {
   LogOut, 
   Plus,
   Search,
-  Bell
+  Bell,
+  AlertCircle // Añadido para mostrar errores
 } from 'lucide-react';
 import { TenantContext } from '../contexts/TenantContext';
+import api from '../services/api'; // Tu servicio de API
 import './Dashboard.css';
 
-const Dashboard = () => {
-  // Obtener el tenant del contexto
+const Dashboard = ({ onLogout }) => {
+  // 1. ESTADOS Y CONTEXTO
   const tenant = useContext(TenantContext);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mapeo de tenants a nombres amigables
   const tenantNames = {
     'cliente1': 'Tienda de Tecnología',
     'cliente2': 'Boutique de Ropa',
     'localhost': 'Panel Global'
   };
-
-  // Obtener nombre del tenant actual
+  
   const clientName = tenantNames[tenant] || tenant;
 
-  // Datos de prueba para tus productos 
-  const [products] = useState([
-    { id: 1, name: 'Camiseta Algodón', price: 85, stock: 12, category: 'Ropa' },
-    { id: 2, name: 'Gorra MiQhatu', price: 45, stock: 5, category: 'Accesorios' },
-    { id: 3, name: 'Taza Pixel Art', price: 30, stock: 25, category: 'Hogar' },
-  ]);
+  // 2. LÓGICA DE CARGA (Traída de tu dashboard anterior)
+  useEffect(() => {
+    const cargarProductos = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get('/productos/');
+        setProducts(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error al cargar productos:", err);
+        setError("No se pudo conectar con el servidor.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarProductos();
+  }, [tenant]); // Se recarga si el tenant cambia
+
+  // 3. CÁLCULOS DINÁMICOS
+  const valorTotal = products.reduce((acc, curr) => 
+    acc + (parseFloat(curr.precio || 0) * (curr.stock || 0)), 0
+  );
 
   return (
     <div className="dashboard-container">
-      {/* 1. SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">M</div>
@@ -50,13 +70,14 @@ const Dashboard = () => {
           <a href="#" className="nav-item"><Users size={20} /> Clientes</a>
           <div className="nav-divider"></div>
           <a href="#" className="nav-item"><Settings size={20} /> Configuración</a>
-          <a href="/login" className="nav-item logout"><LogOut size={20} /> Salir</a>
+          <button onClick={onLogout} className="nav-item logout" style={{width: '100%', border: 'none', background: 'none', cursor: 'pointer'}}>
+            <LogOut size={20} /> Salir
+          </button>
         </nav>
       </aside>
 
-      {/* 2. MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <main className="main-content">
-        {/* TOPBAR */}
         <header className="topbar">
           <div className="search-bar">
             <Search size={18} />
@@ -75,69 +96,82 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* DASHBOARD BODY */}
         <div className="dashboard-body">
           <div className="welcome-header">
             <div>
               <h1>Bienvenido a {clientName}</h1>
-              <p className="welcome-subtitle">Gestiona tu inventario, ventas y clientes</p>
+              <p className="welcome-subtitle">Gestiona tu inventario real de {tenant}</p>
             </div>
             <button className="btn-add">
               <Plus size={18} /> Nuevo Producto
             </button>
           </div>
 
-          {/* STATS CARDS */}
+          {/* STATS CARDS (Ahora con datos reales) */}
           <div className="stats-grid">
             <div className="stat-card">
-              <span className="stat-label">Ventas Totales</span>
-              <h2 className="stat-value">BS. 4,250</h2>
-              <span className="stat-change positive">+12% este mes</span>
+              <span className="stat-label">Valor del Inventario</span>
+              <h2 className="stat-value">BS. {valorTotal.toLocaleString()}</h2>
+              <span className="stat-change positive">Calculado en tiempo real</span>
             </div>
             <div className="stat-card">
               <span className="stat-label">Productos Activos</span>
               <h2 className="stat-value">{products.length}</h2>
-              <span className="stat-change">Actualizado ahora</span>
+              <span className="stat-change">Sincronizado con API</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Nuevos Clientes</span>
-              <h2 className="stat-value">18</h2>
-              <span className="stat-change positive">+5 hoy</span>
+              <span className="stat-label">Stock Crítico</span>
+              <h2 className="stat-value">{products.filter(p => p.stock < 10).length}</h2>
+              <span className="stat-change {products.filter(p => p.stock < 10).length > 0 ? 'negative' : 'positive'}">
+                Requieren atención
+              </span>
             </div>
           </div>
 
           {/* PRODUCT TABLE */}
           <div className="table-container">
             <div className="table-header">
-              <h3>Inventario Reciente</h3>
-              <a href="#">Ver todo</a>
+              <h3>Inventario de la Base de Datos</h3>
+              {loading && <span className="loading-spinner">Cargando...</span>}
             </div>
-            <table className="products-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Categoría</th>
-                  <th>Precio</th>
-                  <th>Stock</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(prod => (
-                  <tr key={prod.id}>
-                    <td>{prod.name}</td>
-                    <td><span className="cat-badge">{prod.category}</span></td>
-                    <td>BS. {prod.price}</td>
-                    <td>{prod.stock} un.</td>
-                    <td>
-                      <span className={`status-pill ${prod.stock < 10 ? 'low' : 'ok'}`}>
-                        {prod.stock < 10 ? 'Bajo Stock' : 'Disponible'}
-                      </span>
-                    </td>
+
+            {error ? (
+              <div className="error-message" style={{padding: '20px', textAlign: 'center', color: 'red'}}>
+                <AlertCircle size={40} />
+                <p>{error}</p>
+              </div>
+            ) : (
+              <table className="products-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Descripción</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {products.map(prod => (
+                    <tr key={prod.id}>
+                      <td><strong>{prod.nombre}</strong></td>
+                      <td style={{fontSize: '0.85rem', color: '#666'}}>{prod.descripcion || 'Sin descripción'}</td>
+                      <td>BS. {parseFloat(prod.precio).toLocaleString()}</td>
+                      <td>{prod.stock} un.</td>
+                      <td>
+                        <span className={`status-pill ${prod.stock < 10 ? 'low' : 'ok'}`}>
+                          {prod.stock < 10 ? 'Bajo Stock' : 'Disponible'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            
+            {!loading && products.length === 0 && !error && (
+              <p style={{textAlign: 'center', padding: '20px'}}>No hay productos registrados para este tenant.</p>
+            )}
           </div>
         </div>
       </main>
