@@ -44,13 +44,13 @@ function Login() {
                         <div className="input-group">
                             <label htmlFor="usuario-input" className="label-with-icon">
                                 <User size={16} />
-                                Usuario o Correo
+                                Usuario 
                             </label>
                             <input
                                 //type="email" 
                                 id="usuario-input"
                                 type="text"
-                                placeholder="Usuario o correo electrónico"
+                                placeholder="Ingresar tu usuario"
                                 value={user}
                                 onChange={e => setUser(e.target.value)}
                                 required //obligatorio
