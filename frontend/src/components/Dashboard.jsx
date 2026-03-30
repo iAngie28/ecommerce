@@ -1,198 +1,146 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
+  LayoutDashboard, 
   Package, 
+  ShoppingCart, 
+  Users, 
+  Settings, 
   LogOut, 
-  Plus, 
-  Tag, 
-  BarChart2, 
-  LayoutDashboard,
-  ShoppingCart,
-  AlertCircle,
-  TrendingUp,
-  MoreVertical
+  Plus,
+  Search,
+  Bell
 } from 'lucide-react';
-import api from '../services/api';
 import { TenantContext } from '../contexts/TenantContext';
+import './Dashboard.css';
 
-const Dashboard = ({ onLogout }) => {
-  const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const Dashboard = () => {
+  // Obtener el tenant del contexto
   const tenant = useContext(TenantContext);
 
-  // --- LÓGICA LIMPIA: Solo pedimos los productos al cargar ---
-  useEffect(() => {
-    cargarProductos();
-  }, []);
-
-  const cargarProductos = async () => {
-    setLoading(true);
-    try {
-      // Axios ya sabe qué token usar gracias a tu interceptor
-      const response = await api.get('/productos/');
-      setProductos(response.data);
-      setError(null);
-    } catch (err) {
-      console.error("Error al cargar productos:", err);
-      setError("No se pudo conectar con el servidor o sesión expirada.");
-    } finally {
-      setLoading(false);
-    }
+  // Mapeo de tenants a nombres amigables
+  const tenantNames = {
+    'cliente1': 'Tienda de Tecnología',
+    'cliente2': 'Boutique de Ropa',
+    'localhost': 'Panel Global'
   };
 
-  const valorTotal = productos.reduce((acc, curr) => acc + (parseFloat(curr.precio || 0) * (curr.stock || 0)), 0);
-  const stockCritico = productos.filter(p => (p.stock || 0) < 10).length;
+  // Obtener nombre del tenant actual
+  const clientName = tenantNames[tenant] || tenant;
+
+  // Datos de prueba para tus productos 
+  const [products] = useState([
+    { id: 1, name: 'Camiseta Algodón', price: 85, stock: 12, category: 'Ropa' },
+    { id: 2, name: 'Gorra MiQhatu', price: 45, stock: 5, category: 'Accesorios' },
+    { id: 3, name: 'Taza Pixel Art', price: 30, stock: 25, category: 'Hogar' },
+  ]);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-xl">
-                <ShoppingCart className="text-white w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-black text-slate-800 tracking-tighter leading-none uppercase italic">SaaS Multi-tenant</span>
-                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5">Tienda Activa: {tenant || 'Cargando...'}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={onLogout} 
-                className="text-slate-400 hover:text-red-500 transition-all p-2 rounded-full hover:bg-red-50"
-                title="Cerrar Sesión"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
-          </div>
+    <div className="dashboard-container">
+      {/* 1. SIDEBAR */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-icon">M</div>
+          <span className="brand-name">MiQhatu</span>
         </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total SKU</p>
-                <h3 className="text-3xl font-black text-slate-800">{productos.length}</h3>
-              </div>
-              <div className="bg-blue-50 p-3 rounded-2xl text-blue-600"><Package size={24} /></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Valor Total</p>
-                <h3 className="text-3xl font-black text-slate-800">${valorTotal.toLocaleString()}</h3>
-              </div>
-              <div className="bg-green-50 p-3 rounded-2xl text-green-600"><TrendingUp size={24} /></div>
-            </div>
-          </div>
+        <nav className="sidebar-nav">
+          <a href="#" className="nav-item active"><LayoutDashboard size={20} /> Panel</a>
+          <a href="#" className="nav-item"><Package size={20} /> Productos</a>
+          <a href="#" className="nav-item"><ShoppingCart size={20} /> Ventas</a>
+          <a href="#" className="nav-item"><Users size={20} /> Clientes</a>
+          <div className="nav-divider"></div>
+          <a href="#" className="nav-item"><Settings size={20} /> Configuración</a>
+          <a href="/login" className="nav-item logout"><LogOut size={20} /> Salir</a>
+        </nav>
+      </aside>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock Bajo</p>
-                <h3 className="text-3xl font-black text-slate-800">{stockCritico}</h3>
-              </div>
-              <div className={`p-3 rounded-2xl ${stockCritico > 0 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-300'}`}>
-                <BarChart2 size={24} />
-              </div>
+      {/* 2. MAIN CONTENT */}
+      <main className="main-content">
+        {/* TOPBAR */}
+        <header className="topbar">
+          <div className="search-bar">
+            <Search size={18} />
+            <input type="text" placeholder="Buscar productos..." />
+          </div>
+          <div className="topbar-actions">
+            <div className="tenant-badge">
+              <span className="badge-label">Tienda Activa:</span>
+              <span className="badge-value">{clientName}</span>
+            </div>
+            <Bell size={20} className="icon-btn" />
+            <div className="user-profile">
+              <img src="https://ui-avatars.com/api/?name=Jhenny+Solis&background=18aea4&color=fff" alt="User" />
+              <span>Jhenny Solis</span>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Table Section */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-            <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-              <LayoutDashboard className="text-blue-500" size={20} />
-              Inventario de {tenant}
-            </h2>
-            <button className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95">
+        {/* DASHBOARD BODY */}
+        <div className="dashboard-body">
+          <div className="welcome-header">
+            <div>
+              <h1>Bienvenido a {clientName}</h1>
+              <p className="welcome-subtitle">Gestiona tu inventario, ventas y clientes</p>
+            </div>
+            <button className="btn-add">
               <Plus size={18} /> Nuevo Producto
             </button>
           </div>
 
-          {loading ? (
-            <div className="p-24 text-center">
-              <div className="animate-spin w-10 h-10 border-4 border-blue-100 border-t-blue-600 rounded-full mx-auto mb-4"></div>
-              <p className="text-slate-400 font-bold text-sm tracking-widest uppercase italic">Sincronizando esquema...</p>
+          {/* STATS CARDS */}
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-label">Ventas Totales</span>
+              <h2 className="stat-value">BS. 4,250</h2>
+              <span className="stat-change positive">+12% este mes</span>
             </div>
-          ) : error ? (
-            <div className="p-20 text-center">
-              <AlertCircle className="mx-auto text-red-300 mb-4" size={48} />
-              <p className="text-red-500 font-bold">{error}</p>
-              <button onClick={cargarProductos} className="mt-4 text-xs font-black text-blue-600 underline uppercase tracking-widest">Reintentar Conexión</button>
+            <div className="stat-card">
+              <span className="stat-label">Productos Activos</span>
+              <h2 className="stat-value">{products.length}</h2>
+              <span className="stat-change">Actualizado ahora</span>
             </div>
-          ) : productos.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50/50">
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Producto</th>
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Disponibilidad</th>
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio Unitario</th>
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acción</th>
+            <div className="stat-card">
+              <span className="stat-label">Nuevos Clientes</span>
+              <h2 className="stat-value">18</h2>
+              <span className="stat-change positive">+5 hoy</span>
+            </div>
+          </div>
+
+          {/* PRODUCT TABLE */}
+          <div className="table-container">
+            <div className="table-header">
+              <h3>Inventario Reciente</h3>
+              <a href="#">Ver todo</a>
+            </div>
+            <table className="products-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Precio</th>
+                  <th>Stock</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(prod => (
+                  <tr key={prod.id}>
+                    <td>{prod.name}</td>
+                    <td><span className="cat-badge">{prod.category}</span></td>
+                    <td>BS. {prod.price}</td>
+                    <td>{prod.stock} un.</td>
+                    <td>
+                      <span className={`status-pill ${prod.stock < 10 ? 'low' : 'ok'}`}>
+                        {prod.stock < 10 ? 'Bajo Stock' : 'Disponible'}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {productos.map((producto) => (
-                    <tr key={producto.id} className="hover:bg-blue-50/20 transition-colors group">
-                      <td className="p-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-500 transition-all">
-                            <Package size={22} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-800">{producto.nombre}</p>
-                            <p className="text-xs text-slate-400 truncate max-w-[200px]">{producto.descripcion || "Sin descripción disponible"}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-5 text-center">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                          (producto.stock || 0) > 20 ? 'bg-green-100 text-green-700' : 
-                          (producto.stock || 0) > 0 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
-                        }`}>
-                          {producto.stock || 0} UNIDADES
-                        </span>
-                      </td>
-                      <td className="p-5">
-                        <span className="font-black text-slate-700 text-lg">${parseFloat(producto.precio || 0).toLocaleString()}</span>
-                      </td>
-                      <td className="p-5 text-right">
-                        <button className="text-slate-300 hover:text-blue-600 transition-colors">
-                          <MoreVertical size={20} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="p-20 text-center">
-              <Tag className="mx-auto text-slate-200 mb-4" size={56} />
-              <h3 className="font-bold text-slate-800 text-xl">Sin datos</h3>
-              <p className="text-slate-400 text-sm mb-8">No se encontraron productos en la base de datos de {tenant}.</p>
-              <button 
-                onClick={cargarProductos} 
-                className="bg-blue-600 text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
-              >
-                RECARGAR
-              </button>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

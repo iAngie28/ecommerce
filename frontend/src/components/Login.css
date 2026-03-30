@@ -1,0 +1,165 @@
+:root {
+  --primary-dark: #101124;
+  --accent-teal: #18aea4;
+  --bg-light: #f4f7f9;
+  --white: #ffffff;
+}
+
+.login-wrapper {
+  background-color: var(--bg-light);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  background-color: var(--white);
+  width: 100%;
+  max-width: 950px;
+  min-height: 600px;
+  display: flex;
+  border-radius: 30px; /* Trazos redondeados como pediste */
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+/* LADO IZQUIERDO */
+.login-form-side {
+  flex: 1.2;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-form-side h2 {
+  font-size: 2.5rem;
+  color: var(--primary-dark);
+  margin-bottom: 40px;
+}
+
+.input-group {
+  margin-bottom: 25px;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.input-group label {
+  font-weight: 300;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 15px; /* Padding normal y equilibrado */
+  border: 1.5px solid #e1e4e8;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.input-group input:focus {
+  border-color: var(--accent-teal);
+  outline: none;
+}
+
+.forgot-link, .footer-text a {
+  color: var(--accent-teal);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--primary-dark);
+  color: white;
+  border: none;
+  border-radius: 50px; /* Botón bien redondeado */
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.2s;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  background-color: #1a1b3a;
+}
+
+/* LADO DERECHO */
+.login-info-side {
+  flex: 1;
+  background-color: var(--primary-dark);
+  color: white;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo { font-size: 2rem; }
+.brand-name { 
+  font-size: 1.5rem; 
+  font-weight: bold; 
+  color: var(--accent-teal);
+}
+
+.info-content h1 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.info-content p {
+  line-height: 1.6;
+  opacity: 0.8;
+  font-size: 1.1rem;
+}
+
+.footer-text {
+  margin-top: 30px;
+  text-align: center;
+  color: #636e72;
+}
+
+/* Iconos dentro de los inputs */
+
+.input-group label {
+  display: flex;
+  align-items: center; /* Centra el icono con el texto */
+  gap: 8px;            /* El espacio exacto entre el icono y la palabra */
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.label-with-icon svg {
+  color: var(--accent-teal); /* Le damos el color de tu marca al icono */
+}
+/* lock 
+
+
+
+
+/* Responsivo para celulares */
+@media (max-width: 768px) {
+  .login-card { flex-direction: column; }
+  .login-info-side { display: none; }
+}

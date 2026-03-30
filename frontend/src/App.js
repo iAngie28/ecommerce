@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+
+import Home from './components/Home';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 
@@ -19,7 +21,7 @@ const SSOReceiver = () => {
             navigate('/dashboard', { replace: true });
         } else {
             // Si alguien intenta entrar a /sso sin token, lo botamos al login
-            window.location.href = 'http://localhost:3000/login';
+            window.location.href = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/login`;
         }
     }, [navigate, location]);
 
@@ -41,12 +43,14 @@ const PrivateRoute = ({ children }) => {
 function App() {
     const handleLogout = () => {
         localStorage.clear();
-        window.location.href = 'http://localhost:3000/login';
+        // Redirige al MISMO host desde donde se accede, no a localhost
+        window.location.href = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/login`;
     };
 
     return (
         <Router>
             <Routes>
+                <Route path="/" element={<Home />} />
                 {/* Ruta de Login Global */}
                 <Route path="/login" element={<Login />} />
                 

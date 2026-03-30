@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-8dl7kzt3gurd5j=)2(7=6kkf-vfp(5qq=46*8(w)g_)9q8*t^*
 DEBUG = True
 
 # 1. HOSTS CORRECTOS: Incluimos .localhost para que los tenants funcionen
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.localhost']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.localhost', '192.168.56.1', '*']
 
 # 2. USUARIO GLOBAL ÚNICO
 AUTH_USER_MODEL = 'customers.Usuario'
