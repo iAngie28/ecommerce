@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from app_negocio.views import ProductoViewSet
+from app_negocio.views.producto_views import ProductoViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 
 # IMPORTANTE: Importamos tu vista personalizada que usa el nuevo serializador
-from customers.views import MyTokenObtainPairView 
+from customers.views.usuario_views import MyTokenObtainPairView 
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()

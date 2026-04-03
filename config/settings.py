@@ -114,5 +114,3 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Permite que la cookie de sesión sea válida para todos los subdominios de localhost
-SESSION_COOKIE_DOMAIN = ".localhost"
