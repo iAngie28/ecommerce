@@ -15,7 +15,7 @@ import { TenantContext } from '../contexts/TenantContext';
 import api from '../services/api'; // Tu servicio de API
 import './Dashboard.css';
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = () => {
   // 1. ESTADOS Y CONTEXTO
   const tenant = useContext(TenantContext);
   const [products, setProducts] = useState([]);
@@ -29,6 +29,35 @@ const Dashboard = ({ onLogout }) => {
   };
   
   const clientName = tenantNames[tenant] || tenant;
+
+  const handleLogout = async (e) => {
+    if (e) e.preventDefault(); 
+
+    try {
+        // 1. Avisamos al backend de Django
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+            await api.post('/logout/', { refresh: refreshToken });
+        }
+    } catch (error) {
+        console.error("Error al invalidar el token:", error);
+    } finally {
+        // 2. Limpiamos la memoria local de React
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+
+        // 3. Tomamos directamente la parte después del primer punto
+        const currentHost = window.location.hostname; 
+        const parts = currentHost.split('.');
+        
+        // Si tiene un punto (ej: cliente1.localhost o cliente1.miqhatu.com), toma todo lo que le sigue
+        const baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
+
+        // 4. Redirección final
+        const port = window.location.port ? `:${window.location.port}` : '';
+        window.location.href = `http://${baseDomain}${port}/login`;
+    }
+};
 
   // 2. LÓGICA DE CARGA (Traída de tu dashboard anterior)
   useEffect(() => {
@@ -70,7 +99,7 @@ const Dashboard = ({ onLogout }) => {
           <a href="#" className="nav-item"><Users size={20} /> Clientes</a>
           <div className="nav-divider"></div>
           <a href="#" className="nav-item"><Settings size={20} /> Configuración</a>
-          <button onClick={onLogout} className="nav-item logout" style={{width: '100%', border: 'none', background: 'none', cursor: 'pointer'}}>
+          <button onClick={(e) => handleLogout(e)} className="nav-item logout" style={{width: '100%', border: 'none', background: 'none', cursor: 'pointer'}}>
             <LogOut size={20} /> Salir
           </button>
         </nav>

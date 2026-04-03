@@ -113,3 +113,6 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_PAIR_SERIALIZER': 'customers.serializers.MyTokenObtainPairSerializer',
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Permite que la cookie de sesión sea válida para todos los subdominios de localhost
+SESSION_COOKIE_DOMAIN = ".localhost"
