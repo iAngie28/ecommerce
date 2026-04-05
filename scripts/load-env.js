@@ -43,6 +43,10 @@ lines.forEach(line => {
 
 console.log(`✓ Variables de .env cargadas desde: ${envPath}`);
 
+// Forzar configuración para que Webpack Dev Server funcione sobre IPs en el VPS
+process.env.WDS_SOCKET_PORT = '0';
+process.env.HOST = '0.0.0.0';
+
 // Si hay argumentos adicionales, ejecutar comando
 const args = process.argv.slice(2);
 if (args.length > 0) {
