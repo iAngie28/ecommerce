@@ -51,6 +51,7 @@ if ENVIRONMENT == 'development':
     
     # Construir lista de hosts permitidos
     ALLOWED_HOSTS = [
+        '*',              # Permitir cualquier host en entorno de desarrollo
         'localhost',
         '127.0.0.1',
         DEVICE_HOSTNAME,  # Hostname del dispositivo (ej: DESKTOP-ABC123)
@@ -59,19 +60,11 @@ if ENVIRONMENT == 'development':
     # Agregar hosts adicionales del .env
     ALLOWED_HOSTS.extend(additional_hosts)
     
-    # En desarrollo, configuramos CORS para permitir credenciales del frontend
-    CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+    # En desarrollo permitimos todos los orígenes
+    CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
     
-    # Orígenes base (login global)
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
-    # Cubre CUALQUIER subdominio *.localhost sin listarlo uno a uno
-    CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^http://\w+\.localhost:\d+$",
-    ]
+    # No necesitamos CORS_ALLOWED_ORIGINS estricto ya que CORS_ALLOW_ALL_ORIGINS = True
     
 elif ENVIRONMENT == 'production':
     ALLOWED_HOSTS = config(

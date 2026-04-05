@@ -226,6 +226,9 @@ Group={run_user}
 WorkingDirectory={project_path}/frontend
 Environment="PATH={project_path}/frontend/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 Environment="PORT={react_port}"
+Environment="HOST=0.0.0.0"
+Environment="WDS_SOCKET_PORT=0"
+Environment="WDS_SOCKET_HOST=0.0.0.0"
 ExecStart=/usr/bin/npm start
 Restart=on-failure
 RestartSec=5s
