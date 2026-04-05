@@ -11,10 +11,14 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import random
 import string
+from decouple import config
 
 PROJECT_ROOT = Path(__file__).parent.parent
 BACKEND_DIR = PROJECT_ROOT / 'backend'
 sys.path.insert(0, str(BACKEND_DIR))
+
+# Cargar el dominio principal desde el entorno (ej: localhost, mi-saas.com, o 157.173.102.129.nip.io)
+DOMAIN_MAIN = config('DOMAIN_MAIN', default='localhost')
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -45,7 +49,7 @@ def seed_demo():
     
     # Crear dominio
     domain, created = Domain.objects.get_or_create(
-        domain='demo.localhost',
+        domain=f'demo.{DOMAIN_MAIN}',
         defaults={'tenant': tenant}
     )
     
@@ -193,7 +197,7 @@ def seed_production_like():
             print(f"  [+] Tenant: {name}")
             
             # Dominio basado en nombre
-            domain_name = f"{schema}.localhost"
+            domain_name = f"{slug}.{DOMAIN_MAIN}"
             Domain.objects.get_or_create(
                 domain=domain_name,
                 defaults={'tenant': tenant}
