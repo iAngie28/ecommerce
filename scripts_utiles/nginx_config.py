@@ -140,7 +140,7 @@ Description=Django SaaS Application
 After=network.target postgresql.service
 
 [Service]
-Type=notify
+Type=simple
 User={run_user}
 Group={run_user}
 WorkingDirectory={project_path}/backend
