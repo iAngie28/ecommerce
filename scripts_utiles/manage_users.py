@@ -33,7 +33,7 @@ def list_users():
     print("USUARIOS DE LA PLATAFORMA")
     print("="*80)
     
-    users = Usuario.objects.all().order_by('-created_at')
+    users = Usuario.objects.all().order_by('-date_joined')
     
     if not users.exists():
         print("No hay usuarios registrados")

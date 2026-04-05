@@ -34,33 +34,54 @@ def confirm_destructive():
     return True
 
 def reset_all():
-    """Reset completo: elimina BD y recrea desde cero"""
+    """Reset completo: elimina BD y recrea desde cero (PostgreSQL)"""
     if not confirm_destructive():
         return False
     
-    print("\n[+] Iniciando reset completo...")
+    print("\n[+] Iniciando reset completo (DROP SCHEMAS)...")
     os.chdir(BACKEND_DIR)
     
-    # Eliminar migraciones aplicadas
-    print("[1/4] Eliminando historial de migraciones...")
-    subprocess.run([
-        sys.executable, 'manage.py', 'migrate', '--fake-initial',
-        '--settings=config.settings'
-    ], capture_output=True)
+    from django.db import connection
+    from django.conf import settings
     
-    # Crear migraciones nuevas
-    print("[2/4] Creando migraciones...")
-    subprocess.run([
-        sys.executable, 'manage.py', 'makemigrations',
-        '--settings=config.settings'
-    ], capture_output=True)
-    
-    # Aplicar migraciones
-    print("[3/4] Aplicando migraciones...")
-    subprocess.run([
-        sys.executable, 'manage.py', 'migrate',
-        '--settings=config.settings'
-    ], capture_output=True)
+    try:
+        with connection.cursor() as cursor:
+            # Encontrar todos los schemas creados (tenants)
+            print("[1/4] Eliminando todos los schemas de PostgreSQL...")
+            cursor.execute("""
+                SELECT schema_name FROM information_schema.schemata 
+                WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast');
+            """)
+            schemas = [row[0] for row in cursor.fetchall()]
+            for sch in schemas:
+                cursor.execute(f"DROP SCHEMA IF EXISTS {sch} CASCADE;")
+            
+            # Recrear public schema
+            print("[2/4] Recreando schema public...")
+            cursor.execute("CREATE SCHEMA public;")
+            try:
+                db_user = settings.DATABASES['default']['USER']
+                cursor.execute(f"GRANT ALL ON SCHEMA public TO {db_user};")
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[ERROR] Falló el drop schemas: {e}")
+        return False
+        
+    print("[3/4] Creando y aplicando migraciones...")
+    try:
+        # Borrar archivos de migraciones si existen (excepto __init__.py)
+        for app in ['customers', 'app_negocio']:
+            mig_dir = BACKEND_DIR / app / 'migrations'
+            if mig_dir.exists():
+                for f in mig_dir.glob('0*.py'):
+                    f.unlink()
+    except Exception as e:
+        pass
+        
+    subprocess.run([sys.executable, 'manage.py', 'makemigrations', '--settings=config.settings'], capture_output=True)
+    subprocess.run([sys.executable, 'manage.py', 'migrate_schemas', '--shared', '--settings=config.settings'], capture_output=True)
+    subprocess.run([sys.executable, 'manage.py', 'migrate', '--settings=config.settings'], capture_output=True)
     
     # Crear superuser
     print("[4/4] Creando superuser...")
