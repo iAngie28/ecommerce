@@ -111,10 +111,17 @@ def create_django_service():
     config = get_env_config()
     show_env_config()
     
-    print(f"{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
+    project_path = str(PROJECT_ROOT)
+    
+    # Detectar el usuario correcto basado en la ruta (www-data no puede acceder a /root)
+    default_user = "root" if project_path.startswith('/root/') else "www-data"
+    user_input = input(f"{Colors.BOLD}Usuario que correrá el servicio (default: {default_user}): {Colors.ENDC}").strip()
+    run_user = user_input if user_input else default_user
+    
+    print(f"\n{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
     print(f"  Nombre:         {Colors.YELLOW}django_saas{Colors.ENDC}")
     print(f"  Puerto:         {Colors.YELLOW}{config['DJANGO_PORT']}{Colors.ENDC}")
-    print(f"  Usuario:        {Colors.YELLOW}www-data{Colors.ENDC}")
+    print(f"  Usuario:        {Colors.YELLOW}{run_user}{Colors.ENDC}")
     print()
     
     service_name = "django_saas"
@@ -127,7 +134,6 @@ def create_django_service():
         return
     
     django_port = config['DJANGO_PORT']
-    project_path = str(PROJECT_ROOT)
     
     service_content = f"""[Unit]
 Description=Django SaaS Application
@@ -135,8 +141,8 @@ After=network.target postgresql.service
 
 [Service]
 Type=notify
-User=www-data
-Group=www-data
+User={run_user}
+Group={run_user}
 WorkingDirectory={project_path}/backend
 Environment="PATH={project_path}/backend/venv/bin"
 ExecStart={project_path}/backend/venv/bin/python manage.py runserver 0.0.0.0:{django_port}
@@ -185,10 +191,17 @@ def create_frontend_service():
     config = get_env_config()
     show_env_config()
     
-    print(f"{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
+    project_path = str(PROJECT_ROOT)
+    
+    # Detectar el usuario correcto basado en la ruta
+    default_user = "root" if project_path.startswith('/root/') else "www-data"
+    user_input = input(f"{Colors.BOLD}Usuario que correrá el servicio (default: {default_user}): {Colors.ENDC}").strip()
+    run_user = user_input if user_input else default_user
+    
+    print(f"\n{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
     print(f"  Nombre:         {Colors.YELLOW}frontend_saas{Colors.ENDC}")
     print(f"  Puerto:         {Colors.YELLOW}{config['REACT_PORT']}{Colors.ENDC}")
-    print(f"  Usuario:        {Colors.YELLOW}www-data{Colors.ENDC}")
+    print(f"  Usuario:        {Colors.YELLOW}{run_user}{Colors.ENDC}")
     print()
     
     service_name = "frontend_saas"
@@ -201,7 +214,6 @@ def create_frontend_service():
         return
     
     react_port = config['REACT_PORT']
-    project_path = str(PROJECT_ROOT)
     
     service_content = f"""[Unit]
 Description=React Frontend SaaS
@@ -209,8 +221,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User={run_user}
+Group={run_user}
 WorkingDirectory={project_path}/frontend
 Environment="PATH={project_path}/frontend/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 Environment="PORT={react_port}"
