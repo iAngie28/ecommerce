@@ -1,13 +1,14 @@
 import os
 from pathlib import Path
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-8dl7kzt3gurd5j=)2(7=6kkf-vfp(5qq=46*8(w)g_)9q8*t^*'
-DEBUG = True
-
-# 1. HOSTS CORRECTOS: Incluimos .localhost para que los tenants funcionen
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.localhost', '192.168.56.1', '*']
+# ========================================================================
+# CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción)
+# ========================================================================
+# 1. ENTORNO Y CONFIGURACIÓN BÁSICA
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 2. USUARIO GLOBAL ÚNICO
 AUTH_USER_MODEL = 'customers.Usuario'
@@ -24,6 +25,7 @@ SHARED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework_simplejwt.token_blacklist',
 )
 
 TENANT_APPS = (
@@ -46,9 +48,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# 5. RUTAS Y ESQUEMAS (El parche anti-404)
+# 5. RUTAS: mismo URL conf para ambos schemas (el ProductoViewSet maneja la diferencia internamente)
 ROOT_URLCONF = 'config.urls'
-PUBLIC_SCHEMA_URLCONF = 'config.urls'  # <-- Obliga a Django a reconocer la ruta de productos
+PUBLIC_SCHEMA_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -68,16 +70,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # 6. BASE DE DATOS
-DATABASES = {
-    'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'mi_saas_db',
-        'USER': 'postgres',
-        'PASSWORD': 'adm123',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
-    }
-}
+# (DATABASES se configurará en settings_local.py)
 DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
 
 # 7. MODELOS DE TENANTS
@@ -97,6 +90,9 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
 
+# 10. CONFIGURACIÓN DE CAMPOS AUTO (Silencia warnings)
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 # 9. CORS Y API (REST FRAMEWORK & JWT)
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -110,7 +106,16 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'TOKEN_OBTAIN_PAIR_SERIALIZER': 'customers.serializers.MyTokenObtainPairSerializer',
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# ========================================================================
+# CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción) Y .ENV
+# ========================================================================
+try:
+    from .settings_local import *
+except ImportError:
+    # Si no existe settings_local, usar valores por defecto mínimos
+    SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-8dl7kzt3gurd5j=)2(7=6kkf-vfp(5qq=46*8(w)g_)9q8*t^*')
+    DEBUG = config('DEBUG', default=True, cast=bool)
+    ALLOWED_HOSTS = ['*']

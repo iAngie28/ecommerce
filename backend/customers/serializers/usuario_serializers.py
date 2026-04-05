@@ -1,20 +1,50 @@
+from django.contrib.auth import authenticate
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        # Información mínima necesaria en el payload del JWT
-        if user.tenant:
-            token['schema'] = user.tenant.schema_name
-            token['tenant_name'] = user.tenant.name
-        return token
+
+class MyTokenObtainPairSerializer(serializers.Serializer):
+    """
+    Serializer custom de autenticación.
+    Acepta 'username' O 'email' + 'password' para ser compatible con el frontend.
+    """
+    username = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
+    password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        # Aquí solo llamamos a la validación base
-        data = super().validate(attrs)
-        
-        # En lugar de buscar el dominio aquí, 
-        # delegaremos la respuesta extendida al Service o a la View.
-        # Por ahora, mantenlo limpio.
-        return data
+        # Unificamos: si viene username, lo usamos como email
+        email = attrs.get("email") or attrs.get("username")
+        password = attrs.get("password")
+
+        if not email or not password:
+            raise serializers.ValidationError("Email/usuario y contraseña son requeridos.")
+
+        # Autenticamos usando el campo 'email' (USERNAME_FIELD del modelo)
+        user = authenticate(
+            request=self.context.get('request'),
+            email=email,
+            password=password
+        )
+
+        if not user:
+            raise serializers.ValidationError("Credenciales incorrectas.")
+
+        if not user.is_active:
+            raise serializers.ValidationError("Este usuario está inactivo.")
+
+        # Generamos los tokens JWT
+        refresh = RefreshToken.for_user(user)
+
+        # Añadimos data extra del tenant al payload del JWT
+        if user.tenant:
+            refresh['schema'] = user.tenant.schema_name
+            refresh['tenant_name'] = user.tenant.name
+
+        self.user = user
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }

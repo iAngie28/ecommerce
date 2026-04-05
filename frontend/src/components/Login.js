@@ -16,16 +16,20 @@ function Login() {
                 password: pass
             });
 
-            const { access, refresh, subdomain } = res.data;
+            const { access, refresh, schema_name, subdomain } = res.data;
 
-            localStorage.setItem('access_token', access);
-            localStorage.setItem('refresh_token', refresh);
+            // El subdominio puede venir como "empresa1.localhost" (subdomain) 
+            // o construirse desde schema_name (ej: "empresa_1" → "empresa1.localhost")
+            const tenantHost = subdomain || (schema_name ? `${schema_name.replace('_', '')}.localhost` : null);
 
-            if (subdomain) {
-                // configuracion de host dinamico para el SSO
-                // subdomain ya viene completo del backend (ej: "cliente1.localhost")
-                window.location.href = `http://${subdomain}:${window.location.port}/sso?token=${access}`;
+            if (tenantHost) {
+                const port = window.location.port;
+                // Redirigir al subdominio con ambos tokens para SSO
+                window.location.href = `http://${tenantHost}:${port}/sso?token=${access}&refresh=${refresh}`;
             } else {
+                // Sin tenant (admin global), guardar y redirigir al dashboard
+                localStorage.setItem('access_token', access);
+                if (refresh) localStorage.setItem('refresh_token', refresh);
                 window.location.href = '/dashboard';
             }
         } catch (error) {
