@@ -13,15 +13,18 @@ const SSOReceiver = () => {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const token = params.get('token');
+        const refresh = params.get('refresh');
 
         if (token) {
             // Se guarda en el localStorage EXCLUSIVO de este subdominio
             localStorage.setItem('access_token', token);
-            // Salto al dashboard limpiando la URL (replace: true borra el historial)
+            if (refresh) localStorage.setItem('refresh_token', refresh);
+            // Salto al dashboard limpiando la URL
             navigate('/dashboard', { replace: true });
         } else {
-            // Si alguien intenta entrar a /sso sin token, lo botamos al login
-            window.location.href = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/login`;
+            // Sin token → login
+            const host = window.location.hostname.split('.').slice(1).join('.');
+            window.location.href = `http://${host || 'localhost'}:${window.location.port}/login`;
         }
     }, [navigate, location]);
 

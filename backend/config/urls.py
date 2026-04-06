@@ -5,7 +5,7 @@ from app_negocio.views.producto_views import ProductoViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 
 # IMPORTANTE: Importamos tu vista personalizada que usa el nuevo serializador
-from customers.views.usuario_views import MyTokenObtainPairView 
+from customers.views.usuario_views import MyTokenObtainPairView, LogoutView
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()
@@ -18,6 +18,7 @@ urlpatterns = [
     # CAMBIO: Usamos MyTokenObtainPairView en lugar de la vista por defecto
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'), 
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), 
+    path('api/logout/', LogoutView.as_view(), name='logout'),
 
     # 3. Incluimos las rutas de nuestra API de negocio (Productos)
     path('api/', include(router.urls)),

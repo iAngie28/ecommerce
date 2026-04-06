@@ -1,28 +1,46 @@
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from ..serializers.usuario_serializers import MyTokenObtainPairSerializer
 from ..services.auth_service import get_auth_extra_data
 
-class MyTokenObtainPairView(TokenObtainPairView):
+
+class MyTokenObtainPairView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = MyTokenObtainPairSerializer
+
     def post(self, request, *args, **kwargs):
-        # 1. Creamos la instancia del serializer con los datos del request
-        serializer = self.get_serializer(data=request.data)
+        serializer = MyTokenObtainPairSerializer(
+            data=request.data,
+            context={'request': request}
+        )
 
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Tokens ya generados por el serializer
+        response_data = serializer.validated_data
+
+        # Añadimos info extra del tenant
+        extra_data = get_auth_extra_data(serializer.user)
+        response_data.update(extra_data)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
         try:
-            # 2. Validamos (esto internamente verifica user/password)
-            serializer.is_valid(raise_exception=True)
-        except Exception as e:
-            return super().post(request, *args, **kwargs)
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"detail": "Refresh token no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Obtenemos la respuesta estándar (los tokens access/refresh)
-        response = super().post(request, *args, **kwargs)
-
-        if response.status_code == 200:
-            # 4. CORRECCIÓN: El usuario está en serializer.user después de is_valid()
-            user = serializer.user
-            
-            # 5. Llamamos a tu servicio para la data extra
-            extra_data = get_auth_extra_data(user)
-            
-            # 6. Inyectamos los datos en la respuesta
-            response.data.update(extra_data)
-            
-        return response
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({"detail": "Token inválido o ya expirado"}, status=status.HTTP_400_BAD_REQUEST)
