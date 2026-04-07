@@ -46,16 +46,29 @@ const Dashboard = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
 
-        // 3. Tomamos directamente la parte después del primer punto
-        const currentHost = window.location.hostname; 
-        const parts = currentHost.split('.');
-        
-        // Si tiene un punto (ej: cliente1.localhost o cliente1.miqhatu.com), toma todo lo que le sigue
-        const baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
+        // 3. Detectar el dominio base LIMPIO (sin subdominio tenant)
+        const currentHost = window.location.hostname;
+        let baseDomain;
 
-        // 4. Redirección final
+        if (currentHost.endsWith('.nip.io')) {
+            // Estamos en algo como: cliente1.157.173.102.129.nip.io
+            // Extraer la IP real: quitar el primer segmento (tenant) y el sufijo .nip.io
+            const parts = currentHost.split('.');
+            // parts = ['cliente1', '157', '173', '102', '129', 'nip', 'io']
+            // La IP está entre el tenant (index 0) y 'nip.io' (últimos 2)
+            baseDomain = parts.slice(1, -2).join('.');
+        } else if (currentHost.endsWith('.localhost')) {
+            // Estamos en algo como: cliente1.localhost
+            baseDomain = 'localhost';
+        } else {
+            // Dominio real (ej: cliente1.miqhatu.com) → miqhatu.com
+            const parts = currentHost.split('.');
+            baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
+        }
+
+        // 4. Redirección final al login LIMPIO sin subdominios
         const port = window.location.port ? `:${window.location.port}` : '';
-        window.location.href = `http://${baseDomain}${port}/login`;
+        window.location.href = `${window.location.protocol}//${baseDomain}${port}/login`;
     }
 };
 
