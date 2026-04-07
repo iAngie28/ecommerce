@@ -1,0 +1,7 @@
+localhost -> public
+cliente1.localhost -> cliente1
+cliente2.localhost -> cliente2
+empresa1.localhost -> empresa_1
+empresa2.localhost -> empresa_2
+demo.localhost -> demo_company
+empresa3.localhost -> empresa_3
