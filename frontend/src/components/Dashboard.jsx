@@ -51,12 +51,11 @@ const Dashboard = () => {
         let baseDomain;
 
         if (currentHost.endsWith('.nip.io')) {
-            // Estamos en algo como: cliente1.157.173.102.129.nip.io
-            // Extraer la IP real: quitar el primer segmento (tenant) y el sufijo .nip.io
+            // Estamos en algo como: cliente1.157.173.102.129.nip.io o 157.173.102.129.nip.io
+            // Extraer solo los números (la IP)
             const parts = currentHost.split('.');
-            // parts = ['cliente1', '157', '173', '102', '129', 'nip', 'io']
-            // La IP está entre el tenant (index 0) y 'nip.io' (últimos 2)
-            baseDomain = parts.slice(1, -2).join('.');
+            const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
+            baseDomain = ipParts.join('.');
         } else if (currentHost.endsWith('.localhost')) {
             // Estamos en algo como: cliente1.localhost
             baseDomain = 'localhost';

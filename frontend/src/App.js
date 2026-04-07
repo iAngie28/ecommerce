@@ -27,7 +27,8 @@ const SSOReceiver = () => {
             let baseDomain;
             if (currentHost.endsWith('.nip.io')) {
                 const parts = currentHost.split('.');
-                baseDomain = parts.slice(1, -2).join('.');
+                const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
+                baseDomain = ipParts.join('.');
             } else if (currentHost.endsWith('.localhost')) {
                 baseDomain = 'localhost';
             } else {
@@ -62,7 +63,8 @@ function App() {
         let baseDomain;
         if (currentHost.endsWith('.nip.io')) {
             const parts = currentHost.split('.');
-            baseDomain = parts.slice(1, -2).join('.');
+            const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
+            baseDomain = ipParts.join('.');
         } else if (currentHost.endsWith('.localhost')) {
             baseDomain = 'localhost';
         } else {
