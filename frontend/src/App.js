@@ -22,9 +22,20 @@ const SSOReceiver = () => {
             // Salto al dashboard limpiando la URL
             navigate('/dashboard', { replace: true });
         } else {
-            // Sin token → login
-            const host = window.location.hostname.split('.').slice(1).join('.');
-            window.location.href = `http://${host || 'localhost'}:${window.location.port}/login`;
+            // Sin token → login en el dominio base LIMPIO
+            const currentHost = window.location.hostname;
+            let baseDomain;
+            if (currentHost.endsWith('.nip.io')) {
+                const parts = currentHost.split('.');
+                baseDomain = parts.slice(1, -2).join('.');
+            } else if (currentHost.endsWith('.localhost')) {
+                baseDomain = 'localhost';
+            } else {
+                const parts = currentHost.split('.');
+                baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
+            }
+            const port = window.location.port ? `:${window.location.port}` : '';
+            window.location.href = `${window.location.protocol}//${baseDomain || 'localhost'}${port}/login`;
         }
     }, [navigate, location]);
 
@@ -46,8 +57,20 @@ const PrivateRoute = ({ children }) => {
 function App() {
     const handleLogout = () => {
         localStorage.clear();
-        // Redirige al MISMO host desde donde se accede, no a localhost
-        window.location.href = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/login`;
+        // Redirige al dominio base LIMPIO (sin subdominio tenant ni nip.io)
+        const currentHost = window.location.hostname;
+        let baseDomain;
+        if (currentHost.endsWith('.nip.io')) {
+            const parts = currentHost.split('.');
+            baseDomain = parts.slice(1, -2).join('.');
+        } else if (currentHost.endsWith('.localhost')) {
+            baseDomain = 'localhost';
+        } else {
+            const parts = currentHost.split('.');
+            baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
+        }
+        const port = window.location.port ? `:${window.location.port}` : '';
+        window.location.href = `${window.location.protocol}//${baseDomain}${port}/login`;
     };
 
     return (
