@@ -261,6 +261,93 @@ def seed_production_like():
     
     print("[OK] Ambiente de producción creado")
 
+def seed_procedural(num_tenants=100, num_users=5, num_products=100):
+    """Genera n tenants, cada uno con m usuarios y p productos proceduralmente"""
+    print(f"\n[+] Generando ambiente PROCEDURAL:")
+    print(f"    - {num_tenants} tenants")
+    print(f"    - {num_users} usuarios por tenant")
+    print(f"    - {num_products} productos por tenant")
+    
+    NOMBRES_USUARIOS = ["Juan", "Maria", "Carlos", "Ana", "Luis", "Elena", "Pedro", "Sofia", "Diego", "Laura", "Miguel", "Lucia", "Jorge", "Carmen", "Raul", "Paula", "Andres", "Marta", "Fernando", "Sara"]
+    APELLIDOS = ["Garcia", "Rodriguez", "Gonzalez", "Fernandez", "Lopez", "Martinez", "Sanchez", "Perez", "Gomez", "Martin", "Jimenez", "Ruiz", "Hernandez", "Diaz", "Moreno", "Alvarez", "Munoz", "Romero", "Alonso", "Gutierrez"]
+    ADJETIVOS_PROD = ["Premium", "Pro", "Max", "Ultra", "Basic", "Plus", "Gamer", "Smart", "Eco", "Classic", "Modern", "Advanced", "Elite", "Original", "Compact", "Lite"]
+    TIPOS_PROD = ["Laptop", "Monitor", "Teclado", "Mouse", "Cable", "Auriculares", "Silla", "Escritorio", "Webcam", "Microfono", "Funda", "Mochila", "Tablet", "Celular", "Reloj", "Impresora"]
+    CATEGORIAS = ["Electrónica", "Ropa", "Libros", "Hogar", "Deportes", "Juguetes", "Oficina", "Accesorios"]
+
+    # Evitamos colisiones de nombres añadiendo un sufijo
+    run_id = random.randint(100, 999)
+
+    for t in range(1, num_tenants + 1):
+        tenant_name = f"Procedural Corp {run_id}-{t}"
+        schema = f"proc_corp_{run_id}_{t}"
+        
+        tenant, created = Client.objects.get_or_create(
+            schema_name=schema,
+            defaults={'name': tenant_name}
+        )
+        
+        if created:
+            print(f"  [+] Tenant {t}/{num_tenants}: {tenant_name}")
+            Domain.objects.get_or_create(
+                domain=f'proc{run_id}-{t}.{DOMAIN_MAIN}',
+                defaults={'tenant': tenant}
+            )
+            
+            with tenant_context(tenant):
+                # Admin siempre disponible en este tenant
+                admin_email = f"admin@{schema}.com"
+                if not Usuario.objects.filter(email=admin_email).exists():
+                    Usuario.objects.create_user(
+                        email=admin_email,
+                        password='Password123!',
+                        first_name='Admin',
+                        last_name=tenant_name,
+                        is_staff=True,
+                        is_active=True,
+                        tenant=tenant
+                    )
+                
+                # Usuarios
+                for u in range(1, num_users + 1):
+                    email = f"user_{u}_{random.randint(1000,9999)}@{schema}.com"
+                    if not Usuario.objects.filter(email=email).exists():
+                        Usuario.objects.create_user(
+                            email=email,
+                            password='Password123!',
+                            first_name=random.choice(NOMBRES_USUARIOS),
+                            last_name=random.choice(APELLIDOS),
+                            is_active=True,
+                            tenant=tenant
+                        )
+                
+                # Productos
+                productos_creados = 0
+                for p in range(1, num_products + 1):
+                    tipo = random.choice(TIPOS_PROD)
+                    adj = random.choice(ADJETIVOS_PROD)
+                    nombre = f"{tipo} {adj} {random.randint(1, 9999)}"
+                    sku = f"PRC-{schema[-3:]}-{random.randint(1000,99999)}"
+                    if not Producto.objects.filter(sku=sku).exists():
+                        try:
+                            Producto.objects.create(
+                                nombre=nombre,
+                                sku=sku,
+                                descripcion=f"Descubra el increíble {nombre}. Generado proceduralmente con diseño {adj.lower()}.",
+                                precio=round(random.uniform(5.0, 2500.0), 2),
+                                categoria=random.choice(CATEGORIAS),
+                                stock=random.randint(0, 500),
+                                activo=random.choice([True, True, True, False]),
+                                imagen_url=f"https://picsum.photos/seed/{sku}/400/300"
+                            )
+                            productos_creados += 1
+                        except Exception:
+                            pass
+                print(f"      └─ {num_users} usuarios | {productos_creados} productos")
+        else:
+            print(f"  [i] Tenant ya existe: {tenant_name}")
+
+    print("[OK] Ambiente procedural completado")
+
 def show_seeds():
     """Muestra opciones de seeds disponibles"""
     print("\n" + "="*60)
@@ -270,6 +357,7 @@ def show_seeds():
     print("  1. Demo         - Tenant único de prueba")
     print("  2. Development  - 3 tenants con datos variados")
     print("  3. Production   - Empresas realistas con datos profesionales")
+    print("  4. Procedural   - N registros por tabla generados al azar")
     print("")
 
 def main():
@@ -288,6 +376,21 @@ def main():
         seed_development()
     elif cmd == '3' or cmd == 'prod':
         seed_production_like()
+    elif cmd == '4' or cmd == 'procedural':
+        try:
+            num_tenants = input("  ¿Cuántos tenants generar? (ej: 100): ").strip()
+            num_tenants = int(num_tenants) if num_tenants else 100
+            
+            num_users = input("  ¿Cuántos usuarios por cada tenant? (ej: 5): ").strip()
+            num_users = int(num_users) if num_users else 5
+            
+            num_products = input("  ¿Cuántos productos por cada tenant? (ej: 100): ").strip()
+            num_products = int(num_products) if num_products else 100
+        except ValueError:
+            print("  [WARN] Cantidad inválida ingresada. Cancelando.")
+            return
+
+        seed_procedural(num_tenants, num_users, num_products)
     elif cmd == 'list':
         show_seeds()
     else:
