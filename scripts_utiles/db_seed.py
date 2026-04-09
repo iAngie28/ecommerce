@@ -289,7 +289,7 @@ def seed_procedural(num_tenants=100, num_users=5, num_products=100):
         if created:
             print(f"  [+] Tenant {t}/{num_tenants}: {tenant_name}")
             Domain.objects.get_or_create(
-                domain=f'proc{run_id}-{t}.{DOMAIN_MAIN}',
+                domain=f'proc{run_id}a{t}.{DOMAIN_MAIN}',
                 defaults={'tenant': tenant}
             )
             

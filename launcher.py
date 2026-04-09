@@ -7,11 +7,11 @@
 # Uso: python launcher.py
 #
 # Características:
-#   ✓ Funciona en Windows, Linux y Mac
-#   ✓ Colores automáticos (sin dependencias externas)
-#   ✓ Animaciones de carga
-#   ✓ Soporte UTF-8 para acentos
-#   ✓ Activa entorno virtual automáticamente
+#   * Funciona en Windows, Linux y Mac
+#   * Colores automáticos (sin dependencias externas)
+#   * Animaciones de carga
+#   * Soporte UTF-8 para acentos
+#   * Activa entorno virtual automáticamente
 # ========================================================================
 
 import os
@@ -19,6 +19,7 @@ import sys
 import subprocess
 import time
 import platform
+import shutil
 from pathlib import Path
 
 # ========================================================================
@@ -49,11 +50,11 @@ class Colors:
     RESET = '\033[0m'
     
     # Símbolos
-    CHECK = '✓'
-    CROSS = '✗'
-    INFO = 'ℹ'
-    WARN = '⚠'
-    BULLET = '•'
+    CHECK = '[OK]'
+    CROSS = '[X]'
+    INFO = '[i]'
+    WARN = '[!]'
+    BULLET = '*'
 
 # ========================================================================
 # RUTAS
@@ -122,7 +123,7 @@ def print_header(text):
     """Imprime un encabezado"""
     print()
     print(f"{Colors.CYAN}{'='*70}{Colors.RESET}")
-    print(f"{Colors.CYAN}{Colors.BOLD}✦ {text}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{text}{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*70}{Colors.RESET}\n")
 
 def print_section(text):
@@ -205,6 +206,8 @@ def run_python_script(script_name, *args, use_venv=True):
     try:
         cmd = [python_exe, str(script_path)] + list(args)
         subprocess.run(cmd, env=current_env)
+    except KeyboardInterrupt:
+        print_warning("\nProceso cancelado por el usuario.")
     except Exception as e:
         print_error(f"Error ejecutando script: {e}")
     finally:
@@ -225,7 +228,7 @@ def pause():
 # INICIAR BACKEND Y FRONTEND
 # ========================================================================
 def start_backend():
-    """Inicia el servidor Django en /backend"""
+    """Inicia el servidor Django en /backend con máxima robustez"""
     global DJANGO_PORT
     ENV_CONFIG = load_env_manual()
     DJANGO_PORT = ENV_CONFIG.get('DJANGO_PORT', '8001')
@@ -244,76 +247,66 @@ def start_backend():
     else:
         venv_python = BACKEND_DIR / 'venv' / 'bin' / 'python'
     
-    # Si venv no existe, crearlo
+    # Si venv no existe, crearlo automáticamente
     if not venv_python.exists():
-        print_warning("Entorno virtual no encontrado, creando...")
+        print_warning("Entorno virtual no encontrado, intentando crear...")
         venv_path = BACKEND_DIR / 'venv'
         try:
             subprocess.run([sys.executable, '-m', 'venv', str(venv_path)], check=True)
-            print_success("Entorno virtual creado")
+            print_success("Entorno virtual creado exitosamente")
+            # Re-verificar ruta tras creación
+            if not venv_python.exists():
+                 print_error("Error crítico: El venv se creó pero no se encuentra el ejecutable.")
+                 pause()
+                 return
         except Exception as e:
-            print_error(f"Error creando venv: {e}")
+            print_error(f"Error fatal creando venv: {e}")
             pause()
             return
     
-    # Verificar que manage.py existe
+    # Verificar manage.py
     manage_py = BACKEND_DIR / 'manage.py'
     if not manage_py.exists():
         print_error(f"manage.py no encontrado en {BACKEND_DIR}")
         pause()
         return
     
-    print_success(f"Python venv: {venv_python}")
-    print_info(f"Iniciando Django en {BACKEND_DIR}...")
+    print_info(f"Usando: {venv_python}")
     print_info(f"URL: http://127.0.0.1:{DJANGO_PORT}")
     print_warning("Presiona CTRL+C para detener el servidor")
-    print()
+    print("-" * 70)
     
     try:
-        # Cambiar al directorio backend
         os.chdir(BACKEND_DIR)
-        # Ejecutar manage.py con el Python del venv
+        # Usamos subprocess.run directamente para heredar el terminal interactivo
         subprocess.run([str(venv_python), 'manage.py', 'runserver', DJANGO_PORT])
     except KeyboardInterrupt:
-        print_warning("\nServidor Django detenido")
+        print_warning("\nServidor Django detenido por el usuario")
     except Exception as e:
-        print_error(f"Error: {e}")
+        print_error(f"Error inesperado: {e}")
     finally:
+        os.chdir(PROJECT_ROOT)
         time.sleep(1)
 
 def find_npm():
-    """Busca npm en el sistema"""
-    # Primero, intentar npm directamente
-    try:
-        result = subprocess.run(['npm', '--version'], capture_output=True, check=True)
-        return 'npm'
-    except:
-        pass
+    """Busca npm en el PATH del sistema"""
+    npm_path = shutil.which('npm')
+    if npm_path:
+        return npm_path
     
-    # En Windows, buscar en rutas comunes
+    # Fallback para Windows si shutil.which falla en ciertos entornos
     if ES_WINDOWS:
         common_paths = [
             'C:\\Program Files\\nodejs\\npm.cmd',
             'C:\\Program Files (x86)\\nodejs\\npm.cmd',
-            Path.home() / 'AppData' / 'Local' / 'Programs' / 'nodejs' / 'npm.cmd',
         ]
-        
-        for npm_path in common_paths:
-            if Path(npm_path).exists():
-                return str(npm_path)
-    
-    # En Linux/Mac, buscar en PATH
-    else:
-        try:
-            result = subprocess.run(['which', 'npm'], capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except:
-            pass
-    
+        for path in common_paths:
+            if os.path.exists(path):
+                return path
     return None
 
 def start_frontend():
-    """Inicia el servidor React"""
+    """Inicia el servidor React con máxima robustez"""
     global REACT_PORT
     ENV_CONFIG = load_env_manual()
     REACT_PORT = ENV_CONFIG.get('REACT_PORT', '3000')
@@ -326,46 +319,39 @@ def start_frontend():
         pause()
         return
     
-    # Buscar npm
     npm_cmd = find_npm()
     if not npm_cmd:
-        print_error("npm no está instalado o no es accesible")
-        print_info("Soluciones:")
-        print(f"  1. Instala Node.js desde: {Colors.CYAN}https://nodejs.org/{Colors.RESET}")
-        print(f"  2. Reinicia tu terminal después de instalar")
-        print(f"  3. Verifica: {Colors.CYAN}node --version{Colors.RESET} y {Colors.CYAN}npm --version{Colors.RESET}")
+        print_error("npm no encontrado. Instala Node.js para continuar.")
         pause()
         return
     
-    print_success(f"npm encontrado en: {npm_cmd}")
-    
-    # Verificar si node_modules existe
+    # Verificar node_modules
     node_modules = FRONTEND_DIR / 'node_modules'
     if not node_modules.exists():
-        print_warning("node_modules no encontrado")
-        print_info("Instalando dependencias (npm install)...")
-        
+        print_warning("node_modules no encontrado, ejecutando 'npm install'...")
         try:
             os.chdir(FRONTEND_DIR)
-            subprocess.run([npm_cmd, 'install'], check=True)
-        except subprocess.CalledProcessError as e:
+            subprocess.run([npm_cmd, 'install'], check=True, shell=ES_WINDOWS)
+            print_success("Dependencias instaladas")
+        except Exception as e:
             print_error(f"Error instalando dependencias: {e}")
             pause()
             return
     
-    print_info(f"Iniciando React en {FRONTEND_DIR}...")
     print_info(f"URL: http://127.0.0.1:{REACT_PORT}")
     print_warning("Presiona CTRL+C para detener el servidor")
-    print()
+    print("-" * 70)
     
     try:
         os.chdir(FRONTEND_DIR)
-        subprocess.run([npm_cmd, 'start'])
+        # shell=ES_WINDOWS es vital para comandos .cmd/.bat en Windows
+        subprocess.run([npm_cmd, 'start'], shell=ES_WINDOWS)
     except KeyboardInterrupt:
-        print_warning("\nServidor React detenido")
+        print_warning("\nServidor React detenido por el usuario")
     except Exception as e:
         print_error(f"Error: {e}")
     finally:
+        os.chdir(PROJECT_ROOT)
         time.sleep(1)
 
 def start_all():
@@ -377,24 +363,32 @@ def start_all():
     clear_screen()
     print_header("INICIAR TODO (BACKEND + FRONTEND) - MODO DIRECTO")
     
-    # 1. Preparar comandos
+    # 1. Preparar y validar comandos
     if ES_WINDOWS:
         venv_python = BACKEND_DIR / 'venv' / 'Scripts' / 'python.exe'
         npm_cmd = find_npm()
     else:
         venv_python = BACKEND_DIR / 'venv' / 'bin' / 'python'
-        npm_cmd = 'npm'
+        npm_cmd = find_npm() or 'npm'
 
-    # Backend: USAR load-env.js si es necesario o confiar en que ya lo hace
-    # Frontend: SIEMPRE usar load-env.js (está en package.json)
-    
+    if not venv_python.exists():
+        print_error("Entorno virtual de Python no encontrado.")
+        print_info("Ejecuta la Opción 1 (Iniciar Backend) primero para generarlo.")
+        pause()
+        return
+
+    if not npm_cmd:
+        print_error("No se encontró npm / Node.js.")
+        print_info("Asegúrate de tener Node.js instalado y accesible en PATH.")
+        pause()
+        return
+
     print_info("Iniciando ambos servicios...")
     print_warning("Usa CTRL+C para detener ambos al mismo tiempo")
     print(f"{Colors.GRAY}{'-'*70}{Colors.RESET}")
 
     try:
         # Iniciamos el Backend
-        # Nota: Usamos shell=True en Windows para que reconozca los ejecutables en PATH
         backend_proc = subprocess.Popen(
             [str(venv_python), 'manage.py', 'runserver', DJANGO_PORT],
             cwd=str(BACKEND_DIR),
@@ -404,23 +398,26 @@ def start_all():
             bufsize=1
         )
 
-        # Iniciamos el Frontend
-        # En el package.json el start ya usa load-env.js
+        # Iniciamos el Frontend (shell=ES_WINDOWS soluciona errores de ejecución de .cmd en Windows)
         frontend_proc = subprocess.Popen(
             [npm_cmd, 'start'],
             cwd=str(FRONTEND_DIR),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1
+            bufsize=1,
+            shell=ES_WINDOWS
         )
 
         import threading
 
         def log_output(pipe, prefix, color):
-            for line in iter(pipe.readline, ''):
-                if line:
-                    print(f"{color}[{prefix}]{Colors.RESET} {line.strip()}")
+            try:
+                for line in iter(pipe.readline, ''):
+                    if line:
+                        print(f"{color}[{prefix}]{Colors.RESET} {line.strip()}")
+            except ValueError:
+                pass # Pipe closed
 
         # Hilos para leer logs
         t1 = threading.Thread(target=log_output, args=(backend_proc.stdout, "BACKEND", Colors.BLUE))
@@ -439,7 +436,7 @@ def start_all():
     except KeyboardInterrupt:
         print_warning("\nDeteniendo servicios...")
     finally:
-        # Asegurarse de cerrar procesos
+        # Asegurarse de cerrar procesos rápida y limpiamente
         try: backend_proc.terminate()
         except: pass
         try: frontend_proc.terminate()
@@ -460,50 +457,58 @@ def show_main_menu():
         print_section(f"Sistema Operativo: {SISTEMA_OPERATIVO}")
         print()
         
-        print_option(f"{Colors.GREEN}▶ 1{Colors.RESET} - Iniciar Backend (Django)")
-        print_option(f"{Colors.GREEN}▶ 2{Colors.RESET} - Iniciar Frontend (React)")
-        print_option(f"{Colors.BOLD}{Colors.GREEN}▶ A{Colors.RESET} - {Colors.BOLD}INICIAR TODO (Backend + Frontend){Colors.RESET}")
-        print_option(f"{Colors.YELLOW}▶ I{Colors.RESET} - Instalación Rápida (Plug & Play)")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Configuración")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Scripts Utiles")
-        print_option(f"{Colors.CYAN}5{Colors.RESET} - Configuración de Base de Datos")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Gestión de Datos")
-        print_option(f"{Colors.CYAN}7{Colors.RESET} - Consola de Pruebas")
-        print_option(f"{Colors.CYAN}8{Colors.RESET} - Servicios Nginx")
-        print_option(f"{Colors.CYAN}9{Colors.RESET} - Sistema")
-        print_option(f"{Colors.BLUE}10{Colors.RESET} - Información del Sistema")
-        print_option(f"{Colors.BLUE}11{Colors.RESET} - Ayuda")
+        print_section("EJECUCIÓN")
+        print_option(f"{Colors.GREEN}1{Colors.RESET} - Iniciar Backend (Django)")
+        print_option(f"{Colors.GREEN}2{Colors.RESET} - Iniciar Frontend (React)")
+        print_option(f"{Colors.BOLD}{Colors.GREEN}3{Colors.RESET} - {Colors.BOLD}INICIAR TODO (Backend + Frontend){Colors.RESET}")
+        
+        print_section("DATOS Y USUARIOS")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Gestión de Base de Datos y Usuarios")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Gestión de Usuarios (Acceso Rápido)")
+        
+        print_section("CONFIGURACIÓN Y SISTEMA")
+        print_option(f"{Colors.YELLOW}I{Colors.RESET} - Instalación Rápida (Plug & Play)")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Configuración de Entorno (.env)")
+        print_option(f"{Colors.CYAN}7{Colors.RESET} - Servicios Web (Nginx)")
+        print_option(f"{Colors.CYAN}8{Colors.RESET} - Mantenimiento del Sistema")
+        
+        print_section("DESARROLLO")
+        print_option(f"{Colors.BLUE}9{Colors.RESET} - Consola de Pruebas (Django Shell)")
+        print_option(f"{Colors.BLUE}10{Colors.RESET} - Todos los Scripts (Avanzado)")
+        print_option(f"{Colors.BLUE}11{Colors.RESET} - Información del Sistema")
+        print_option(f"{Colors.BLUE}12{Colors.RESET} - Ayuda General")
+        
         print_option(f"{Colors.RED}0{Colors.RESET} - Salir")
         print()
         
-        choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip()
+        choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
         
         if choice == '1':
             start_backend()
         elif choice == '2':
             start_frontend()
-        elif choice.lower() == 'a':
+        elif choice == '3' or choice == 'a':
             start_all()
-        elif choice.lower() == 'i':
+        elif choice == '4':
+            show_data_management_menu()
+        elif choice == '5':
+            show_users_menu()
+        elif choice == 'i':
             run_python_script('system_setup.py', use_venv=False) 
             pause()
-        elif choice == '3':
-            show_config_menu()
-        elif choice == '4':
-            show_scripts_menu()
-        elif choice == '5':
-            show_db_config_menu()
         elif choice == '6':
-            show_data_menu()
+            show_config_menu()
         elif choice == '7':
-            show_test_shell()
-        elif choice == '8':
             show_nginx_menu()
-        elif choice == '9':
+        elif choice == '8':
             show_system_menu()
+        elif choice == '9':
+            show_test_shell()
         elif choice == '10':
-            show_system_info()
+            show_scripts_menu()
         elif choice == '11':
+            show_system_info()
+        elif choice == '12':
             show_help()
         elif choice == '0':
             print_info("¡Adiós!")
@@ -524,6 +529,7 @@ def show_config_menu():
         
         print_section("Proyecto")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Ver info del proyecto")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Configuración avanzada (project_config.py)")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
@@ -558,6 +564,9 @@ def show_config_menu():
             print(f"  Backend: {BACKEND_DIR}")
             print(f"  Frontend: {FRONTEND_DIR}")
             print(f"  Scripts: {SCRIPTS_DIR}")
+            pause()
+        elif choice == '4':
+            run_python_script('project_config.py')
             pause()
         elif choice == 'b':
             break
@@ -598,42 +607,55 @@ def show_scripts_menu():
             print_error("Opción inválida")
             time.sleep(1)
 
-def show_db_config_menu():
-    """Menú de configuración de BD"""
+def show_data_management_menu():
+    """Menú unificado de Base de Datos y Gestión de Datos"""
     while True:
         clear_screen()
-        print_header("CONFIGURACIÓN DE BASE DE DATOS")
+        print_header("GESTIÓN DE BASE DE DATOS Y DATOS")
         
-        print_option(f"{Colors.CYAN}1{Colors.RESET} - Ver configuración actual")
-        print_option(f"{Colors.CYAN}2{Colors.RESET} - Configuración básica (presets)")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Configuración avanzada")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Configurar un campo")
-        print_option(f"{Colors.CYAN}5{Colors.RESET} - Ver presets disponibles")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Probar conexión")
-        print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
+        print_section("Configuración")
+        print_option(f"{Colors.CYAN}1{Colors.RESET} - Configurar Conexión (db_config.py)")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - Probar Conexión")
+        
+        print_section("Estructura y Migraciones")
+        print_option(f"{Colors.BLUE}3{Colors.RESET} - Hacer Migraciones (makemigrations + migrate)")
+        print_option(f"{Colors.BLUE}4{Colors.RESET} - Ver historial de Migraciones")
+        
+        print_section("Contenido y Usuarios")
+        print_option(f"{Colors.YELLOW}5{Colors.RESET} - Gestión de Usuarios (CRUD Completo)")
+        print_option(f"{Colors.YELLOW}6{Colors.RESET} - Ejecutar Seeders (Poblar con datos de prueba)")
+        
+        print_section("Limpieza y Reset (CUIDADO)")
+        print_option(f"{Colors.RED}7{Colors.RESET} - Resetear BD Completa (Borra todo y recrea estructura)")
+        
+        print_option(f"{Colors.RED}b{Colors.RESET} - Volver al Menú Principal")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
         
         if choice == '1':
-            loading_animation(1, "Cargando configuración")
             run_python_script('db_config.py')
             pause()
         elif choice == '2':
-            run_python_script('db_config.py', 'basic')
+            run_python_script('db_config.py', 'test')
             pause()
         elif choice == '3':
-            run_python_script('db_config.py', 'advanced')
+            print_info("Procesando migraciones...")
+            run_python_script('migrations.py', 'make')
+            run_python_script('migrations.py', 'migrate')
             pause()
         elif choice == '4':
-            run_python_script('db_config.py', 'field')
+            run_python_script('migrations.py', 'show')
             pause()
         elif choice == '5':
-            run_python_script('db_config.py', 'presets')
-            pause()
+            show_users_menu()
         elif choice == '6':
-            loading_animation(1, "Probando conexión")
-            run_python_script('db_config.py', 'test')
+            run_python_script('db_seed.py')
+            pause()
+        elif choice == '7':
+            confirm = input(f"{Colors.RED}¿ESTÁS SEGURO? Esto borrará todos los datos. (s/n): {Colors.RESET}").lower()
+            if confirm == 's':
+                run_python_script('db_reset.py', 'all')
             pause()
         elif choice == 'b':
             break
@@ -641,60 +663,50 @@ def show_db_config_menu():
             print_error("Opción inválida")
             time.sleep(1)
 
-def show_data_menu():
-    """Menú de gestión de datos"""
+# El menu original de data se ha integrado en show_data_management_menu
+
+def show_users_menu():
+    """Menú dedicado a la gestión de usuarios"""
     while True:
         clear_screen()
-        print_header("GESTIÓN DE DATOS")
+        print_header("GESTIÓN DE USUARIOS")
         
-        print_section("Resetear")
-        print_option(f"{Colors.RED}1{Colors.RESET} - Resetear BD completa (Estructura + Datos)")
-        print_option(f"{Colors.RED}2{Colors.RESET} - Resetear y crear superusuario")
+        print_section("Operaciones Básicas (CRUD)")
+        print_option(f"{Colors.YELLOW}1{Colors.RESET} - Crear nuevo usuario")
+        print_option(f"{Colors.YELLOW}2{Colors.RESET} - Listar usuarios")
+        print_option(f"{Colors.YELLOW}3{Colors.RESET} - Editar usuario (Contraseña, Nombre, Permisos)")
+        print_option(f"{Colors.YELLOW}4{Colors.RESET} - Eliminar usuario")
         
-        print_section("Seeders")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Ejecutar seeders (Populado de prueba)")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Ver datos actuales")
-        
-        print_section("Usuarios")
-        print_option(f"{Colors.YELLOW}5{Colors.RESET} - Crear usuario")
-        print_option(f"{Colors.YELLOW}6{Colors.RESET} - Listar usuarios")
-        print_option(f"{Colors.YELLOW}7{Colors.RESET} - Eliminar usuario")
-        
-        print_section("Migraciones")
-        print_option(f"{Colors.BLUE}8{Colors.RESET} - Hacer migraciones (makemigrations + migrate)")
-        print_option(f"{Colors.BLUE}9{Colors.RESET} - Ver historial migraciones")
+        print_section("Estado y Control de Acceso")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Ver estado (Activo/Inactivo)")
+        print_option(f"{Colors.GREEN}6{Colors.RESET} - Activar usuario")
+        print_option(f"{Colors.RED}7{Colors.RESET} - Desactivar usuario")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
         
-        if choice == '1' or choice == '2':
-            run_python_script('db_reset.py', 'all')
-            pause()
-        elif choice == '3':
-            run_python_script('db_seed.py')
-            pause()
-        elif choice == '4':
-            run_python_script('manage_users.py', 'list')
-            pause()
-        elif choice == '5':
+        if choice == '1':
             run_python_script('manage_users.py', 'create')
             pause()
-        elif choice == '6':
+        elif choice == '2':
             run_python_script('manage_users.py', 'list')
             pause()
-        elif choice == '7':
+        elif choice == '3':
+            run_python_script('manage_users.py', 'edit')
+            pause()
+        elif choice == '4':
             run_python_script('manage_users.py', 'delete')
             pause()
-        elif choice == '8':
-            print_info("Generando nuevas migraciones...")
-            run_python_script('migrations.py', 'make')
-            print_info("Aplicando migraciones...")
-            run_python_script('migrations.py', 'migrate')
+        elif choice == '5':
+            run_python_script('manage_users.py', 'status')
             pause()
-        elif choice == '9':
-            run_python_script('migrations.py', 'show')
+        elif choice == '6':
+            run_python_script('manage_users.py', 'activate')
+            pause()
+        elif choice == '7':
+            run_python_script('manage_users.py', 'disable')
             pause()
         elif choice == 'b':
             break
@@ -719,14 +731,11 @@ def show_nginx_menu():
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Crear servicio Django")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Crear servicio Frontend (React)")
         
-        print_section(f"{Colors.CHECK} Gestión")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Ver estado de servicios")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Ver logs")
-        print_option(f"{Colors.CYAN}5{Colors.RESET} - Recargar Nginx")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Reiniciar servicio")
+        print_section(f"Dominios")
+        print_option(f"{Colors.CYAN}7{Colors.RESET} - Ver dominios activos (query_domains.py)")
         
-        print_section(f"{Colors.CROSS} Eliminar")
-        print_option(f"{Colors.RED}7{Colors.RESET} - Eliminar servicio")
+        print_section(f"Peligro")
+        print_option(f"{Colors.RED}8{Colors.RESET} - Eliminar servicio")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
@@ -755,6 +764,9 @@ def show_nginx_menu():
             run_python_script('nginx_config.py', 'restart')
             pause()
         elif choice == '7':
+            run_python_script('query_domains.py')
+            pause()
+        elif choice == '8':
             run_python_script('nginx_config.py', 'delete-service')
             pause()
         elif choice == 'b':
@@ -769,17 +781,8 @@ def show_system_menu():
         clear_screen()
         print_header("GESTIÓN DE SISTEMA")
         
-        print_section("Actualizar Dependencias")
-        print_option(f"{Colors.GREEN}1{Colors.RESET} - Actualizar Django (pip)")
-        print_option(f"{Colors.GREEN}2{Colors.RESET} - Actualizar npm")
-        print_option(f"{Colors.GREEN}3{Colors.RESET} - Actualizar sistema (apt)")
-        
-        print_section("Secretos y Seguridad (se guardan en .env)")
-        print_option(f"{Colors.YELLOW}4{Colors.RESET} - Generar secrets (Django, JWT, API, etc)")
-        
-        print_section("Mantenimiento (REQUIERE ROOT en Linux)")
-        print_option(f"{Colors.RED}5{Colors.RESET} - Resetear sistema seguro (SIN JODER VPS)")
-        print_option(f"{Colors.YELLOW}6{Colors.RESET} - Verificar salud del sistema")
+        print_section("Gestión de VPS (Avanzado)")
+        print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Menú de control VPS (vps.py)")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
@@ -807,6 +810,9 @@ def show_system_menu():
         elif choice == '6':
             run_python_script('system_manager.py', 'health-check')
             pause()
+        elif choice == '7':
+            run_python_script('vps.py')
+            pause()
         elif choice == 'b':
             break
         else:
@@ -827,21 +833,31 @@ def show_system_info():
     
     print(f"\n{Colors.BOLD}Proyecto:{Colors.RESET}")
     print(f"  Ruta: {PROJECT_ROOT}")
-    print(f"  Backend: {BACKEND_DIR} {'✓' if BACKEND_DIR.exists() else '✗'}")
-    print(f"  Frontend: {FRONTEND_DIR} {'✓' if FRONTEND_DIR.exists() else '✗'}")
+    print(f"  Backend: {BACKEND_DIR} {'[OK]' if BACKEND_DIR.exists() else '[X]'}")
+    print(f"  Frontend: {FRONTEND_DIR} {'[OK]' if FRONTEND_DIR.exists() else '[X]'}")
     
     print(f"\n{Colors.BOLD}Node.js:{Colors.RESET}")
-    try:
-        result = subprocess.run(['node', '--version'], capture_output=True, text=True)
-        print(f"  {result.stdout.strip()}")
-    except:
+    node_exe = shutil.which('node')
+    if node_exe:
+        try:
+            result = subprocess.run([node_exe, '--version'], capture_output=True, text=True)
+            print(f"  Version: {result.stdout.strip()}")
+            print(f"  Path: {node_exe}")
+        except:
+            print("  Instalado (Error al obtener version)")
+    else:
         print("  No instalado")
     
     print(f"\n{Colors.BOLD}PostgreSQL:{Colors.RESET}")
-    try:
-        result = subprocess.run(['psql', '--version'], capture_output=True, text=True)
-        print(f"  {result.stdout.strip()}")
-    except:
+    psql_exe = shutil.which('psql')
+    if psql_exe:
+        try:
+            result = subprocess.run([psql_exe, '--version'], capture_output=True, text=True)
+            print(f"  Version: {result.stdout.strip()}")
+            print(f"  Path: {psql_exe}")
+        except:
+            print("  Instalado (Error al obtener version)")
+    else:
         print("  No instalado")
     
     pause()
@@ -855,13 +871,13 @@ def show_help():
     print("  Lanzador universal multiplataforma para gestionar desarrollo")
     
     print(f"\n{Colors.BOLD}Funcionalidades:{Colors.RESET}")
-    print(f"  {Colors.CHECK} Configuración de base de datos con presets")
+    print(f"  {Colors.CHECK} Configuracion de base de datos con presets")
     print(f"  {Colors.CHECK} Gestor de datos y usuarios")
-    print(f"  {Colors.CHECK} Gestión de servicios Nginx (Django, React)")
-    print(f"  {Colors.CHECK} Actualización de dependencias")
+    print(f"  {Colors.CHECK} Gestion de servicios Nginx (Django, React)")
+    print(f"  {Colors.CHECK} Actualizacion de dependencias")
     print(f"  {Colors.CHECK} Generador de secrets seguro")
     print(f"  {Colors.CHECK} Reset seguro de sistema (sin joder VPS)")
-    print(f"  {Colors.CHECK} Verificación de salud del sistema")
+    print(f"  {Colors.CHECK} Verificacion de salud del sistema")
     
     print(f"\n{Colors.BOLD}Requisitos:{Colors.RESET}")
     print("  - Python 3.8+")

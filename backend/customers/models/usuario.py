@@ -40,3 +40,30 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    # --- Métodos extra requeridos para la gestión ---
+
+    def status(self):
+        """Retorna True si está activo, False si está desactivado"""
+        return self.is_active
+
+    def activate(self):
+        """Activa el usuario"""
+        self.is_active = True
+        self.save(update_fields=['is_active'])
+
+    def disable(self):
+        """Desactiva el usuario"""
+        self.is_active = False
+        self.save(update_fields=['is_active'])
+
+    @classmethod
+    def mod(cls, id, **datos):
+        """Modifica datos de un usuario identificándolo por id"""
+        usuario = cls.objects.get(id=id)
+        for key, value in datos.items():
+            setattr(usuario, key, value)
+        if 'password' in datos:
+            usuario.set_password(datos['password'])
+        usuario.save()
+        return usuario

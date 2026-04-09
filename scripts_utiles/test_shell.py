@@ -8,7 +8,16 @@
 import os
 import sys
 import code
-import readline
+try:
+    import readline
+    import rlcompleter
+    if 'libedit' in readline.__doc__:
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
+except ImportError:
+    # Readline no esta disponible en Windows por defecto
+    pass
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -19,6 +28,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 import django
 django.setup()
+
+from django_tenants.utils import schema_context
+from django.db import connection
 
 # Importar modelos y utilidades
 from customers.models import Client, Usuario, Domain
@@ -109,9 +121,13 @@ def setup_inicial():
     user1 = crear_usuario_test("usuario1@test.local")
     user2 = crear_usuario_test("usuario2@test.local")
     
-    # Crear productos
-    print("\n[+] Creando productos...")
-    productos = crear_productos_test(15)
+    # Crear productos y asignar contexto de tenant
+    print("\n[+] Configurando esquema del tenant...")
+    connection.set_tenant(tenant)
+    
+    with schema_context(tenant.schema_name):
+        print("\n[+] Creando productos...")
+        productos = crear_productos_test(15)
     
     print("\n" + "="*70)
     print("VARIABLES DISPONIBLES:")
@@ -182,7 +198,7 @@ def listar_usuarios(activos_solo=False):
     print(f"\n{'Email':<30} {'Nombre':<25} {'Admin'}")
     print("-" * 60)
     for u in query[:10]:
-        print(f"{u.email:<30} {u.first_name} {u.last_name:<15} {'✓' if u.is_superuser else ''}")
+        print(f"{u.email:<30} {u.first_name} {u.last_name:<15} {'Si' if u.is_superuser else ''}")
     if query.count() > 10:
         print(f"...y {query.count() - 10} más")
     return query

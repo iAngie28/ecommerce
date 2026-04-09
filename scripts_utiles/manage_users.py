@@ -267,6 +267,48 @@ def bulk_create_test_users():
     print(f"\n[OK] {created} usuarios creados")
     print(f"[i] Contraseña para todos: {base_password}\n")
 
+def status_user():
+    """Consulta el estado del usuario """
+    print("\n" + "="*60)
+    print("CONSULTAR ESTADO DE USUARIO")
+    print("="*60)
+    email = input("\nEmail del usuario: ").strip()
+    try:
+        user = Usuario.objects.get(email=email)
+        # Usa el método status() que construimos en el modelo
+        estado = user.status()
+        print(f"\n[OK] El usuario {user.email} se encuentra: {'Activo' if estado else 'Inactivo'}\n")
+    except Usuario.DoesNotExist:
+        print("[ERROR] Usuario no encontrado\n")
+
+def activate_user():
+    """Activa el usuario"""
+    print("\n" + "="*60)
+    print("ACTIVAR USUARIO")
+    print("="*60)
+    email = input("\nEmail del usuario: ").strip()
+    try:
+        user = Usuario.objects.get(email=email)
+        # Usa el método activate() que construimos en el modelo
+        user.activate()
+        print(f"\n[OK] El usuario {user.email} ha sido activado exitosamente\n")
+    except Usuario.DoesNotExist:
+        print("[ERROR] Usuario no encontrado\n")
+
+def disable_user():
+    """Desactiva el usuario"""
+    print("\n" + "="*60)
+    print("DESACTIVAR USUARIO")
+    print("="*60)
+    email = input("\nEmail del usuario: ").strip()
+    try:
+        user = Usuario.objects.get(email=email)
+        # Usa el método disable() que construimos en el modelo
+        user.disable()
+        print(f"\n[OK] El usuario {user.email} ha sido desactivado exitosamente\n")
+    except Usuario.DoesNotExist:
+        print("[ERROR] Usuario no encontrado\n")
+
 def main():
     if len(sys.argv) < 2:
         print("Uso: python manage_users.py [comando]")
@@ -277,6 +319,9 @@ def main():
         print("  delete      - Eliminar usuario")
         print("  reset       - Reiniciar contraseña")
         print("  bulk-create - Crear múltiples usuarios de prueba")
+        print("  status      - Ver estado (activo/inactivo)")
+        print("  activate    - Activar usuario")
+        print("  disable     - Desactivar usuario")
         sys.exit(1)
     
     cmd = sys.argv[1]
@@ -293,6 +338,12 @@ def main():
         reset_password()
     elif cmd == 'bulk-create':
         bulk_create_test_users()
+    elif cmd == 'status':
+        status_user()
+    elif cmd == 'activate':
+        activate_user()
+    elif cmd == 'disable':
+        disable_user()
     else:
         print(f"[ERROR] Comando desconocido: {cmd}")
         sys.exit(1)
