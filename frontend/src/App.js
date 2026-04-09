@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import Home from './components/Home';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 // 1. LA ADUANA: Recibe el token que viene desde localhost y lo guarda en cliente1.localhost
 const SSOReceiver = () => {
@@ -81,6 +83,8 @@ function App() {
                 <Route path="/" element={<Home />} />
                 {/* Ruta de Login Global */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
                 
                 {/* NUEVA RUTA: El puente de sincronización */}
                 <Route path="/sso" element={<SSOReceiver />} />
