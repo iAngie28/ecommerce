@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-
+import ListaTiendas from "./components/ListaTiendas";
 import Home from './components/Home';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
-
+import CrearTienda from "./components/CrearTienda";
 // 1. LA ADUANA: Recibe el token que viene desde localhost y lo guarda en cliente1.localhost
 const SSOReceiver = () => {
     const navigate = useNavigate();
@@ -92,6 +92,11 @@ function App() {
                     </PrivateRoute>
                 } />
 
+
+
+                <Route path="/tiendas" element={<ListaTiendas />} />
+
+                <Route path="/crear-tienda" element={<CrearTienda />} />
                 <Route path="*" element={<Navigate to="/login" />} />
             </Routes>
         </Router>
