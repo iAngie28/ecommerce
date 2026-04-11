@@ -818,10 +818,10 @@ def show_system_menu():
     """Menú de sistema"""
     while True:
         clear_screen()
-        print_header("GESTIÓN DE SISTEMA")
-        
-        print_section("Gestión de VPS (Avanzado)")
-        print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Menú de control VPS (vps.py)")
+        print_section("Actualización de Dependencias")
+        print_option(f"{Colors.CYAN}1{Colors.RESET} - Actualizar Django (pip install)")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - Reinstalación limpia de Frontend (npm install)")
+        print_option(f"{Colors.CYAN}3{Colors.RESET} - Actualizar Sistema Operativo (apt)")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
