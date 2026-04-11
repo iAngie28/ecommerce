@@ -63,11 +63,28 @@ if ENVIRONMENT == 'development':
     # Agregar hosts adicionales del .env
     ALLOWED_HOSTS.extend(additional_hosts)
     
-    # En desarrollo permitimos todos los orígenes
+    # En desarrollo permitimos todos los orígenes y subdominios
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
     
-    # No necesitamos CORS_ALLOWED_ORIGINS estricto ya que CORS_ALLOW_ALL_ORIGINS = True
+    # Soportar específicamente subdominios dinámicos en el puerto 3000 (React)
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://.*\.localhost:3000$",
+        r"^http://localhost:3000$",
+    ]
+
+    # Permitir cabeceras comunes y necesarias
+    CORS_ALLOW_HEADERS = [
+        "accept",
+        "accept-encoding",
+        "authorization",
+        "content-type",
+        "dnt",
+        "origin",
+        "user-agent",
+        "x-csrftoken",
+        "x-requested-with",
+    ]
     
 elif ENVIRONMENT == 'production':
     ALLOWED_HOSTS = config(
