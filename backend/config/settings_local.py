@@ -12,6 +12,9 @@ from pathlib import Path
 from decouple import config
 from dotenv import load_dotenv
 
+# Forzar encoding UTF-8 para evitar errores de decodificación en Windows con locales en español
+os.environ['PGCLIENTENCODING'] = 'UTF-8'
+
 # BASE_DIR es backend/, PROJECT_ROOT es el raíz del proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -99,6 +102,9 @@ DATABASES = {
         'PASSWORD': config('DATABASE_PASSWORD', default='adm123'),
         'HOST': config('DATABASE_HOST', default='127.0.0.1'),
         'PORT': config('DATABASE_PORT', default='5432'),
+        'OPTIONS': {
+            'options': '-c lc_messages=en_US.UTF-8'
+        }
     }
 }
 
