@@ -227,9 +227,7 @@ WorkingDirectory={project_path}/frontend
 Environment="PATH={project_path}/frontend/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 Environment="PORT={react_port}"
 Environment="HOST=0.0.0.0"
-Environment="WDS_SOCKET_PORT=0"
-Environment="WDS_SOCKET_HOST=0.0.0.0"
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/npx serve -s build -l {react_port}
 Restart=on-failure
 RestartSec=5s
 StandardOutput=append:/var/log/frontend_saas.log
