@@ -3,7 +3,7 @@ import './Login.css';
 import { User, KeySquare, Box } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-
+import { getBaseDomain } from '../utils/domain';
 
 function Login() {
     const [user, setUser] = useState('');
@@ -22,26 +22,14 @@ function Login() {
             // Extraemos el subdominio del API (ej: empresa1.localhost) o intentamos adivinarlo
             let tenantHost = subdomain || (schema_name ? `${schema_name.replace('_', '')}.localhost` : null);
 
-            // Si el usuario está accediendo a través de la IP directa del VPS (ej: 157.173.102.129)
-            // o a través de un dominio nip.io (ej: 157.173.102.129.nip.io tras un logout),
-            // los dominios '.localhost' fallarán. Usamos nip.io automáticamente.
             if (tenantHost && typeof window !== 'undefined') {
                 const currentHostname = window.location.hostname;
-                
-                // Extraer la IP real del hostname actual
-                let realIP = currentHostname;
-                if (currentHostname.endsWith('.nip.io')) {
-                    // Estamos en algo como: 157.173.102.129.nip.io o empresa1.157.173.102.129.nip.io
-                    // Extraer solo los segmentos numéricos (la IP) quitando nip.io y prefijos de texto
-                    const parts = currentHostname.split('.');
-                    const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
-                    realIP = ipParts.join('.');
-                }
+                const baseDomain = getBaseDomain(currentHostname);
                 
                 // Si la IP real es una IP pública y el tenantHost es .localhost, convertir a nip.io
-                if (/^[0-9.]+$/.test(realIP) && realIP !== '127.0.0.1' && tenantHost.endsWith('.localhost')) {
+                if (baseDomain && baseDomain !== '127.0.0.1' && tenantHost.endsWith('.localhost')) {
                     const slug = tenantHost.replace('.localhost', '');
-                    tenantHost = `${slug}.${realIP}.nip.io`;
+                    tenantHost = `${slug}.${baseDomain}.nip.io`;
                 }
             }
 

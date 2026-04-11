@@ -9,11 +9,12 @@ import {
   Plus,
   Search,
   Bell,
-  AlertCircle // Añadido para mostrar errores
+  AlertCircle 
 } from 'lucide-react';
 import { TenantContext } from '../contexts/TenantContext';
 import api from '../services/api'; // Tu servicio de API
 import './Dashboard.css';
+import { getBaseDomain, getApiUrl } from '../utils/domain';
 
 const Dashboard = () => {
   // 1. ESTADOS Y CONTEXTO
@@ -46,24 +47,9 @@ const Dashboard = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
 
-        // 3. Detectar el dominio base LIMPIO (sin subdominio tenant)
+        // 3. Detectar el dominio base LIMPIO usando la utilidad
         const currentHost = window.location.hostname;
-        let baseDomain;
-
-        if (currentHost.endsWith('.nip.io')) {
-            // Estamos en algo como: cliente1.157.173.102.129.nip.io o 157.173.102.129.nip.io
-            // Extraer solo los números (la IP)
-            const parts = currentHost.split('.');
-            const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
-            baseDomain = ipParts.join('.');
-        } else if (currentHost.endsWith('.localhost')) {
-            // Estamos en algo como: cliente1.localhost
-            baseDomain = 'localhost';
-        } else {
-            // Dominio real (ej: cliente1.miqhatu.com) → miqhatu.com
-            const parts = currentHost.split('.');
-            baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
-        }
+        const baseDomain = getBaseDomain(currentHost);
 
         // 4. Redirección final al login LIMPIO sin subdominios
         const port = window.location.port ? `:${window.location.port}` : '';
