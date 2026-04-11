@@ -26,7 +26,7 @@ function Home() {
                         <a href="#features">Características</a>
                         <a href="#pricing">Precios</a>
                         <Link to="/login" className="btn-login-nav">Iniciar Sesión</Link>
-                        <Link to="/register" className="btn-register-nav">Registrarse</Link>
+                        <Link to="/crear-tienda" className="btn-register-nav">Registrarse</Link>
                     </div>
                 </nav>
 
@@ -39,7 +39,7 @@ function Home() {
                     <p>Crea tu tienda online en minutos. Usa nuestro Carrito Inteligente con recomendaciones personalizadas y predice tus ventas futuras mediante Inteligencia Artificial</p>
 
                     <div className="hero-btns">
-                        <button className="btn-primary">Empezar Gratis</button>
+                        <Link to="/crear-tienda" className="btn-primary">Empezar Gratis</Link>
                         <button className="btn-secondary">Ver Demostración</button>
                     </div>
                 </div>

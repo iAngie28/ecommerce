@@ -110,7 +110,7 @@ function Login() {
                         </button>
                     </form>
                     <p className="footer-text">
-                        ¿No tienes cuenta? <a href="#">Registrarte aquí</a>
+                        ¿No tienes cuenta? <Link to="/crear-tienda">Registrarte aquí</Link>
                     </p>
                 </div>
 

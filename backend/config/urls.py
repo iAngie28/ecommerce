@@ -3,11 +3,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from app_negocio.views.producto_views import ProductoViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
-
-# IMPORTANTE: Importamos tu vista personalizada que usa el nuevo serializador
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView, UsuarioCrudViewSet,
-    PasswordResetRequestView, PasswordResetConfirmView
+    PasswordResetRequestView, PasswordResetConfirmView,
+    TenantListView, TenantCreateView
 )
 
 # 1. Configuramos el enrutador de la API
@@ -28,4 +27,8 @@ urlpatterns = [
 
     # 3. Incluimos las rutas de nuestra API de negocio (Productos)
     path('api/', include(router.urls)),
+
+
+    path('api/tiendas/', TenantListView.as_view()),
+    path('api/tiendas/crear/', TenantCreateView.as_view()),
 ]

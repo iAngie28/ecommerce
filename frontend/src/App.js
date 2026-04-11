@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-
+import ListaTiendas from "./components/ListaTiendas";
 import Home from './components/Home';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import CrearTienda from "./components/CrearTienda";
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 
@@ -96,6 +97,11 @@ function App() {
                     </PrivateRoute>
                 } />
 
+
+
+                <Route path="/tiendas" element={<ListaTiendas />} />
+
+                <Route path="/crear-tienda" element={<CrearTienda />} />
                 <Route path="*" element={<Navigate to="/login" />} />
             </Routes>
         </Router>
