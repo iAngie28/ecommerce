@@ -818,10 +818,19 @@ def show_system_menu():
     """Menú de sistema"""
     while True:
         clear_screen()
-        print_section("Actualización de Dependencias")
+        print_header("GESTIÓN DE SISTEMA Y MANTENIMIENTO")
+        
+        print_section("Actualización")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Actualizar Django (pip install)")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Reinstalación limpia de Frontend (npm install)")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Actualizar Sistema Operativo (apt)")
+        
+        print_section("Seguridad y VPS")
+        print_option(f"{Colors.MAGENTA}V{Colors.RESET} - PANEL DE CONTROL VPS (Super Toolbox)")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Generar Secrets (JWT/Django)")
+        
+        print_section("Estado")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Salud del Sistema")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
@@ -840,17 +849,67 @@ def show_system_menu():
             loading_animation(3, "Actualizando")
             run_python_script('system_manager.py', 'update-system')
             pause()
+        elif choice == 'v':
+            show_vps_control_menu()
         elif choice == '4':
             run_python_script('system_manager.py', 'generate-secrets')
-            pause()
-        elif choice == '5':
-            run_python_script('system_manager.py', 'reset-system')
             pause()
         elif choice == '6':
             run_python_script('system_manager.py', 'health-check')
             pause()
-        elif choice == '7':
-            run_python_script('vps.py')
+        elif choice == 'b':
+            break
+        else:
+            print_error("Opción inválida")
+            time.sleep(1)
+
+def show_vps_control_menu():
+    """Menú de Control Avanzado de VPS"""
+    while True:
+        clear_screen()
+        print_header("PANEL DE CONTROL VPS (M_QHT TOOLBOX)")
+        
+        print_section("Resiliencia y Monitoreo")
+        print_option(f"{Colors.GREEN}1{Colors.RESET} - Estado y Auto-Healing (Reparar si algo cayó)")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - Auditoría de Firewall (UFW)")
+        print_option(f"{Colors.CYAN}3{Colors.RESET} - Prueba de Renovación SSL (Certbot)")
+        
+        print_section("Respaldos Internos (Proprietary MQHT)")
+        print_option(f"{Colors.BOLD}{Colors.YELLOW}S{Colors.RESET} - Crear SNAPSHOT Interno (Guardar en BD)")
+        print_option(f"{Colors.BOLD}{Colors.YELLOW}R{Colors.RESET} - Restaurar desde SNAPSHOT")
+        
+        print_section("Mantenimiento")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Limpieza de Sistema (Logs >100MB y Caché)")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Crear Usuario de Sistema")
+        
+        print_option(f"{Colors.RED}b{Colors.RESET} - Volver al menú anterior")
+        print()
+        
+        choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
+        
+        if choice == '1':
+            run_python_script('vps.py', 'services', 'AUTOHEAL')
+            pause()
+        elif choice == '2':
+            run_python_script('vps.py', 'security', 'FW')
+            pause()
+        elif choice == '3':
+            run_python_script('vps.py', 'ssl', 'RENEW')
+            pause()
+        elif choice == 's':
+            name = input("Nombre del snapshot (ej. Pre-Update): ").strip()
+            run_python_script('vps.py', 'backup', 'SNAPSHOT', name)
+            pause()
+        elif choice == 'r':
+            run_python_script('vps.py', 'backup', 'RESTORE')
+            pause()
+        elif choice == '4':
+            run_python_script('vps.py', 'system', 'CLEAN')
+            pause()
+        elif choice == '5':
+            user = input("Nombre de usuario: ")
+            pw = input("Contraseña: ")
+            run_python_script('vps.py', 'user', 'CREATE', user, pw)
             pause()
         elif choice == 'b':
             break

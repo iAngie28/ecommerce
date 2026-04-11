@@ -31,20 +31,20 @@ class Colors:
 
 def print_header(text):
     print(f"\n{Colors.CYAN}{'='*70}{Colors.ENDC}")
-    print(f"{Colors.CYAN}{Colors.BOLD}✦ {text}{Colors.ENDC}")
+    print(f"{Colors.CYAN}{Colors.BOLD}* {text}{Colors.ENDC}")
     print(f"{Colors.CYAN}{'='*70}{Colors.ENDC}\n")
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓{Colors.ENDC} {text}")
+    print(f"{Colors.GREEN}[OK]{Colors.ENDC} {text}")
 
 def print_error(text):
-    print(f"{Colors.RED}✗{Colors.ENDC} {text}")
+    print(f"{Colors.RED}[ERROR]{Colors.ENDC} {text}")
 
 def print_info(text):
-    print(f"{Colors.CYAN}ℹ{Colors.ENDC} {text}")
+    print(f"{Colors.CYAN}[INFO]{Colors.ENDC} {text}")
 
 def print_warning(text):
-    print(f"{Colors.YELLOW}⚠{Colors.ENDC} {text}")
+    print(f"{Colors.YELLOW}[WARN]{Colors.ENDC} {text}")
 
 # ========================================================================
 # ACTUALIZAR DEPENDENCIAS
@@ -108,19 +108,34 @@ def update_npm():
         node_modules = frontend_dir / 'node_modules'
         package_lock = frontend_dir / 'package-lock.json'
         
+        # Detectar si estamos en Linux para usar sudo
+        is_linux = sys.platform != "win32"
+        sudo_cmd = ['sudo'] if is_linux else []
+
         if node_modules.exists():
-            print_warning("Detectado node_modules previo. Limpiando para instalación fresca...")
-            import shutil
+            print_warning("Detectado node_modules previo. Limpiando para instalación fresca a nivel root...")
             try:
-                shutil.rmtree(node_modules)
-                if package_lock.exists():
-                    package_lock.unlink()
-                print_success("Limpieza completada.")
+                if is_linux:
+                    subprocess.run(sudo_cmd + ['rm', '-rf', str(node_modules)], check=True)
+                    if package_lock.exists():
+                        subprocess.run(sudo_cmd + ['rm', '-f', str(package_lock)], check=True)
+                else:
+                    import shutil
+                    shutil.rmtree(node_modules)
+                    if package_lock.exists():
+                        package_lock.unlink()
+                print_success("Limpieza física completada.")
             except Exception as e:
                 print_error(f"No se pudo limpiar node_modules: {e}")
 
-        print_info("Instalando dependencias frescas...")
-        subprocess.run(['npm', 'install'], cwd=frontend_dir, check=True)
+        print_info("Limpiando caché de npm (Deep Clean)...")
+        try:
+            subprocess.run(sudo_cmd + ['npm', 'cache', 'clean', '--force'], check=True)
+        except:
+            print_warning("No se pudo limpiar el caché de npm (esto es normal si ya estaba limpio)")
+
+        print_info("Instalando dependencias frescas con todos los permisos...")
+        subprocess.run(sudo_cmd + ['npm', 'install'], cwd=frontend_dir, check=True)
         
         print_success("Dependencias npm reinstaladas correctamente (frescas)")
         
@@ -216,10 +231,10 @@ def safe_system_reset():
     print_warning("OPERACIÓN DESTRUCTIVA - LEE BIEN ANTES DE CONTINUAR")
     print()
     print("Esto hará:")
-    print("  • Detener todos los servicios (Django, Frontend, Nginx)")
-    print("  • Resetear la base de datos")
-    print("  • Limpiar caché y archivos temporales")
-    print("  • Pero NO afectará: Nginx config, SSL certs, system files")
+    print("  - Detener todos los servicios (Django, Frontend, Nginx)")
+    print("  - Resetear la base de datos")
+    print("  - Limpiar caché y archivos temporales")
+    print("  - Pero NO afectará: Nginx config, SSL certs, system files")
     print()
     
     confirm = input("Escribe 'RESETEAR SISTEMA CONTABO' para confirmar: ").strip()
