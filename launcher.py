@@ -479,6 +479,9 @@ def show_main_menu():
         print_option(f"{Colors.BLUE}12{Colors.RESET} - Ayuda General")
         
         print_option(f"{Colors.RED}0{Colors.RESET} - Salir")
+
+        print_section("PRUEBAS UNITARIAS")
+        print_option(f"{Colors.MAGENTA}P{Colors.RESET} - Pruebas Unitarias")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
@@ -510,6 +513,9 @@ def show_main_menu():
             show_system_info()
         elif choice == '12':
             show_help()
+        elif choice == 'p' or 'P':
+            run_python_script('test.py')
+
         elif choice == '0':
             print_info("¡Adiós!")
             sys.exit(0)
