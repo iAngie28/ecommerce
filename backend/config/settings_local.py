@@ -114,14 +114,14 @@ DATABASES = {
 JWT_ALGORITHM = config('JWT_ALGORITHM', default='HS256')
 JWT_EXPIRATION_MINUTES = config('JWT_EXPIRATION_MINUTES', default=60, cast=int)
 
-SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'ALGORITHM': JWT_ALGORITHM,
-    'ACCESS_TOKEN_LIFETIME': __import__('datetime').timedelta(minutes=JWT_EXPIRATION_MINUTES),
-}
+# ========================================================================
+# 6. CONFIGURACIÓN DE CORREO
+# ========================================================================
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
 # ========================================================================
-# 6. ARCHIVOS ESTÁTICOS Y MEDIA
+# 7. ARCHIVOS ESTÁTICOS Y MEDIA
 # ========================================================================
 STATIC_URL = config('STATIC_URL', default='/static/')
 STATIC_ROOT = config('STATIC_ROOT', default=os.path.join(BASE_DIR, 'staticfiles'))

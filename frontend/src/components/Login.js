@@ -95,7 +95,7 @@ function Login() {
                                     <KeySquare size={16} />
                                     Contraseña
                                 </label>
-                                <a href="#" className="forgot-link">¿Olvidaste tu contraseña?</a>
+                                <Link to="/forgot-password" size={16} className="forgot-link">¿Olvidaste tu contraseña?</Link>
                             </div>
                             <input
                                 type="password"
