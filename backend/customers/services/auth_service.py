@@ -4,6 +4,7 @@ def get_auth_extra_data(user):
     """
     extra_data = {
         'user_name': user.email,
+        'full_name': user.get_full_name() or user.email.split('@')[0].capitalize(),
         'tenant_id': None,
         'schema_name': None,
         'subdomain': None

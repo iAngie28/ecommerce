@@ -532,6 +532,7 @@ def show_config_menu():
         print_section("Base de Datos")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Ver configuración .env")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Editar .env (abrir editor)")
+        print_option(f"{Colors.CYAN}r{Colors.RESET} - Restablecer .env a valores por defecto (Template)")
         
         print_section("Proyecto")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Ver info del proyecto")
@@ -553,9 +554,16 @@ def show_config_menu():
             pause()
         elif choice == '2':
             env_file = PROJECT_ROOT / '.env'
+            env_example = PROJECT_ROOT / '.env.example'
             if not env_file.exists():
-                print_warning(".env no existe, creando...")
-                env_file.touch()
+                if env_example.exists():
+                    print_warning(".env no existe, creando desde plantilla...")
+                    import shutil
+                    shutil.copy(env_example, env_file)
+                else:
+                    print_warning(".env no existe, creando vacío...")
+                    env_file.touch()
+            
             if ES_WINDOWS:
                 os.startfile(env_file)
             elif ES_MAC:
@@ -563,6 +571,18 @@ def show_config_menu():
             else:
                 run_command(['xdg-open', str(env_file)])
             print_success("Abierto en editor")
+            pause()
+        elif choice == 'r':
+            confirm = input(f"{Colors.WARNING}  ¿Estás SEGURO de restablecer .env? Se perderán cambios personalizados (s/n): {Colors.RESET}").lower()
+            if confirm == 's':
+                env_file = PROJECT_ROOT / '.env'
+                env_example = PROJECT_ROOT / '.env.example'
+                if env_example.exists():
+                    import shutil
+                    shutil.copy(env_example, env_file)
+                    print_success(".env restablecido desde plantilla")
+                else:
+                    print_error(".env.example no encontrado")
             pause()
         elif choice == '3':
             print_section("Información del Proyecto")
