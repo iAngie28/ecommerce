@@ -1,403 +1,257 @@
 #!/usr/bin/env python
 # ========================================================================
-# SCRIPT DE SEEDERS - DATOS INICIALES
+# SCRIPT DE SEEDERS - GENERACIÓN PROCEDURAL DE NEGOCIO
 # ========================================================================
-# Carga datos de prueba en BD
+# Genera datos de prueba coherentes (Usuarios, Productos, Bitácora)
 # Uso: python scripts_utiles/db_seed.py [opción]
 
 import os
 import sys
-from pathlib import Path
-from datetime import datetime, timedelta
 import random
 import string
+from pathlib import Path
+from datetime import datetime, timedelta
+from django.utils import timezone
 from decouple import config
 
 PROJECT_ROOT = Path(__file__).parent.parent
 BACKEND_DIR = PROJECT_ROOT / 'backend'
 sys.path.insert(0, str(BACKEND_DIR))
 
-# Cargar el dominio principal desde el entorno (ej: localhost, mi-saas.com, o 157.173.102.129.nip.io)
-DOMAIN_MAIN = config('DOMAIN_MAIN', default='localhost')
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 import django
 django.setup()
 
-from customers.models import Client, Usuario, Domain
+from django.apps import apps
+from django.db import models
+from django_tenants.utils import tenant_context, schema_context
+from customers.models import Client, Domain, Usuario, Bitacora
+from customers.services.bitacora_service import BitacoraService
 from app_negocio.models import Producto
-from django.contrib.auth.models import User
-from django_tenants.utils import tenant_context
 
-def seed_demo():
-    """Crea tenant de demostración con datos"""
-    print("\n[+] Createando tenant de demostración...")
+# ========================================================================
+# GENERADOR DE NEGOCIO (COHERENTE)
+# ========================================================================
+class BusinessGenerator:
+    PASSWORD_STANDAR = "Password123!"
     
-    # Crear tenant
-    tenant, created = Client.objects.get_or_create(
-        schema_name='demo_company',
-        defaults={
-            'name': "Demo Company",
-        }
-    )
+    MODULOS = ["Autenticación", "Productos", "Tiendas", "Usuarios", "Inventario"]
+    ACCIONES = ["LOGIN", "CREAR", "EDITAR", "ELIMINAR", "VER_DETALLE", "LOGOUT"]
     
-    if created:
-        print(f"[+] Tenant creado: {tenant.name}")
-    else:
-        print(f"[i] Tenant ya existe: {tenant.name}")
-    
-    # Crear dominio
-    domain, created = Domain.objects.get_or_create(
-        domain=f'demo.{DOMAIN_MAIN}',
-        defaults={'tenant': tenant}
-    )
-    
-    # Crear usuarios y datos para este tenant
-    with tenant_context(tenant):
-        admin_email = 'admin@demo.com'
-        if not Usuario.objects.filter(email=admin_email).exists():
-            admin = Usuario.objects.create_user(
-                email=admin_email,
-                password='demo123456',
-                first_name='Admin',
-                last_name='Demo',
-                is_staff=True,
-                is_active=True
-            )
-            print(f"[OK] Admin creado: {admin_email}")
-        
-        # Crear algunos usuarios más
-        for i in range(1, 4):
-            user_email = f'usuario{i}@demo.com'
-            if not Usuario.objects.filter(email=user_email).exists():
-                user = Usuario.objects.create_user(
-                    email=user_email,
-                    password='user123456',
-                    first_name=f'Usuario{i}',
-                    last_name='Demo',
-                    is_active=True
-                )
-                print(f"[OK] Usuario creado: {user_email}")
-        
-        # Crear algunos productos de demostración
-        demo_products = [
-            {'nombre': 'Producto de Prueba A', 'precio': 50.00, 'sku': 'DEMO-001'},
-            {'nombre': 'Producto de Prueba B', 'precio': 150.00, 'sku': 'DEMO-002'},
-        ]
-        for p in demo_products:
-            if not Producto.objects.filter(nombre=p['nombre']).exists():
-                Producto.objects.create(
-                    nombre=p['nombre'],
-                    sku=p['sku'],
-                    descripcion=f"Este es un producto de prueba para el tenant {tenant.name}",
-                    precio=p['precio'],
-                    stock=50,
-                    categoria='General',
-                    activo=True,
-                    imagen_url=f"https://picsum.photos/seed/demo_{p['sku']}/400/300"
-                )
-        print(f"[OK] {len(demo_products)} productos de prueba creados")
-    
-    print("[OK] Demo seed completado")
-
-def seed_development():
-    """Crea ambiente de desarrollo con datos variados"""
-    print("\n[+] Creando ambiente de DESARROLLO...")
-    
-    tenants_count = 3
-    users_per_tenant = 5
-    products_per_tenant = 10
-    
-    for t in range(1, tenants_count + 1):
-        tenant_name = f"Empresa {t}"
-        tenant_slug = f"empresa-{t}"
-        schema = f"empresa_{t}"
-        
-        tenant, created = Client.objects.get_or_create(
-            schema_name=schema,
-            defaults={
-                'name': tenant_name,
-            }
-        )
-        
-        if created:
-            print(f"  [+] Tenant: {tenant_name}")
-            
-            # Crear dominio
-            Domain.objects.get_or_create(
-                domain=f'empresa{t}.localhost',
-                defaults={'tenant': tenant}
-            )
-            
-            # Crear usuarios y productos en el contexto del tenant
-            with tenant_context(tenant):
-                # Crear usuarios
-                for u in range(1, users_per_tenant + 1):
-                    email = f'user{u}@empresa{t}.local'
-                    if not Usuario.objects.filter(email=email).exists():
-                        Usuario.objects.create_user(
-                            email=email,
-                            password='user123456',
-                            first_name=f'Usuario{u}',
-                            last_name=f'Empresa{t}',
-                            is_active=True,  # Todos activos para facilitar pruebas
-                            tenant=tenant,   # ← FK al tenant
-                        )
-                
-                print(f"      └─ {users_per_tenant} usuarios")
-                
-                # Crear productos
-                categorias = ['Electrónica', 'Ropa', 'Libros', 'Hogar', 'Deportes', 'Juguetes']
-                for p in range(1, products_per_tenant + 1):
-                    nombre = f"Producto {p} - {tenant.name}"
-                    if not Producto.objects.filter(nombre=nombre).exists():
-                        cat = random.choice(categorias)
-                        Producto.objects.create(
-                            nombre=nombre,
-                            sku=f"SKU-{tenant.id}-{p:03d}",
-                            descripcion=f"Descripción completa y profesional para el {nombre}. Ideal para pruebas de ecommerce.",
-                            precio=round(random.uniform(10, 1000), 2),
-                            categoria=cat,
-                            stock=random.randint(0, 100),
-                            activo=random.choice([True, True, True, False]),  # 75% activos
-                            imagen_url=f"https://picsum.photos/seed/{tenant.schema_name}_{p}/400/300"
-                        )
-                
-                print(f"      └─ {products_per_tenant} productos")
-        else:
-            print(f"  [i] Tenant ya existe: {tenant_name}")
-    
-    print("[OK] Ambiente de desarrollo creado")
-
-def seed_production_like():
-    """Crea ambiente similar a producción (datos más realistas)"""
-    print("\n[+] Creando ambiente estilo PRODUCCIÓN...")
-    
-    # Nombres más realistas
-    company_names = [
-        "TechStore Martinez",
-        "ElectroMundo SA",
-        "LibreriaPlus SRL",
-        "Fashion Central LTDA"
+    # Listas ampliadas por el usuario
+    IPS_TEST = [
+        "192.168.1.10", "185.22.44.1", "10.0.0.5", "172.16.8.20", "8.8.8.8", "1.1.1.1",
+        "127.0.0.1", "203.0.113.50", "198.51.100.14", "104.21.55.2"
     ]
-    
-    for name in company_names:
-        slug = name.lower().replace(' ', '-').replace('.', '')
-        schema = slug.replace('-', '_')
+
+    BROWSERS = [
+        "Chrome/120.0.0.0", "Firefox/121.0.1", "Safari/17.2", "Edge/119.0.0",
+        "Opera/102.0.4880.56", "Brave/1.57.62"
+    ]
+
+    NOMBRES_REALS = ["Juan", "Maria", "Carlos", "Ana", "Luis", "Elena", "Pedro", "Sofia", "Diego", "Laura", "Mateo", "German", "Alejandro", "Dexter"]
+    APELLIDOS_REALS = ["Garcia", "Rodriguez", "Gonzalez", "Fernandez", "Lopez", "Martinez", "Sanchez", "Perez", "Gomez", "Martin"]
+
+    PROD_TIPOS = ["Laptop", "Monitor", "Teclado", "Mouse", "Impresora", "Tablet", "Celular", "Smartwatch", "Audifonos"]
+    PROD_MARCAS = ["TechX", "Quantum", "Nexus", "Elite", "ProMax", "Cyber", "Mega", "Ultra", "Hyper"]
+
+    @staticmethod
+    def random_user_data(index, tenant_schema):
+        nombre = random.choice(BusinessGenerator.NOMBRES_REALS)
+        apellido = random.choice(BusinessGenerator.APELLIDOS_REALS)
+        email = f"user{index}@{tenant_schema}.local"
+        return {
+            'email': email,
+            'password': BusinessGenerator.PASSWORD_STANDAR,
+            'first_name': nombre,
+            'last_name': apellido,
+            'is_active': True
+        }
+
+    @staticmethod
+    def random_product_data(index):
+        tipo = random.choice(BusinessGenerator.PROD_TIPOS)
+        marca = random.choice(BusinessGenerator.PROD_MARCAS)
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+        nombre = f"{tipo} {marca}-{index:03d}"
+        return {
+            'nombre': nombre,
+            'sku': f"SKU-{marca[:2].upper()}-{index:04d}-{suffix}",
+            'precio': round(random.uniform(50.0, 2000.0), 2),
+            'stock': random.randint(5, 100),
+            'categoria': 'General',
+            'activo': True,
+            'descripcion': f"Descripción detallada del {nombre}. Producto de prueba generado proceduralmente."
+        }
+
+    @staticmethod
+    def random_audit_event_data(modulo=None, accion=None):
+        """Genera datos para un evento, sin el objeto usuario aún."""
+        return {
+            'modulo': modulo or random.choice(BusinessGenerator.MODULOS),
+            'accion': accion or random.choice(BusinessGenerator.ACCIONES),
+            'ip': random.choice(BusinessGenerator.IPS_TEST),
+            'browser': random.choice(BusinessGenerator.BROWSERS),
+            'metadatos': {'status': 'seeded', 'gen': 'procedural'}
+        }
+
+# ========================================================================
+# MOTOR DE SEEDING INTERACTIVO
+# ========================================================================
+
+class DatabaseSeeder:
+    def __init__(self):
+        self.credentials_report = []
+
+    def print_report(self):
+        print("\n" + "="*80)
+        print(f"{'REPORTE DE ACCESOS (CREADOS O EXISTENTES)':^80}")
+        print("="*80)
+        print(f"{'SCHEMA':<15} | {'USUARIO (EMAIL)':<40} | {'PASSWORD'}")
+        print("-" * 80)
+        for cred in self.credentials_report:
+            print(f"{cred['schema']:<15} | {cred['email']:<40} | {cred['password']}")
+        print("="*80)
+        print("\n[TIP] Usa estas credenciales para entrar a los respectivos subdominios.")
+
+    def seed_tenants(self, count, u_range, p_range):
+        print(f"\n[+] Iniciando generacion de {count} tenants...")
         
-        tenant, created = Client.objects.get_or_create(
-            schema_name=schema,
-            defaults={
-                'name': name,
-            }
-        )
-        
-        if created:
-            print(f"  [+] Tenant: {name}")
-            
-            # Dominio basado en nombre
-            domain_name = f"{slug}.{DOMAIN_MAIN}"
-            Domain.objects.get_or_create(
-                domain=domain_name,
-                defaults={'tenant': tenant}
-            )
-            
+        for i in range(1, count + 1):
+            schema = f"tienda_{i}"
+            name = f"Mi Tienda {i}"
+            domain_name = f"tienda{i}.localhost"
+
+            # Operaciones de Tenant en el esquema publico (CORE de django-tenants)
+            with schema_context('public'):
+                tenant, created = Client.objects.get_or_create(
+                    schema_name=schema, 
+                    defaults={'name': name}
+                )
+                Domain.objects.get_or_create(domain=domain_name, tenant=tenant)
+                print(f"\n  [Paso {i}/{count}] Poblando: {schema}...")
+
             with tenant_context(tenant):
-                # Admin del tenant
-                admin_email = f"admin@{domain_name}"
-                if not Usuario.objects.filter(email=admin_email).exists():
-                    Usuario.objects.create_user(
-                        email=admin_email,
-                        password='AdminPassword123!',
-                        first_name='Administrador',
-                        last_name='General',
-                        is_staff=True,
-                        is_active=True
-                    )
+                admin_email = f"admin@{schema}.local"
                 
-                # Varios empleados
-                for e in range(1, 4):
-                    user_email = f"empleado{e}@{domain_name}"
-                    if not Usuario.objects.filter(email=user_email).exists():
-                        Usuario.objects.create_user(
-                            email=user_email,
-                            password='EmpleadoPass123!',
-                            first_name=f'Empleado{e}',
-                            last_name=name,
-                            is_active=True
-                        )
+                # Aseguramos contexto publico para el Usuario (Shared Model)
+                with schema_context('public'):
+                    admin_data = BusinessGenerator.random_user_data(0, schema)
+                    admin_data['email'] = admin_email
+                    if not Usuario.objects.filter(email=admin_email).exists():
+                        admin = Usuario.objects.create_user(**admin_data)
+                    else:
+                        admin = Usuario.objects.get(email=admin_email)
+                    
+                    # Siempre añadir al reporte para que el usuario sepa con qué entrar
+                    self.credentials_report.append({
+                        'schema': schema,
+                        'email': admin_email,
+                        'password': admin_data['password']
+                    })
+
+                # 2. Crear Usuarios (Shared Model, contexto publico)
+                num_users = random.randint(u_range[0], u_range[1])
+                with schema_context('public'):
+                    for u in range(1, num_users + 1):
+                        u_data = BusinessGenerator.random_user_data(u, schema)
+                        if not Usuario.objects.filter(email=u_data['email']).exists():
+                            Usuario.objects.create_user(**u_data)
+                print(f"    - {num_users} usuarios adicionales creados en public.")
+
+                # 3. Crear Productos (Tenant Model, contexto de tienda)
+                num_prods = random.randint(p_range[0], p_range[1])
+                for p in range(1, num_prods + 1):
+                    p_data = BusinessGenerator.random_product_data(p)
+                    Producto.objects.create(**p_data)
+                print(f"    - {num_prods} productos creados en {schema}.")
+
+                # 4. Crear Histórico de Bitácora (Shared Model, contexto publico)
+                print(f"    - Generando historico de auditoria...")
+                with schema_context('public'):
+                    # Simular flujo: Login -> 3 acciones -> Logout
+                    # Usamos el servicio directamente para asegurar IP y metadatos
+                    
+                    # Login
+                    ev = BusinessGenerator.random_audit_event_data("Autenticación", "LOGIN")
+                    BitacoraService.registrar(admin, ev['modulo'], ev['accion'], metadatos={'ip': ev['ip'], 'browser': ev['browser']})
+                    
+                    # Acciones
+                    for _ in range(3):
+                        ev = BusinessGenerator.random_audit_event_data()
+                        BitacoraService.registrar(admin, ev['modulo'], ev['accion'], metadatos={'ip': ev['ip'], 'browser': ev['browser']})
+                    
+                    # Logout
+                    ev = BusinessGenerator.random_audit_event_data("Autenticación", "LOGOUT")
+                    BitacoraService.registrar(admin, ev['modulo'], ev['accion'], metadatos={'ip': ev['ip'], 'browser': ev['browser']})
                 
-                print(f"      └─ 1 admin + 3 empleados")
-                
-                # Productos variados
-                products_data = [
-                    {'nombre': f'Laptop Premium - {name}', 'precio': 1200, 'stock': 15, 'sku': f'LP-{schema[:3].upper()}-001'},
-                    {'nombre': f'Mouse Inalámbrico - {name}', 'precio': 35, 'stock': 100, 'sku': f'MI-{schema[:3].upper()}-002'},
-                    {'nombre': f'Teclado Mecánico - {name}', 'precio': 85, 'stock': 45, 'sku': f'TM-{schema[:3].upper()}-003'},
-                    {'nombre': f'Monitor 27" - {name}', 'precio': 350, 'stock': 20, 'sku': f'MN-{schema[:3].upper()}-004'},
-                    {'nombre': f'Cable USB-C - {name}', 'precio': 15, 'stock': 200, 'sku': f'CB-{schema[:3].upper()}-005'},
-                    {'nombre': f'Auriculares Bluetooth - {name}', 'precio': 120, 'stock': 30, 'sku': f'AB-{schema[:3].upper()}-006'},
-                    {'nombre': f'Webcam Full HD - {name}', 'precio': 60, 'stock': 25, 'sku': f'WC-{schema[:3].upper()}-007'},
-                    {'nombre': f'Hub USB 3.0 - {name}', 'precio': 45, 'stock': 50, 'sku': f'HB-{schema[:3].upper()}-008'},
-                ]
-                
-                for prod in products_data:
-                    if not Producto.objects.filter(nombre=prod['nombre']).exists():
-                        Producto.objects.create(
-                            nombre=prod['nombre'],
-                            sku=prod['sku'],
-                            descripcion=f"Descripción profesional para {prod['nombre']}. Producto premium importado.",
-                            precio=prod['precio'],
-                            categoria='Electrónica',
-                            stock=prod['stock'],
-                            activo=True,
-                            imagen_url=f"https://picsum.photos/seed/{schema}_{prod['sku']}/400/300"
-                        )
-                
-                print(f"      └─ {len(products_data)} productos")
-        else:
-            print(f"  [i] Tenant ya existe: {name}")
+                print(f"    - Historial de bitacora guardado en public para {admin.email}.")
+
+        print("\n[OK] Generacion procedimental finalizada.")
+
+def parse_quantity(user_input, default_min, default_max=None):
+    """
+    Parsea la entrada del usuario para soportar:
+    - Exacta: "5" -> (5, 5)
+    - Rango: "2-10" -> (2, 10)
+    - Default: "" -> (default_min, default_max)
+    """
+    val = user_input.strip()
+    if not val:
+        return (default_min, default_max or default_min)
     
-    print("[OK] Ambiente de producción creado")
-
-def seed_procedural(num_tenants=100, num_users=5, num_products=100):
-    """Genera n tenants, cada uno con m usuarios y p productos proceduralmente"""
-    print(f"\n[+] Generando ambiente PROCEDURAL:")
-    print(f"    - {num_tenants} tenants")
-    print(f"    - {num_users} usuarios por tenant")
-    print(f"    - {num_products} productos por tenant")
-    
-    NOMBRES_USUARIOS = ["Juan", "Maria", "Carlos", "Ana", "Luis", "Elena", "Pedro", "Sofia", "Diego", "Laura", "Miguel", "Lucia", "Jorge", "Carmen", "Raul", "Paula", "Andres", "Marta", "Fernando", "Sara"]
-    APELLIDOS = ["Garcia", "Rodriguez", "Gonzalez", "Fernandez", "Lopez", "Martinez", "Sanchez", "Perez", "Gomez", "Martin", "Jimenez", "Ruiz", "Hernandez", "Diaz", "Moreno", "Alvarez", "Munoz", "Romero", "Alonso", "Gutierrez"]
-    ADJETIVOS_PROD = ["Premium", "Pro", "Max", "Ultra", "Basic", "Plus", "Gamer", "Smart", "Eco", "Classic", "Modern", "Advanced", "Elite", "Original", "Compact", "Lite"]
-    TIPOS_PROD = ["Laptop", "Monitor", "Teclado", "Mouse", "Cable", "Auriculares", "Silla", "Escritorio", "Webcam", "Microfono", "Funda", "Mochila", "Tablet", "Celular", "Reloj", "Impresora"]
-    CATEGORIAS = ["Electrónica", "Ropa", "Libros", "Hogar", "Deportes", "Juguetes", "Oficina", "Accesorios"]
-
-    # Evitamos colisiones de nombres añadiendo un sufijo
-    run_id = random.randint(100, 999)
-
-    for t in range(1, num_tenants + 1):
-        tenant_name = f"Procedural Corp {run_id}-{t}"
-        schema = f"proc_corp_{run_id}_{t}"
-        
-        tenant, created = Client.objects.get_or_create(
-            schema_name=schema,
-            defaults={'name': tenant_name}
-        )
-        
-        if created:
-            print(f"  [+] Tenant {t}/{num_tenants}: {tenant_name}")
-            Domain.objects.get_or_create(
-                domain=f'proc{run_id}a{t}.{DOMAIN_MAIN}',
-                defaults={'tenant': tenant}
-            )
-            
-            with tenant_context(tenant):
-                # Admin siempre disponible en este tenant
-                admin_email = f"admin@{schema}.com"
-                if not Usuario.objects.filter(email=admin_email).exists():
-                    Usuario.objects.create_user(
-                        email=admin_email,
-                        password='Password123!',
-                        first_name='Admin',
-                        last_name=tenant_name,
-                        is_staff=True,
-                        is_active=True,
-                        tenant=tenant
-                    )
-                
-                # Usuarios
-                for u in range(1, num_users + 1):
-                    email = f"user_{u}_{random.randint(1000,9999)}@{schema}.com"
-                    if not Usuario.objects.filter(email=email).exists():
-                        Usuario.objects.create_user(
-                            email=email,
-                            password='Password123!',
-                            first_name=random.choice(NOMBRES_USUARIOS),
-                            last_name=random.choice(APELLIDOS),
-                            is_active=True,
-                            tenant=tenant
-                        )
-                
-                # Productos
-                productos_creados = 0
-                for p in range(1, num_products + 1):
-                    tipo = random.choice(TIPOS_PROD)
-                    adj = random.choice(ADJETIVOS_PROD)
-                    nombre = f"{tipo} {adj} {random.randint(1, 9999)}"
-                    sku = f"PRC-{schema[-3:]}-{random.randint(1000,99999)}"
-                    if not Producto.objects.filter(sku=sku).exists():
-                        try:
-                            Producto.objects.create(
-                                nombre=nombre,
-                                sku=sku,
-                                descripcion=f"Descubra el increíble {nombre}. Generado proceduralmente con diseño {adj.lower()}.",
-                                precio=round(random.uniform(5.0, 2500.0), 2),
-                                categoria=random.choice(CATEGORIAS),
-                                stock=random.randint(0, 500),
-                                activo=random.choice([True, True, True, False]),
-                                imagen_url=f"https://picsum.photos/seed/{sku}/400/300"
-                            )
-                            productos_creados += 1
-                        except Exception:
-                            pass
-                print(f"      └─ {num_users} usuarios | {productos_creados} productos")
-        else:
-            print(f"  [i] Tenant ya existe: {tenant_name}")
-
-    print("[OK] Ambiente procedural completado")
-
-def show_seeds():
-    """Muestra opciones de seeds disponibles"""
-    print("\n" + "="*60)
-    print("SEMILLAS (SEEDERS) DISPONIBLES")
-    print("="*60)
-    print("\nOpciones:")
-    print("  1. Demo         - Tenant único de prueba")
-    print("  2. Development  - 3 tenants con datos variados")
-    print("  3. Production   - Empresas realistas con datos profesionales")
-    print("  4. Procedural   - N registros por tabla generados al azar")
-    print("")
+    if '-' in val:
+        try:
+            parts = val.split('-')
+            low = int(parts[0])
+            high = int(parts[1])
+            return (min(low, high), max(low, high))
+        except ValueError:
+            print(f"  [!] Rango invalido '{val}', usando default {default_min}-{default_max}")
+            return (default_min, default_max or default_min)
+    else:
+        try:
+            num = int(val)
+            return (num, num)
+        except ValueError:
+            print(f"  [!] Cantidad invalida '{val}', usando default {default_min}")
+            return (default_min, default_max or default_min)
 
 def main():
-    if len(sys.argv) < 2:
-        show_seeds()
-        cmd = input(f"  ? Selecciona: ").strip().lower()
-        if not cmd:
-            print("[INFO] Operación cancelada")
-            return
-    else:
-        cmd = sys.argv[1]
+    print("\n" + "="*70)
+    print(f"{'MOTOR DE GENERACIÓN PROCEDURAL (V3.0)':^70}")
+    print("="*70)
+    print(" Soporta: Cantidad exacta (ej: 5), Rangos (ej: 2-10) o Default (Enter)")
     
-    if cmd == '1' or cmd == 'demo':
-        seed_demo()
-    elif cmd == '2' or cmd == 'dev':
-        seed_development()
-    elif cmd == '3' or cmd == 'prod':
-        seed_production_like()
-    elif cmd == '4' or cmd == 'procedural':
-        try:
-            num_tenants = input("  ¿Cuántos tenants generar? (ej: 100): ").strip()
-            num_tenants = int(num_tenants) if num_tenants else 100
-            
-            num_users = input("  ¿Cuántos usuarios por cada tenant? (ej: 5): ").strip()
-            num_users = int(num_users) if num_users else 5
-            
-            num_products = input("  ¿Cuántos productos por cada tenant? (ej: 100): ").strip()
-            num_products = int(num_products) if num_products else 100
-        except ValueError:
-            print("  [WARN] Cantidad inválida ingresada. Cancelando.")
-            return
-
-        seed_procedural(num_tenants, num_users, num_products)
-    elif cmd == 'list':
-        show_seeds()
-    else:
-        print(f"[ERROR] Comando desconocido: {cmd}")
-        sys.exit(1)
-    
-    print("\n[OK] Completado")
+    try:
+        # 1. Tenants
+        t_input = input("\n  1. ¿Cuantos Tenants/Tiendas? [Default 2]: ")
+        t_min, t_max = parse_quantity(t_input, 2, 2)
+        t_count = random.randint(t_min, t_max)
+        
+        # 2. Usuarios
+        u_input = input("  2. ¿Usuarios por tienda? (ej: 5 o 2-8) [Default 3-8]: ")
+        u_range = parse_quantity(u_input, 3, 8)
+        
+        # 3. Productos
+        p_input = input("  3. ¿Productos por tienda? (ej: 20 o 10-30) [Default 10-20]: ")
+        p_range = parse_quantity(p_input, 10, 20)
+        
+        print("\n" + "-"*70)
+        print(f" CONFIGURACIÓN: {t_count} tiendas | {u_range[0]}-{u_range[1]} users | {p_range[0]}-{p_range[1]} prods")
+        print("-" * 70)
+        
+        seeder = DatabaseSeeder()
+        seeder.seed_tenants(t_count, u_range, p_range)
+        seeder.print_report()
+        
+    except KeyboardInterrupt:
+        print(f"\n[!] Operacion cancelada por el usuario.")
+    except Exception as e:
+        import traceback
+        print(f"\n[ERROR] Ocurrio un fallo en el seeding: {e}")
+        traceback.print_exc()
 
 if __name__ == '__main__':
     main()

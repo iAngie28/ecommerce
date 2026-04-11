@@ -480,8 +480,8 @@ def show_main_menu():
         
         print_option(f"{Colors.RED}0{Colors.RESET} - Salir")
 
-        print_section("PRUEBAS UNITARIAS")
-        print_option(f"{Colors.MAGENTA}P{Colors.RESET} - Pruebas Unitarias")
+        print_section("PRUEBAS Y CALIDAD")
+        print_option(f"{Colors.MAGENTA}P{Colors.RESET} - Menu de Pruebas Unitarias")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
@@ -513,8 +513,8 @@ def show_main_menu():
             show_system_info()
         elif choice == '12':
             show_help()
-        elif choice == 'p' or 'P':
-            run_python_script('test.py')
+        elif choice == 'p':
+            show_tests_menu()
 
         elif choice == '0':
             print_info("¡Adiós!")
@@ -619,22 +619,25 @@ def show_data_management_menu():
         clear_screen()
         print_header("GESTIÓN DE BASE DE DATOS Y DATOS")
         
-        print_section("Configuración")
+        print_section("1. Configuración")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Configurar Conexión (db_config.py)")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Probar Conexión")
         
-        print_section("Estructura y Migraciones")
-        print_option(f"{Colors.BLUE}3{Colors.RESET} - Hacer Migraciones (makemigrations + migrate)")
+        print_section("\n2. Estructura y Migraciones")
+        print_option(f"{Colors.BLUE}3{Colors.RESET} - Sincronización Total (makemigrations + migrate)")
         print_option(f"{Colors.BLUE}4{Colors.RESET} - Ver historial de Migraciones")
         
-        print_section("Contenido y Usuarios")
+        print_section("\n3. Contenido y Usuarios")
         print_option(f"{Colors.YELLOW}5{Colors.RESET} - Gestión de Usuarios (CRUD Completo)")
         print_option(f"{Colors.YELLOW}6{Colors.RESET} - Ejecutar Seeders (Poblar con datos de prueba)")
         
-        print_section("Limpieza y Reset (CUIDADO)")
-        print_option(f"{Colors.RED}7{Colors.RESET} - Resetear BD Completa (Borra todo y recrea estructura)")
+        print_section("\n4. Auditoría y Bitácora")
+        print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Ver Auditoría Reciente (Bitácora)")
         
-        print_option(f"{Colors.RED}b{Colors.RESET} - Volver al Menú Principal")
+        print_section("\n5. Limpieza y Reset (CUIDADO)")
+        print_option(f"{Colors.RED}8{Colors.RESET} - Resetear BD Completa (Borra todo y recrea estructura)")
+        
+        print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver al Menú Principal")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
@@ -646,9 +649,8 @@ def show_data_management_menu():
             run_python_script('db_config.py', 'test')
             pause()
         elif choice == '3':
-            print_info("Procesando migraciones...")
-            run_python_script('migrations.py', 'make')
-            run_python_script('migrations.py', 'migrate')
+            print_info("Iniciando sincronización genérica de base de datos...")
+            run_python_script('migrations.py', 'sync')
             pause()
         elif choice == '4':
             run_python_script('migrations.py', 'show')
@@ -656,9 +658,14 @@ def show_data_management_menu():
         elif choice == '5':
             show_users_menu()
         elif choice == '6':
+            print_info("Iniciando asistente de datos...")
             run_python_script('db_seed.py')
             pause()
         elif choice == '7':
+            print_info("Cargando registros de bitácora...")
+            run_python_script('testUnit/verify_audit.py')
+            pause()
+        elif choice == '8':
             confirm = input(f"{Colors.RED}¿ESTÁS SEGURO? Esto borrará todos los datos. (s/n): {Colors.RESET}").lower()
             if confirm == 's':
                 run_python_script('db_reset.py', 'all')
@@ -824,6 +831,76 @@ def show_system_menu():
         else:
             print_error("Opción inválida")
             time.sleep(1)
+
+def show_tests_menu():
+    """Menú de pruebas unitarias y de escenario"""
+    while True:
+        clear_screen()
+        print_header("MENÚ DE PRUEBAS UNITARIAS")
+        
+        print_section("1. Pruebas Estándar (Django)")
+        print_option(f"{Colors.MAGENTA}1{Colors.RESET} - Ejecutar Todos los Tests de Django")
+        print_option(f"{Colors.MAGENTA}2{Colors.RESET} - Tests Módulo Usuarios (Customers)")
+        print_option(f"{Colors.MAGENTA}3{Colors.RESET} - Tests Módulo Negocio (App_Negocio)")
+        
+        print_section("\n2. Escenarios de Integridad y Negocio (Nuevos)")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Chequeo de Conexión y Esquemas")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Prueba de Integridad de Datos (Duplicados/Rollback)")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Prueba de Auditoría (Bitácora Escenario Real)")
+        print_option(f"{Colors.CYAN}7{Colors.RESET} - Ejecutar Pack Completo (Sprint 1)")
+        print_option(f"{Colors.CYAN}8{Colors.RESET} - VER BITÁCORA / AUDITORÍA RECIENTE")
+        
+        print_section("\n3. Mantenimiento")
+        print_option(f"{Colors.YELLOW}9{Colors.RESET} - Verificar Migraciones Pendientes")
+        print_option(f"{Colors.YELLOW}10{Colors.RESET} - Ejecutar Linter (Calidad de Código)")
+        
+        print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver")
+        print()
+        
+        choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
+        
+        if choice == '1':
+            run_python_script('test.py', 'django')
+            pause()
+        elif choice == '2':
+            run_python_script('test.py', 'django', 'customers')
+            pause()
+        elif choice == '3':
+            run_python_script('test.py', 'django', 'app_negocio')
+            pause()
+        elif choice == '4':
+            print_info("Iniciando chequeo de infraestructura...")
+            run_python_script('test.py', 'connection')
+            run_python_script('test.py', 'schema')
+            pause()
+        elif choice == '5':
+            print_info("Iniciando prueba de integridad...")
+            run_python_script('test.py', 'integrity')
+            pause()
+        elif choice == '6':
+            print_info("Iniciando escenario de auditoría...")
+            run_python_script('test.py', 'bitacora')
+            pause()
+        elif choice == '7':
+            print_info("Ejecutando suite completa del Sprint 1...")
+            run_python_script('test.py', 'sprint1')
+            pause()
+        elif choice == '8':
+            print_info("Cargando registros de bitácora...")
+            run_python_script('testUnit/verify_audit.py')
+            pause()
+        elif choice == '9':
+            run_python_script('test.py', 'migrations')
+            pause()
+        elif choice == '10':
+            run_python_script('test.py', 'lint')
+            pause()
+        elif choice == 'b':
+            break
+        else:
+            print_error("Opción inválida")
+            time.sleep(1)
+
 
 def show_system_info():
     """Información del sistema"""
