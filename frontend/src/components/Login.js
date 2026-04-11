@@ -17,7 +17,7 @@ function Login() {
                 password: pass
             });
 
-            const { access, refresh, schema_name, subdomain } = res.data;
+            const { access, refresh, schema_name, subdomain, full_name } = res.data;
 
             // Extraemos el subdominio del API (ej: empresa1.localhost) o intentamos adivinarlo
             let tenantHost = subdomain || (schema_name ? `${schema_name.replace('_', '')}.localhost` : null);
@@ -53,11 +53,12 @@ function Login() {
                 const protocol = window.location.protocol;
                 
                 // Redirigir al subdominio con ambos tokens para SSO
-                window.location.href = `${protocol}//${cleanHost}${portPart}/sso?token=${access}&refresh=${refresh}`;
+                window.location.href = `${protocol}//${cleanHost}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}`;
             } else {
                 // Sin tenant (admin global), guardar y redirigir al dashboard
                 localStorage.setItem('access_token', access);
                 if (refresh) localStorage.setItem('refresh_token', refresh);
+                if (full_name) localStorage.setItem('user_full_name', full_name);
                 window.location.href = '/dashboard';
             }
         } catch (error) {

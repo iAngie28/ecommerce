@@ -37,6 +37,7 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 
 # 4. MIDDLEWARES
 MIDDLEWARE = [
+    'customers.middleware.TenantHostMiddleware',           
     'corsheaders.middleware.CorsMiddleware',                
     'django_tenants.middleware.main.TenantMainMiddleware',  
     'django.middleware.security.SecurityMiddleware',
@@ -48,11 +49,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Compatibilidad total con Nginx y Proxies
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CORS_ALLOW_CREDENTIALS = True
 
-# 5. RUTAS: mismo URL conf para ambos schemas (el ProductoViewSet maneja la diferencia internamente)
 ROOT_URLCONF = 'config.urls'
 PUBLIC_SCHEMA_URLCONF = 'config.urls'
+TENANT_URLCONF = 'config.tenant_urls'
 
 TEMPLATES = [
     {
