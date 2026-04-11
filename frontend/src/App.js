@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import CrearTienda from "./components/CrearTienda";
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import { getBaseDomain } from './utils/domain';
 
 // 1. LA ADUANA: Recibe el token que viene desde localhost y lo guarda en cliente1.localhost
 const SSOReceiver = () => {
@@ -30,19 +31,9 @@ const SSOReceiver = () => {
         } else {
             // Sin token → login en el dominio base LIMPIO
             const currentHost = window.location.hostname;
-            let baseDomain;
-            if (currentHost.endsWith('.nip.io')) {
-                const parts = currentHost.split('.');
-                const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
-                baseDomain = ipParts.join('.');
-            } else if (currentHost.endsWith('.localhost')) {
-                baseDomain = 'localhost';
-            } else {
-                const parts = currentHost.split('.');
-                baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
-            }
+            const baseDomain = getBaseDomain(currentHost);
             const port = window.location.port ? `:${window.location.port}` : '';
-            window.location.href = `${window.location.protocol}//${baseDomain || 'localhost'}${port}/login`;
+            window.location.href = `${window.location.protocol}//${baseDomain}${port}/login`;
         }
     }, [navigate, location]);
 
@@ -64,19 +55,9 @@ const PrivateRoute = ({ children }) => {
 function App() {
     const handleLogout = () => {
         localStorage.clear();
-        // Redirige al dominio base LIMPIO (sin subdominio tenant ni nip.io)
+        // Redirige al dominio base LIMPIO usando la utilidad
         const currentHost = window.location.hostname;
-        let baseDomain;
-        if (currentHost.endsWith('.nip.io')) {
-            const parts = currentHost.split('.');
-            const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
-            baseDomain = ipParts.join('.');
-        } else if (currentHost.endsWith('.localhost')) {
-            baseDomain = 'localhost';
-        } else {
-            const parts = currentHost.split('.');
-            baseDomain = parts.length > 1 ? parts.slice(1).join('.') : currentHost;
-        }
+        const baseDomain = getBaseDomain(currentHost);
         const port = window.location.port ? `:${window.location.port}` : '';
         window.location.href = `${window.location.protocol}//${baseDomain}${port}/login`;
     };

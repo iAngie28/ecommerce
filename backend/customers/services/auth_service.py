@@ -16,6 +16,9 @@ def get_auth_extra_data(user):
         
         # Obtener el dominio primario del tenant
         domain_obj = user.tenant.domains.filter(is_primary=True).first()
-        extra_data['subdomain'] = domain_obj.domain if domain_obj else None
+        if domain_obj:
+            extra_data['subdomain'] = domain_obj.domain
+        else:
+            extra_data['subdomain'] = f"{user.tenant.schema_name}.localhost"
         
     return extra_data
