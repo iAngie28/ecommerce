@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from ..serializers.usuario_serializers import MyTokenObtainPairSerializer
 from ..services.auth_service import get_auth_extra_data
+from ..services.bitacora_service import BitacoraService
 from customers.models.usuario import Usuario
 from customers.serializers.usuario_serializers import UsuarioCrudSerializer
 from customers.serializers.tenant_serializer import TenantCreateSerializer
@@ -32,6 +33,10 @@ class MyTokenObtainPairView(APIView):
         response_data = serializer.validated_data
         extra_data = get_auth_extra_data(serializer.user)
         response_data.update(extra_data)
+
+        # Registro en Bitácora
+        BitacoraService.registrar_acceso(request, serializer.user, "LOGIN")
+
         return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -45,6 +50,10 @@ class LogoutView(APIView):
             if not refresh_token:
                 return Response({"detail": "Refresh token no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
             token = RefreshToken(refresh_token)
+            # Registro en Bitácora (antes de invalidar si es posible)
+            if request.user.is_authenticated:
+                BitacoraService.registrar_acceso(request, request.user, "LOGOUT")
+            
             token.blacklist()
             return Response({"detail": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
         except Exception:
@@ -64,12 +73,28 @@ class UsuarioCrudViewSet(viewsets.ModelViewSet):
     def activate(self, request, pk=None):
         usuario = self.get_object()
         usuario.activate()
+        
+        # Registro en Bitácora
+        BitacoraService.registrar_accion(
+            request.user, "Usuario", "ACTIVAR", 
+            request=request, 
+            metadatos={'id_usuario': usuario.id, 'email': usuario.email}
+        )
+        
         return Response({'detail': 'Usuario activado exitosamente', 'is_active': True})
 
     @action(detail=True, methods=['post'])
     def disable(self, request, pk=None):
         usuario = self.get_object()
         usuario.disable()
+        
+        # Registro en Bitácora
+        BitacoraService.registrar_accion(
+            request.user, "Usuario", "DESACTIVAR", 
+            request=request, 
+            metadatos={'id_usuario': usuario.id, 'email': usuario.email}
+        )
+        
         return Response({'detail': 'Usuario desactivado exitosamente', 'is_active': False})
 
 
