@@ -104,13 +104,25 @@ def update_npm():
         return
     
     try:
-        print_info("Limpiando dependencias...")
-        subprocess.run(['npm', 'ci'], cwd=frontend_dir, check=True)
+        # Limpieza previa si existe node_modules
+        node_modules = frontend_dir / 'node_modules'
+        package_lock = frontend_dir / 'package-lock.json'
         
-        print_info("Actualizando dependencias...")
-        subprocess.run(['npm', 'update'], cwd=frontend_dir, check=True)
+        if node_modules.exists():
+            print_warning("Detectado node_modules previo. Limpiando para instalación fresca...")
+            import shutil
+            try:
+                shutil.rmtree(node_modules)
+                if package_lock.exists():
+                    package_lock.unlink()
+                print_success("Limpieza completada.")
+            except Exception as e:
+                print_error(f"No se pudo limpiar node_modules: {e}")
+
+        print_info("Instalando dependencias frescas...")
+        subprocess.run(['npm', 'install'], cwd=frontend_dir, check=True)
         
-        print_success("Dependencias npm actualizadas")
+        print_success("Dependencias npm reinstaladas correctamente (frescas)")
         
     except FileNotFoundError:
         print_error("npm no está instalado")

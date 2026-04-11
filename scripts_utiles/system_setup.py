@@ -98,6 +98,21 @@ def setup_frontend():
 
     package_json = FRONTEND_DIR / 'package.json'
     if package_json.exists():
+        # Limpieza previa si existe node_modules
+        node_modules = FRONTEND_DIR / 'node_modules'
+        package_lock = FRONTEND_DIR / 'package-lock.json'
+        
+        if node_modules.exists():
+            print(f"{Colors.YELLOW}Detectado node_modules previo. Limpiando para instalación fresca...{Colors.RESET}")
+            import shutil
+            try:
+                shutil.rmtree(node_modules)
+                if package_lock.exists():
+                    package_lock.unlink()
+                print_success("Limpieza completada.")
+            except Exception as e:
+                print_error(f"No se pudo limpiar node_modules: {e}")
+        
         print("Instalando dependencias de Node.js (npm install)...")
         try:
             subprocess.run([npm_cmd, 'install'], cwd=str(FRONTEND_DIR), check=True)
