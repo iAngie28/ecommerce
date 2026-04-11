@@ -3,11 +3,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from app_negocio.views.producto_views import ProductoViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
-from customers.views.usuario_views import TenantListView
-
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView, UsuarioCrudViewSet,
-    PasswordResetRequestView, PasswordResetConfirmView
+    PasswordResetRequestView, PasswordResetConfirmView,
+    TenantListView, TenantCreateView
 )
 
 # 1. Configuramos el enrutador de la API
