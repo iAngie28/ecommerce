@@ -20,13 +20,13 @@ class Colors:
     BOLD = '\033[1m'
 
 def print_step(text):
-    print(f"\n{Colors.CYAN}{Colors.BOLD}▶ {text}{Colors.RESET}")
+    print(f"\n{Colors.CYAN}{Colors.BOLD}>> {text}{Colors.RESET}")
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓ {text}{Colors.RESET}")
+    print(f"{Colors.GREEN}[OK] {text}{Colors.RESET}")
 
 def print_error(text):
-    print(f"{Colors.RED}✗ {text}{Colors.RESET}")
+    print(f"{Colors.RED}[ERROR] {text}{Colors.RESET}")
 
 def create_env():
     print_step("1. Configurando variables de entorno (.env)")
