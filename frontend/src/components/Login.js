@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 import { User, KeySquare, Box } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 
@@ -109,7 +110,7 @@ function Login() {
                         </button>
                     </form>
                     <p className="footer-text">
-                        ¿No tienes cuenta? <a href="#">Registrarte aquí</a>
+                        ¿No tienes cuenta? <Link to="/crear-tienda">Registrarte aquí</Link>
                     </p>
                 </div>
 
