@@ -119,9 +119,6 @@ DATABASES = {
         'PASSWORD': config('DATABASE_PASSWORD', default='adm123'),
         'HOST': config('DATABASE_HOST', default='127.0.0.1'),
         'PORT': config('DATABASE_PORT', default='5432'),
-        'OPTIONS': {
-            'options': '-c lc_messages=en_US.UTF-8'
-        }
     }
 }
 

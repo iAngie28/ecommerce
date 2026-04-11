@@ -764,6 +764,12 @@ def show_nginx_menu():
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Crear servicio Django")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Crear servicio Frontend (React)")
         
+        print_section(f"Mantenimiento")
+        print_option(f"{Colors.CYAN}3{Colors.RESET} - Estado de servicios")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Ver logs")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Recargar Nginx")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Reiniciar servicios")
+
         print_section(f"Dominios")
         print_option(f"{Colors.CYAN}7{Colors.RESET} - Ver dominios activos (query_domains.py)")
         
