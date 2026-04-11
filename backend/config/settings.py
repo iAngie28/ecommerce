@@ -37,15 +37,18 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 
 # 4. MIDDLEWARES
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',  # ← PRIMERO
-    'corsheaders.middleware.CorsMiddleware',                 # ← SEGUNDO
+    'corsheaders.middleware.CorsMiddleware',                
+    'django_tenants.middleware.main.TenantMainMiddleware',  
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',]
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # 5. RUTAS: mismo URL conf para ambos schemas (el ProductoViewSet maneja la diferencia internamente)
 ROOT_URLCONF = 'config.urls'
