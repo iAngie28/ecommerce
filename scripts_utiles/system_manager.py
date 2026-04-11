@@ -137,7 +137,17 @@ def update_npm():
         print_info("Instalando dependencias frescas con todos los permisos...")
         subprocess.run(sudo_cmd + ['npm', 'install'], cwd=frontend_dir, check=True)
         
-        print_success("Dependencias npm reinstaladas correctamente (frescas)")
+        print_info("Generando build de producción optimizado...")
+        subprocess.run(sudo_cmd + ['npm', 'run', 'build'], cwd=frontend_dir, check=True)
+        
+        print_info("Reiniciando servicio frontend_saas para aplicar cambios...")
+        try:
+            subprocess.run(sudo_cmd + ['systemctl', 'restart', 'frontend_saas'], check=True)
+            print_success("Servicio frontend_saas reiniciado con éxito")
+        except:
+            print_warning("No se pudo reiniciar frontend_saas (puede que aún no esté creado)")
+
+        print_success("Dependencias npm reinstaladas y frontend reconstruido correctamente")
         
     except FileNotFoundError:
         print_error("npm no está instalado")

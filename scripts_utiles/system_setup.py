@@ -117,8 +117,14 @@ def setup_frontend():
         try:
             subprocess.run([npm_cmd, 'install'], cwd=str(FRONTEND_DIR), check=True)
             print_success("Dependencias del frontend instaladas correctamente.")
+            
+            # Nuevo paso: Build para producción
+            print("Generando versión de producción (npm run build)...")
+            subprocess.run([npm_cmd, 'run', 'build'], cwd=str(FRONTEND_DIR), check=True)
+            print_success("Build del frontend completado.")
+            
         except subprocess.CalledProcessError:
-            print_error("Hubo un error instalando las dependencias del frontend (npm install).")
+            print_error("Hubo un error en los comandos de Node.js (install/build).")
     else:
         print_error("No se encontró package.json en el frontend.")
 
