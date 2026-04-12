@@ -458,22 +458,27 @@ def deploy_nginx_config():
             
         content = content.replace("TU_IP_VPS", vps_ip)
         
-        # 4. Guardar configuración
-        with open(target_path, 'w') as f:
+        # 4. Guardar configuración mediante archivo temporal y SUDO
+        temp_file = Path("/tmp/ecommerce_nginx.tmp")
+        with open(temp_file, 'w') as f:
             f.write(content)
-        
-        # 5. Activar configuración (link simbólico)
-        if not link_path.exists():
-            os.symlink(target_path, link_path)
             
-        print_success(f"Configuración desplegada en {target_path}")
+        print_info(f"Copiando configuración a {target_path}...")
+        subprocess.run(['sudo', 'mv', str(temp_file), str(target_path)], check=True)
         
-        # 6. Verificar y Recargar
+        # 5. Activar configuración (link simbólico con sudo)
+        print_info(f"Activando configuración en {link_path}...")
+        subprocess.run(['sudo', 'ln', '-sf', str(target_path), str(link_path)], check=True)
+        
+        print_success(f"Configuración desplegada exitosamente.")
+        
+        # 6. Verificar y Reiniciar (con sudo)
         print_info("Verificando configuración de Nginx...")
-        test_res = subprocess.run(['nginx', '-t'], capture_output=True, text=True)
+        test_res = subprocess.run(['sudo', 'nginx', '-t'], capture_output=True, text=True)
         if test_res.returncode == 0:
             print_success("Configuración válida")
-            subprocess.run(['systemctl', 'restart', 'nginx'], check=True)
+            print_info("Reiniciando Nginx...")
+            subprocess.run(['sudo', 'systemctl', 'restart', 'nginx'], check=True)
             print_success("Nginx reiniciado correctamente")
         else:
             print_error("Configuración INVÁLIDA:")
