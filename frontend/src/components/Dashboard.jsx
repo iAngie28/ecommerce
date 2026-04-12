@@ -64,7 +64,14 @@ const Dashboard = () => {
       setLoading(true);
       try {
         const response = await api.get('/productos/');
-        setProducts(response.data);
+        // DRF puede devolver array plano o paginado {count, results: []}
+        const data = response.data;
+        const lista = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+            ? data.results
+            : [];
+        setProducts(lista);
         setError(null);
       } catch (err) {
         console.error("Error al cargar productos:", err);
