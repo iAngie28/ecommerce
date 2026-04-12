@@ -4,7 +4,10 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from app_negocio.views.producto_views import ProductoViewSet
-from customers.views.usuario_views import MyTokenObtainPairView, LogoutView
+from customers.views.usuario_views import (
+    MyTokenObtainPairView, LogoutView,
+    PasswordResetRequestView, PasswordResetConfirmView
+)
 
 # Debug temporal
 def debug_schema(request):
@@ -22,4 +25,8 @@ urlpatterns = [
     # Productos - paths explícitos, sin DefaultRouter
     path('api/productos/', ProductoViewSet.as_view({'get': 'list', 'post': 'create'}), name='producto-list'),
     path('api/productos/<int:pk>/', ProductoViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='producto-detail'),
+
+    # Password Reset (también en tenants para facilitar acceso)
+    path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('api/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]

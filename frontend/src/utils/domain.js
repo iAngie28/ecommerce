@@ -14,7 +14,8 @@ export const getBaseDomain = (hostname) => {
     // Buscamos la IP dentro del hostname de nip.io (ej: tienda.157.173.102.129.nip.io)
     // El regex busca 4 grupos de números rodeados de puntos antes de 'nip.io'
     if (hostname.includes('.nip.io')) {
-        const nipIoMatch = hostname.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\.nip\.io/);
+        // Buscamos la IP (4 grupos de números) que esté inmediatamente antes de .nip.io
+        const nipIoMatch = hostname.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\.nip\.io$/);
         if (nipIoMatch) return nipIoMatch[1];
     }
     

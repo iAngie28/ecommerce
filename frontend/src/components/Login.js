@@ -57,13 +57,13 @@ function Login() {
                                 Usuario 
                             </label>
                             <input
-                                //type="email" 
                                 id="usuario-input"
+                                name="username"
                                 type="text"
                                 placeholder="Ingresar tu usuario"
                                 value={user}
                                 onChange={e => setUser(e.target.value)}
-                                required //obligatorio
+                                required 
                             />
 
                         </div>
@@ -76,6 +76,8 @@ function Login() {
                                 <Link to="/forgot-password" size={16} className="forgot-link">¿Olvidaste tu contraseña?</Link>
                             </div>
                             <input
+                                id="pass-input"
+                                name="password"
                                 type="password"
                                 placeholder="************"
                                 value={pass}

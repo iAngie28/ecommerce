@@ -9,7 +9,8 @@ import {
   Plus,
   Search,
   Bell,
-  AlertCircle 
+  AlertCircle,
+  Box 
 } from 'lucide-react';
 import { TenantContext } from '../contexts/TenantContext';
 import api from '../services/api'; // Tu servicio de API
@@ -86,7 +87,7 @@ const Dashboard = () => {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-icon">M</div>
+          <Box size={28} color="#18aea4" />
           <span className="brand-name">MiQhatu</span>
         </div>
         

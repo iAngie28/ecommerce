@@ -127,10 +127,11 @@ class DatabaseSeeder:
         print(f"[i] Usando sufijo de dominio: {suffix}")
         
         for i in range(1, count + 1):
-            schema = f"tienda_{i}"
+            # USAMOS 'x' como separador alfanumérico para evitar guiones y guiones bajos (Problemas DNS)
+            schema = f"tiendax{i}"
             name = f"Mi Tienda {i}"
-            # Usamos el esquema para el subdominio y el sufijo para el dominio base
-            domain_name = f"tienda{i}{suffix}"
+            # Usamos el mismo nombre para el subdominio
+            domain_name = f"tiendax{i}{suffix}"
 
             # Operaciones de Tenant en el esquema publico (CORE de django-tenants)
             with schema_context('public'):
