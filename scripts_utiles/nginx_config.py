@@ -627,6 +627,8 @@ def main():
             reload_nginx()
         elif cmd == 'restart':
             restart_service()
+        elif cmd == 'deploy-nginx' or cmd == 'deploy':
+            deploy_nginx_config()
 
 if __name__ == '__main__':
     main()
