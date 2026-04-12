@@ -26,26 +26,28 @@ export default function CrearTienda() {
       const slug = form.nombre_tienda.toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
-      
-      // Detectar base host
-      const currentHost = window.location.hostname;
-      let baseHost = "localhost";
-      
-      if (currentHost.endsWith(".nip.io")) {
-          // Si estamos usando nip.io, mantenemos el patrón
-          const parts = currentHost.split('.');
-          const ipParts = parts.slice(0, -2).filter(p => /^\d+$/.test(p));
-          if (ipParts.length === 4) {
-              baseHost = `${ipParts.join('.')}.nip.io`;
-          }
+        .replace(/\s+/g, 'x')            // Espacios → x (sin guiones bajos ni guiones)
+        .replace(/[^a-z0-9]/g, '');      // Solo alfanumérico
+
+      // FUENTE DE VERDAD: usar REACT_APP_BASE_DOMAIN del .env (actualizado por run_services.py)
+      const baseDomain = process.env.REACT_APP_BASE_DOMAIN || 'localhost';
+      const suffix     = process.env.REACT_APP_TENANT_DOMAIN_SUFFIX; // ej: .192.168.100.244.nip.io
+
+      let dominio;
+      if (suffix) {
+        // Si hay sufijo explícito, lo usamos directamente
+        dominio = `${slug}${suffix}`;
+      } else if (baseDomain !== 'localhost') {
+        // IP mode sin sufijo: usar nip.io
+        dominio = `${slug}.${baseDomain}.nip.io`;
+      } else {
+        dominio = `${slug}.localhost`;
       }
 
       setForm(prev => ({
         ...prev,
         schema_name: slug,
-        dominio: `${slug}.${baseHost}`
+        dominio
       }));
     }
   }, [form.nombre_tienda]);
@@ -61,10 +63,12 @@ export default function CrearTienda() {
     setError(null);
     
     try {
-      // Usamos el puerto 8001 para el API central como está configurado
-      const apiBase = window.location.hostname === "localhost" 
-        ? "http://localhost:8001" 
-        : `${window.location.protocol}//${window.location.hostname}:8001`;
+      // Usar REACT_APP_API_URL del .env (configurado por el wizard de instalación)
+      const apiBase = process.env.REACT_APP_API_URL
+        ? process.env.REACT_APP_API_URL.replace('/api', '')
+        : (window.location.hostname === 'localhost'
+            ? 'http://localhost:8001'
+            : `${window.location.protocol}//${window.location.hostname}:8001`);
 
       const res = await fetch(`${apiBase}/api/tiendas/crear/`, {
         method: "POST",

@@ -18,18 +18,20 @@ function Login() {
             });
 
             const { access, refresh, subdomain, full_name } = res.data;
+            const tenantHost = subdomain; // FQDN completo que da el backend (ej: gerle.192.168.100.244.nip.io)
 
-            // En producción, confiamos 100% en el subdominio que el Backend nos entrega.
-            // Si la DB tiene nip.io, el backend enviará el dominio completo correcto.
-            let tenantHost = subdomain;
-
-            // Construir la URL de redirección
+            // Construir la URL de redirección al subdominio del tenant
             if (tenantHost) {
                 const protocol = window.location.protocol;
-                // No forzamos el puerto en producción (80)
-                const portPart = (window.location.port && window.location.port !== '80') ? `:${window.location.port}` : '';
-                
-                // Redirigir al subdominio con ambos tokens para SSO
+                const currentPort = window.location.port;
+
+                // En modo IP directa (puerto 3000/8001), el navegador accede a la app
+                // por IP:PUERTO. nip.io resuelve la IP pero el puerto lo decide el cliente.
+                // El dev server de React escucha en 0.0.0.0 así que es accesible.
+                const portPart = (currentPort && currentPort !== '80' && currentPort !== '443')
+                    ? `:${currentPort}`
+                    : '';
+
                 window.location.href = `${protocol}//${tenantHost}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}`;
             } else {
                 // Sin tenant (admin global), guardar y redirigir al dashboard
