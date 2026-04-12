@@ -109,7 +109,12 @@ const Dashboard = () => {
         <header className="topbar">
           <div className="search-bar">
             <Search size={18} />
-            <input type="text" placeholder="Buscar productos..." />
+            <input 
+              id="search-products"
+              name="search_query"
+              type="text" 
+              placeholder="Buscar productos..." 
+            />
           </div>
           <div className="topbar-actions">
             <div className="tenant-badge">
