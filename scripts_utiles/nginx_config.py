@@ -430,19 +430,54 @@ def deploy_nginx_config():
     print_info(f"Generando configuración para IP: {vps_ip}")
     
     try:
+        # 1. Asegurar directorios y archivos de log (con sudo)
+        log_dir = Path("/var/log/nginx")
+        access_log = log_dir / "ecommerce_access.log"
+        error_log = log_dir / "ecommerce_error.log"
+        
+        print_info("Configurando permisos de logs...")
+        if not log_dir.exists():
+            subprocess.run(['sudo', 'mkdir', '-p', str(log_dir)], check=True)
+            
+        for log_file in [access_log, error_log]:
+            if not log_file.exists():
+                subprocess.run(['sudo', 'touch', str(log_file)], check=True)
+            # Permisos: 666 permite que Nginx escriba sin importar el usuario
+            subprocess.run(['sudo', 'chmod', '666', str(log_file)], check=True)
+        
+        # 2. Limpiar procesos en puerto 80 (fuser -k 80/tcp)
+        print_info("Limpiando puerto 80 para evitar bloqueos...")
+        try:
+            subprocess.run(['sudo', 'fuser', '-k', '80/tcp'], capture_output=True)
+        except:
+            pass 
+            
+        # 3. Leer template
         with open(template_path, 'r') as f:
             content = f.read()
             
         content = content.replace("TU_IP_VPS", vps_ip)
         
+        # 4. Guardar configuración
         with open(target_path, 'w') as f:
             f.write(content)
         
+        # 5. Activar configuración (link simbólico)
         if not link_path.exists():
             os.symlink(target_path, link_path)
             
         print_success(f"Configuración desplegada en {target_path}")
-        reload_nginx()
+        
+        # 6. Verificar y Recargar
+        print_info("Verificando configuración de Nginx...")
+        test_res = subprocess.run(['nginx', '-t'], capture_output=True, text=True)
+        if test_res.returncode == 0:
+            print_success("Configuración válida")
+            subprocess.run(['systemctl', 'restart', 'nginx'], check=True)
+            print_success("Nginx reiniciado correctamente")
+        else:
+            print_error("Configuración INVÁLIDA:")
+            print(test_res.stderr)
         
     except Exception as e:
         print_error(f"Error en despliegue: {str(e)}")
