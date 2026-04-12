@@ -465,7 +465,22 @@ def deploy_nginx_config():
             
         content = content.replace("TU_IP_VPS", vps_ip)
         
-        # 4. Guardar configuración mediante archivo temporal y SUDO
+        # 4. Dinamizar la ruta del proyecto (RUTA ABSOLUTA PARA NGINX)
+        project_abs_path = str(PROJECT_ROOT)
+        content = content.replace("{{PROJECT_ROOT}}", project_abs_path)
+        
+        # 5. Configurar permisos de travesía (NGINX necesita entrar en /root/)
+        # Le damos permiso de ejecucion (+x) a los padres para que Nginx pueda llegar al build
+        print_info("Asegurando permisos de travesía para Nginx...")
+        subprocess.run(['sudo', 'chmod', 'o+x', '/root'], check=False)
+        subprocess.run(['sudo', 'chmod', '-R', '755', project_abs_path], check=False)
+
+        # 6. Detener servicio frontend viejo si existe
+        print_info("Desactivando servicio redundante frontend_saas...")
+        subprocess.run(['sudo', 'systemctl', 'stop', 'frontend_saas'], check=False)
+        subprocess.run(['sudo', 'systemctl', 'disable', 'frontend_saas'], check=False)
+
+        # 7. Guardar configuración mediante archivo temporal y SUDO
         temp_file = Path("/tmp/ecommerce_nginx.tmp")
         with open(temp_file, 'w') as f:
             f.write(content)
