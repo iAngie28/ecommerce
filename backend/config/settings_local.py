@@ -174,11 +174,12 @@ MEDIA_ROOT = config('MEDIA_ROOT', default=os.path.join(BASE_DIR, 'media'))
 # 7. SECURITY EN PRODUCCIÓN
 # ========================================================================
 if ENVIRONMENT == 'production':
-    SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Desactivamos redirección SSL porque el entorno es HTTP plano (Puerto 80)
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 0  # Desactivado para evitar bloqueos de navegador
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SESSION_COOKIE_SECURE = False  # Permitir cookies en HTTP plano
+    CSRF_COOKIE_SECURE = False     # Permitir tokens CSRF en HTTP plano
 else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
