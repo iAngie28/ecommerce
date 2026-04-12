@@ -161,6 +161,11 @@ class PasswordResetRequestView(APIView):
         # Construir la URL de reset dinámicamente según el entorno (IP o Dominio)
         host = request.get_host()
         protocol = 'https' if request.is_secure() else 'http'
+        
+        # Generar UID y Token
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        
         reset_url = f"{protocol}://{host}/reset-password/{uid}/{token}/"
 
         try:
