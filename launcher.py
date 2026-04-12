@@ -111,6 +111,7 @@ def activate_venv():
     
     # Nota: En Python, no necesitamos activar explícitamente
     # podemos usar sys.executable del venv directamente
+    activate_script = None # Placeholder logic
 
 # ========================================================================
 # FUNCIONES DE PRESENTACIÓN
@@ -760,8 +761,6 @@ def show_data_management_menu():
             print_error("Opción inválida")
             time.sleep(1)
 
-# El menu original de data se ha integrado en show_data_management_menu
-
 def show_users_menu():
     """Menú dedicado a la gestión de usuarios"""
     while True:
@@ -819,38 +818,41 @@ def show_test_shell():
     pause()
 
 def show_nginx_menu():
-    """Menú de Nginx"""
+    """Menú de Nginx (Gestión Profesional de Producción)"""
     while True:
         clear_screen()
-        print_header("SERVICIOS NGINX")
+        print_header("GESTIÓN DE SERVICIOS Y NGINX")
         
-        print_section(f"{Colors.CHECK} Crear Servicios (muestra .env y pide confirmación)")
-        print_option(f"{Colors.CYAN}1{Colors.RESET} - Crear servicio Django")
+        print_section("Configuración y Despliegue")
+        print_option(f"{Colors.GREEN}8{Colors.RESET} - {Colors.BOLD}Desplegar Configuración Nginx (.conf){Colors.RESET}")
+        print_option(f"{Colors.CYAN}1{Colors.RESET} - Crear servicio Django (systemd)")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - Crear servicio Frontend (React)")
         
-        print_section(f"Mantenimiento")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Estado de servicios")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Ver logs")
-        print_option(f"{Colors.CYAN}5{Colors.RESET} - Recargar Nginx")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Reiniciar servicios")
+        print_section("\nMantenimiento")
+        print_option(f"{Colors.CYAN}3{Colors.RESET} - Ver estado de servicios (Status)")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Ver registros (Logs)")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Recargar Nginx (Reload)")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Reiniciar todo (Restart All)")
 
-        print_section(f"Dominios")
-        print_option(f"{Colors.CYAN}7{Colors.RESET} - Ver dominios activos (query_domains.py)")
+        print_section("\nUtilidades")
+        print_option(f"{Colors.CYAN}7{Colors.RESET} - Consultar Dominios / Tenants")
         
-        print_section(f"Peligro")
-        print_option(f"{Colors.RED}8{Colors.RESET} - Eliminar servicio")
+        print_section("\nPeligro")
+        print_option(f"{Colors.RED}D{Colors.RESET} - Eliminar servicios de sistema")
         
-        print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
+        print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver al menú principal")
         print()
         
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
         
-        if choice == '1':
-            loading_animation(1, "Preparando configuración")
+        if choice == '8':
+            loading_animation(1, "Generando configuración Nginx")
+            run_python_script('nginx_config.py', 'deploy-nginx')
+            pause()
+        elif choice == '1':
             run_python_script('nginx_config.py', 'django-service')
             pause()
         elif choice == '2':
-            loading_animation(1, "Preparando configuración")
             run_python_script('nginx_config.py', 'frontend-service')
             pause()
         elif choice == '3':
@@ -860,7 +862,6 @@ def show_nginx_menu():
             run_python_script('nginx_config.py', 'logs')
             pause()
         elif choice == '5':
-            loading_animation(1, "Recargando")
             run_python_script('nginx_config.py', 'reload-nginx')
             pause()
         elif choice == '6':
@@ -869,7 +870,7 @@ def show_nginx_menu():
         elif choice == '7':
             run_python_script('query_domains.py')
             pause()
-        elif choice == '8':
+        elif choice == 'd':
             run_python_script('nginx_config.py', 'delete-service')
             pause()
         elif choice == 'b':
