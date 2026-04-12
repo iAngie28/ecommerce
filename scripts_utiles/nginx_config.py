@@ -570,6 +570,244 @@ def restart_service():
     else:
         print_error("Opción inválida")
 
+# ========================================================================
+# CREAR PAQUETES COMPLETOS
+# ========================================================================
+
+ALL_SERVICES = ['django_saas', 'frontend_saas']
+
+def _auto_delete_services():
+    """Elimina todos los servicios existentes silenciosamente antes de crear nuevos."""
+    print_info("Limpiando servicios anteriores...")
+    for svc in ALL_SERVICES:
+        try:
+            subprocess.run(['systemctl', 'stop', svc], capture_output=True, timeout=10)
+            subprocess.run(['systemctl', 'disable', svc], capture_output=True, timeout=10)
+            svc_file = f'/etc/systemd/system/{svc}.service'
+            if os.path.exists(svc_file):
+                os.remove(svc_file)
+                print_success(f'Servicio anterior eliminado: {svc}')
+        except Exception:
+            pass
+    try:
+        subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
+    except Exception:
+        pass
+
+def _run_user_from_path(project_path):
+    return 'root' if str(project_path).startswith('/root/') else 'www-data'
+
+def create_all_nginx():
+    """Crea django_saas + frontend_saas + despliega nginx de una sola vez."""
+    print_header('CREAR SERVICIOS CON NGINX (PRODUCCIÓN)')
+
+    if os.geteuid() != 0:
+        print_error('Debes ejecutar como root (sudo)')
+        return
+
+    config = get_env_config()
+    project_path = str(PROJECT_ROOT)
+    run_user = _run_user_from_path(project_path)
+    django_port = config['DJANGO_PORT']
+    react_port  = config['REACT_PORT']
+
+    print_info(f'Proyecto: {project_path}')
+    print_info(f'Usuario:  {run_user}')
+    print_info(f'Django:   puerto {django_port} (gunicorn)')
+    print_info(f'Frontend: /var/www/ecommerce/build (via Nginx)')
+    print()
+
+    confirm = input(f"{Colors.BOLD}¿Crear/reemplazar servicios con Nginx? (s/n): {Colors.ENDC}").lower()
+    if confirm != 's':
+        print_warning('Cancelado')
+        return
+
+    # 1. Eliminar existentes
+    _auto_delete_services()
+
+    # 2. Servicio Django (gunicorn)
+    gunicorn_bin = f'{project_path}/backend/venv/bin/gunicorn'
+    django_service = f"""[Unit]
+Description=Django SaaS - gunicorn
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User={run_user}
+Group={run_user}
+WorkingDirectory={project_path}/backend
+Environment="PATH={project_path}/backend/venv/bin"
+ExecStart={gunicorn_bin} config.wsgi:application --bind 127.0.0.1:{django_port} --workers 3
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/django_saas.log
+StandardError=append:/var/log/django_saas_error.log
+
+[Install]
+WantedBy=multi-user.target
+"""
+    with open('/etc/systemd/system/django_saas.service', 'w') as f:
+        f.write(django_service)
+    print_success('django_saas.service creado (gunicorn)')
+
+    # 3. Construir y migrar frontend
+    print_info('Construyendo frontend (npm run build)...')
+    npm_cmd = 'npm'
+    try:
+        subprocess.run([npm_cmd, 'run', 'build'], cwd=f'{project_path}/frontend',
+                       check=True, shell=False)
+        print_success('Build del frontend completado')
+    except Exception as e:
+        print_warning(f'Error en build: {e} (continuando de todas formas...)')
+
+    # Migrar a /var/www/ecommerce/build
+    secure_build = '/var/www/ecommerce/build'
+    subprocess.run(['mkdir', '-p', secure_build], check=True)
+    local_build = f'{project_path}/frontend/build'
+    if os.path.exists(local_build):
+        subprocess.run(['cp', '-r', f'{local_build}/.', secure_build], check=False)
+        subprocess.run(['chown', '-R', 'www-data:www-data', '/var/www/ecommerce'], check=False)
+        subprocess.run(['chmod', '-R', '755', '/var/www/ecommerce'], check=False)
+        print_success('Frontend migrado a /var/www/ecommerce')
+
+    # 4. Desplegar Nginx
+    deploy_nginx_config()
+
+    # 5. Activar y arrancar
+    subprocess.run(['systemctl', 'daemon-reload'], check=True)
+    for svc in ['django_saas', 'nginx']:
+        subprocess.run(['systemctl', 'enable', svc], check=False)
+        subprocess.run(['systemctl', 'start', svc], check=False)
+        print_success(f'{svc} habilitado e iniciado')
+
+
+def create_all_ip():
+    """Crea django_saas + frontend_saas para acceso directo por IP (sin Nginx)."""
+    print_header('CREAR SERVICIOS CON IP DIRECTA (SIN NGINX)')
+
+    if os.geteuid() != 0:
+        print_error('Debes ejecutar como root (sudo)')
+        return
+
+    config = get_env_config()
+    project_path = str(PROJECT_ROOT)
+    run_user = _run_user_from_path(project_path)
+    django_port = config['DJANGO_PORT']
+    react_port  = config['REACT_PORT']
+
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        detected_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        detected_ip = '0.0.0.0'
+
+    print_info(f'IP detectada: {detected_ip}')
+    print_info(f'Django:   {detected_ip}:{django_port}')
+    print_info(f'Frontend: {detected_ip}:{react_port}')
+    print()
+
+    confirm = input(f"{Colors.BOLD}¿Crear/reemplazar servicios con IP directa? (s/n): {Colors.ENDC}").lower()
+    if confirm != 's':
+        print_warning('Cancelado')
+        return
+
+    # 1. Eliminar existentes
+    _auto_delete_services()
+
+    # 2. Servicio Django
+    # En Linux usamos gunicorn si existe, si no runserver
+    gunicorn_bin = f'{project_path}/backend/venv/bin/gunicorn'
+    venv_python  = f'{project_path}/backend/venv/bin/python'
+    if os.path.exists(gunicorn_bin):
+        exec_start = (f'{gunicorn_bin} config.wsgi:application '
+                      f'--bind 0.0.0.0:{django_port} --workers 2 --reload')
+        print_info('Usando gunicorn para Django')
+    else:
+        exec_start = f'{venv_python} manage.py runserver 0.0.0.0:{django_port}'
+        print_warning('gunicorn no encontrado, usando runserver')
+
+    django_service = f"""[Unit]
+Description=Django SaaS - IP Directa
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User={run_user}
+Group={run_user}
+WorkingDirectory={project_path}/backend
+Environment="PATH={project_path}/backend/venv/bin"
+ExecStart={exec_start}
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/django_saas.log
+StandardError=append:/var/log/django_saas_error.log
+
+[Install]
+WantedBy=multi-user.target
+"""
+    with open('/etc/systemd/system/django_saas.service', 'w') as f:
+        f.write(django_service)
+    print_success('django_saas.service creado')
+
+    # 3. Servicio Frontend (serve el build directamente con npx serve)
+    frontend_service = f"""[Unit]
+Description=Frontend SaaS - serve (IP Directa)
+After=network.target
+
+[Service]
+Type=simple
+User={run_user}
+Group={run_user}
+WorkingDirectory={project_path}/frontend
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="HOST=0.0.0.0"
+Environment="PORT={react_port}"
+ExecStart=/usr/bin/npx serve -s build -l {react_port}
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/frontend_saas.log
+StandardError=append:/var/log/frontend_saas_error.log
+
+[Install]
+WantedBy=multi-user.target
+"""
+    with open('/etc/systemd/system/frontend_saas.service', 'w') as f:
+        f.write(frontend_service)
+    print_success('frontend_saas.service creado')
+
+    # 4. Construir frontend
+    print_info('Construyendo frontend (npm run build)...')
+    try:
+        subprocess.run(['npm', 'run', 'build'], cwd=f'{project_path}/frontend', check=True)
+        print_success('Build completado')
+    except Exception as e:
+        print_warning(f'Error en build: {e}')
+
+    # 5. Activar y arrancar
+    subprocess.run(['systemctl', 'daemon-reload'], check=True)
+    for svc in ALL_SERVICES:
+        subprocess.run(['systemctl', 'enable', svc], check=False)
+        subprocess.run(['systemctl', 'start', svc], check=False)
+        print_success(f'{svc} habilitado e iniciado')
+
+    print_info(f'Accede al sistema en http://{detected_ip}:{react_port}')
+
+
+def delete_all_services():
+    """Elimina todos los servicios del sistema."""
+    print_header('ELIMINAR TODOS LOS SERVICIOS DEL SISTEMA')
+
+    if os.geteuid() != 0:
+        print_error('Debes ejecutar como root (sudo)')
+        return
+
+    _auto_delete_services()
+    print_success('Todos los servicios han sido eliminados')
+
+
 def main():
     if len(sys.argv) < 2:
         while True:
@@ -612,13 +850,19 @@ def main():
                 time.sleep(1)
     else:
         cmd = sys.argv[1]
-        
+
         if cmd == 'django-service':
             create_django_service()
         elif cmd == 'frontend-service':
             create_frontend_service()
         elif cmd == 'delete-service':
             delete_service()
+        elif cmd == 'delete-all':
+            delete_all_services()
+        elif cmd == 'create-all-nginx':
+            create_all_nginx()
+        elif cmd == 'create-all-ip':
+            create_all_ip()
         elif cmd == 'status':
             view_service_status()
         elif cmd == 'logs':

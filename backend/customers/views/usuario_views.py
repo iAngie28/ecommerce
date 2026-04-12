@@ -168,6 +168,15 @@ class PasswordResetRequestView(APIView):
         
         reset_url = f"{protocol}://{host}/reset-password/{uid}/{token}/"
 
+        # Verificar que el email esté configurado antes de intentar enviar
+        from django.conf import settings as dj_settings
+        if not dj_settings.EMAIL_HOST_USER or not dj_settings.EMAIL_HOST_PASSWORD:
+            # Email no configurado: en desarrollo, devolver el enlace directamente
+            return Response({
+                'message': 'Email no configurado en el servidor.',
+                'dev_reset_url': reset_url  # Solo visible si DEBUG=True
+            }, status=503 if not dj_settings.DEBUG else 200)
+
         try:
             send_email_ssl(
                 to_email=email,

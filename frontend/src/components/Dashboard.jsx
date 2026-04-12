@@ -15,7 +15,7 @@ import {
 import { TenantContext } from '../contexts/TenantContext';
 import api from '../services/api'; // Tu servicio de API
 import './Dashboard.css';
-import { getBaseDomain, getApiUrl } from '../utils/domain';
+import { getBaseDomain } from '../utils/domain';
 
 const Dashboard = () => {
   // 1. ESTADOS Y CONTEXTO
@@ -92,13 +92,17 @@ const Dashboard = () => {
         </div>
         
         <nav className="sidebar-nav">
-          <a href="#" className="nav-item active"><LayoutDashboard size={20} /> Panel</a>
-          <a href="#" className="nav-item"><Package size={20} /> Productos</a>
-          <a href="#" className="nav-item"><ShoppingCart size={20} /> Ventas</a>
-          <a href="#" className="nav-item"><Users size={20} /> Clientes</a>
+          <button className="nav-item active"><LayoutDashboard size={20} /> Panel</button>
+          <button className="nav-item" disabled style={{opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none'}}><Package size={20} /> Productos</button>
+          <button className="nav-item" disabled style={{opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none'}}><ShoppingCart size={20} /> Ventas</button>
+          <button className="nav-item" disabled style={{opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none'}}><Users size={20} /> Clientes</button>
           <div className="nav-divider"></div>
-          <a href="#" className="nav-item"><Settings size={20} /> Configuración</a>
-          <button onClick={(e) => handleLogout(e)} className="nav-item logout" style={{width: '100%', border: 'none', background: 'none', cursor: 'pointer'}}>
+          <button className="nav-item" disabled style={{opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none'}}><Settings size={20} /> Configuración</button>
+          <button
+            onClick={(e) => handleLogout(e)}
+            className="nav-item logout"
+            style={{width: '100%', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left'}}
+          >
             <LogOut size={20} /> Salir
           </button>
         </nav>

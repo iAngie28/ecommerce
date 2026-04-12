@@ -8,6 +8,7 @@ import './ForgotPassword.css'; // Estilos específicos si los hay
 function ForgotPassword() {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
+    const [devUrl, setDevUrl] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -16,12 +17,18 @@ function ForgotPassword() {
         setLoading(true);
         setMessage('');
         setError('');
-        
+        setDevUrl('');
+
         try {
-            await api.post('/password-reset/', { email });
-            setMessage('Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.');
+            const res = await api.post('/password-reset/', { email });
+            setMessage(res.data?.message || 'Si el email existe, recibirás un enlace.');
+            // Modo desarrollo: el backend devuelve el link directo si no hay email configurado
+            if (res.data?.dev_reset_url) {
+                setDevUrl(res.data.dev_reset_url);
+            }
         } catch (err) {
-            setError('Error al procesar la solicitud. Intenta nuevamente.');
+            const msg = err.response?.data?.error || 'Error al procesar la solicitud. Intenta nuevamente.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -60,6 +67,12 @@ function ForgotPassword() {
                     </form>
 
                     {message && <div className="alert-message success">{message}</div>}
+                    {devUrl && (
+                        <div className="alert-message" style={{background:'#fff3cd', color:'#856404', borderLeft:'4px solid #ffc107', marginTop:'10px', fontSize:'0.85rem'}}>
+                            <strong>Modo Desarrollo</strong> — Email no configurado.<br/>
+                            <a href={devUrl} style={{wordBreak:'break-all', color:'#0d6efd'}}>{devUrl}</a>
+                        </div>
+                    )}
                     {error && <div className="alert-message error">{error}</div>}
                 </div>
 
