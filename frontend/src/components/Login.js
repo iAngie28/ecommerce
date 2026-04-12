@@ -19,29 +19,18 @@ function Login() {
 
             const { access, refresh, schema_name, subdomain, full_name } = res.data;
 
-            // Extraemos el subdominio del API (ej: empresa1.localhost) o intentamos adivinarlo
-            let tenantHost = subdomain || (schema_name ? `${schema_name.replace('_', '')}.localhost` : null);
+            // En producción, confiamos 100% en el subdominio que el Backend nos entrega.
+            // Si la DB tiene nip.io, el backend enviará el dominio completo correcto.
+            let tenantHost = subdomain;
 
-            if (tenantHost && typeof window !== 'undefined') {
-                const currentHostname = window.location.hostname;
-                const baseDomain = getBaseDomain(currentHostname);
-                
-                // Si la IP real es una IP pública y el tenantHost es .localhost, convertir a nip.io
-                if (baseDomain && baseDomain !== '127.0.0.1' && tenantHost.endsWith('.localhost')) {
-                    const slug = tenantHost.replace('.localhost', '');
-                    tenantHost = `${slug}.${baseDomain}.nip.io`;
-                }
-            }
-
-            // Construir la URL de SSO usando el tenantHost y manteniendo el puerto actual
+            // Construir la URL de redirección
             if (tenantHost) {
-                // Removemos puertos si venían en tenantHost
-                const cleanHost = tenantHost.split(':')[0];
-                const portPart = window.location.port ? `:${window.location.port}` : '';
                 const protocol = window.location.protocol;
+                // No forzamos el puerto en producción (80)
+                const portPart = (window.location.port && window.location.port !== '80') ? `:${window.location.port}` : '';
                 
                 // Redirigir al subdominio con ambos tokens para SSO
-                window.location.href = `${protocol}//${cleanHost}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}`;
+                window.location.href = `${protocol}//${tenantHost}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}`;
             } else {
                 // Sin tenant (admin global), guardar y redirigir al dashboard
                 localStorage.setItem('access_token', access);

@@ -97,11 +97,17 @@ if ENVIRONMENT == 'development':
     
 elif ENVIRONMENT == 'production':
     # En producción, permitimos el dominio principal y el wildcard del sufijo
+    # El formato '.dominio.com' es el estándar de Django para permitir subdominios
     ALLOWED_HOSTS = [
         DOMAIN_MAIN,
-        TENANT_DOMAIN_SUFFIX, # Django-tenants usa el punto inicial como wildcard
-        f"*{TENANT_DOMAIN_SUFFIX}"
+        TENANT_DOMAIN_SUFFIX, 
+        f"*{TENANT_DOMAIN_SUFFIX}" # Mantener flexibilidad
     ]
+    
+    # Asegurar que el punto inicial esté para el wildcard de Django si no está
+    standard_wildcard = TENANT_DOMAIN_SUFFIX if TENANT_DOMAIN_SUFFIX.startswith('.') else f'.{TENANT_DOMAIN_SUFFIX}'
+    if standard_wildcard not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(standard_wildcard)
     
     # Agregar hosts adicionales del .env
     additional_hosts = config(
@@ -124,8 +130,12 @@ elif ENVIRONMENT == 'production':
     # CSRF Trusted Origins (Obligatorio para POST en subdominios)
     CSRF_TRUSTED_ORIGINS = [
         f"http://{DOMAIN_MAIN}",
+        f"http://{DEVICE_HOSTNAME}",
         f"http://*{TENANT_DOMAIN_SUFFIX}"
     ]
+    # Agregar la IP directamente si está en DOMAIN_MAIN
+    if DOMAIN_MAIN not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(f"http://{DOMAIN_MAIN}")
 
 # ========================================================================
 # 3. SECRET KEY (CAMBIAR EN PRODUCCIÓN)
