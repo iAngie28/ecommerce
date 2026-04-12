@@ -24,7 +24,9 @@ const SSOReceiver = () => {
             // Se guarda en el localStorage EXCLUSIVO de este subdominio
             localStorage.setItem('access_token', token);
             if (refresh) localStorage.setItem('refresh_token', refresh);
-            if (fullName) localStorage.setItem('user_full_name', decodeURIComponent(fullName));
+            // Guardar siempre, incluso si es string vacío (para no mostrar 'Usuario')
+            if (fullName !== null) localStorage.setItem('user_full_name', decodeURIComponent(fullName));
+
             
             // Salto al dashboard limpiando la URL
             navigate('/dashboard', { replace: true });

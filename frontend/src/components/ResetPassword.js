@@ -112,6 +112,7 @@ function ResetPassword() {
                     </form>
 
                     {error && <div className="alert-message error">{error}</div>}
+                    {!error && message && <div className="alert-message success">{message}</div>}
                 </div>
 
                 <div className="login-info-side">

@@ -3,7 +3,7 @@ import './Login.css';
 import { User, KeySquare, Box } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { getBaseDomain } from '../utils/domain';
+
 
 function Login() {
     const [user, setUser] = useState('');
@@ -17,7 +17,7 @@ function Login() {
                 password: pass
             });
 
-            const { access, refresh, schema_name, subdomain, full_name } = res.data;
+            const { access, refresh, subdomain, full_name } = res.data;
 
             // En producción, confiamos 100% en el subdominio que el Backend nos entrega.
             // Si la DB tiene nip.io, el backend enviará el dominio completo correcto.
@@ -35,7 +35,7 @@ function Login() {
                 // Sin tenant (admin global), guardar y redirigir al dashboard
                 localStorage.setItem('access_token', access);
                 if (refresh) localStorage.setItem('refresh_token', refresh);
-                if (full_name) localStorage.setItem('user_full_name', full_name);
+                localStorage.setItem('user_full_name', full_name || '');
                 window.location.href = '/dashboard';
             }
         } catch (error) {
