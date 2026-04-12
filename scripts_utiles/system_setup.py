@@ -1,151 +1,430 @@
 #!/usr/bin/env python3
+# ========================================================================
+# ASISTENTE DE INSTALACIÓN RÁPIDA (Plug & Play)
+# ========================================================================
+# Configura el entorno completo del proyecto de forma interactiva.
+# Te pregunta el modo de despliegue (Nginx o IP directa) y ajusta
+# automáticamente todas las variables del .env relevantes.
+#
+# Lo que NO toca (configuración manual):
+#   - DATABASE_* (usuario, contraseña, host, nombre)
+#   - EMAIL_HOST_USER / EMAIL_HOST_PASSWORD
+#
+# Uso: python scripts_utiles/system_setup.py
+# ========================================================================
+
 import os
 import sys
 import subprocess
-import time
+import secrets
+import platform
+import socket
+import shutil
 from pathlib import Path
 
-# Configurar rutas
 PROJECT_ROOT = Path(__file__).parent.parent
-BACKEND_DIR = PROJECT_ROOT / 'backend'
+BACKEND_DIR  = PROJECT_ROOT / 'backend'
 FRONTEND_DIR = PROJECT_ROOT / 'frontend'
-ENV_PATH = PROJECT_ROOT / '.env'
+ENV_PATH     = PROJECT_ROOT / '.env'
 
-class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    CYAN = '\033[96m'
-    YELLOW = '\033[93m'
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+ES_WINDOWS = platform.system() == 'Windows'
 
-def print_step(text):
-    print(f"\n{Colors.CYAN}{Colors.BOLD}>> {text}{Colors.RESET}")
+# ── Colores ───────────────────────────────────────────────────────────────
+class C:
+    GREEN   = '\033[92m'
+    CYAN    = '\033[96m'
+    YELLOW  = '\033[93m'
+    RED     = '\033[91m'
+    BLUE    = '\033[94m'
+    BOLD    = '\033[1m'
+    RESET   = '\033[0m'
 
-def print_success(text):
-    print(f"{Colors.GREEN}[OK] {text}{Colors.RESET}")
+def ok(t):    print(f"{C.GREEN}[OK]{C.RESET}  {t}")
+def err(t):   print(f"{C.RED}[X]{C.RESET}   {t}")
+def info(t):  print(f"{C.BLUE}[i]{C.RESET}   {t}")
+def warn(t):  print(f"{C.YELLOW}[!]{C.RESET}  {t}")
+def step(n, t): print(f"\n{C.CYAN}{C.BOLD}── Paso {n}: {t}{C.RESET}")
 
-def print_error(text):
-    print(f"{Colors.RED}[ERROR] {text}{Colors.RESET}")
+def header(t):
+    print(f"\n{C.BOLD}{C.GREEN}{'='*62}{C.RESET}")
+    print(f"{C.BOLD}{C.GREEN}  {t}{C.RESET}")
+    print(f"{C.BOLD}{C.GREEN}{'='*62}{C.RESET}\n")
 
-def create_env():
-    print_step("1. Configurando variables de entorno (.env)")
+# ── Helpers .env ──────────────────────────────────────────────────────────
+
+def load_env():
+    """Carga el .env actual como diccionario {clave: (valor, linea_completa)}."""
+    result = {}
     if ENV_PATH.exists():
-        print_success("El archivo .env ya existe. Omitiendo creación.")
-        return
+        with open(ENV_PATH, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#') or '=' not in stripped:
+                    continue
+                key, value = stripped.split('=', 1)
+                result[key.strip()] = value.strip().strip("'\"")
+    return result
 
-    print("Creando archivo .env básico para desarrollo local...")
-    # Generar una secret key básica para dev
-    import secrets
-    secret_key = secrets.token_urlsafe(50)
 
-    env_content = f"""ENVIRONMENT=development
+def write_env_key(key, value):
+    """Actualiza o añade una clave en el .env. Respeta comentarios y estructura."""
+    lines = []
+    found = False
+    if ENV_PATH.exists():
+        with open(ENV_PATH, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip().startswith(f'{key}='):
+                    lines.append(f'{key}={value}\n')
+                    found = True
+                else:
+                    lines.append(line)
+    if not found:
+        lines.append(f'{key}={value}\n')
+    with open(ENV_PATH, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
+
+
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return '127.0.0.1'
+
+# ── PASO 0: Modo de despliegue ────────────────────────────────────────────
+
+def ask_deployment_mode():
+    """
+    Pregunta al usuario el modo de despliegue.
+    Retorna (modo, ip, django_port, react_port)
+    """
+    print(f"\n{C.BOLD}¿Cómo quieres desplegar el proyecto?{C.RESET}")
+    print(f"  {C.GREEN}1{C.RESET} - Nginx (Producción) — gunicorn + build estático + Nginx")
+    print(f"  {C.CYAN}2{C.RESET} - IP directa         — Django runserver/gunicorn + React start")
+    print(f"  {C.BLUE}3{C.RESET} - Localhost           — Solo esta PC, desarrollo puro")
+    print()
+
+    while True:
+        choice = input(f"  {C.BOLD}? [1/2/3]: {C.RESET}").strip()
+        if choice in ('1', '2', '3'):
+            break
+        print("  Opción inválida, elige 1, 2 o 3.")
+
+    env = load_env()
+    django_port = env.get('DJANGO_PORT', '8001')
+    react_port  = env.get('REACT_PORT',  '3000')
+
+    if choice == '1':
+        # ── Nginx ────────────────────────────────────────────────────────
+        detected = get_local_ip()
+        info(f"IP detectada: {C.YELLOW}{detected}{C.RESET}")
+        manual = input(f"  IP o dominio del VPS ({detected}): ").strip()
+        ip = manual if manual else detected
+
+        return 'nginx', ip, django_port, react_port
+
+    elif choice == '2':
+        # ── IP directa ───────────────────────────────────────────────────
+        detected = get_local_ip()
+        info(f"IP detectada: {C.YELLOW}{detected}{C.RESET}")
+        manual = input(f"  Confirma o escribe otra IP ({detected}): ").strip()
+        ip = manual if manual else detected
+
+        return 'ip', ip, django_port, react_port
+
+    else:
+        # ── Localhost ────────────────────────────────────────────────────
+        return 'localhost', 'localhost', django_port, react_port
+
+
+def configure_env(modo, ip, django_port, react_port):
+    """Actualiza el .env con la configuración del modo elegido."""
+    step('0', 'Configurando variables de entorno (.env)')
+
+    if not ENV_PATH.exists():
+        warn(".env no existe. Creando desde plantilla mínima...")
+        _create_minimal_env()
+
+    if modo == 'nginx':
+        write_env_key('ENVIRONMENT',          'production')
+        write_env_key('DEBUG',                'False')
+        write_env_key('DOMAIN_MAIN',          ip)
+        write_env_key('TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
+        write_env_key('REACT_APP_BASE_DOMAIN', ip)
+        write_env_key('REACT_APP_API_URL',    '/api')           # Nginx hace el proxy
+        ok(f"Modo Nginx — dominio base: {ip}")
+        ok(f"Sufijo tenants: .{ip}.nip.io")
+
+    elif modo == 'ip':
+        write_env_key('ENVIRONMENT',          'development')
+        write_env_key('DEBUG',                'True')
+        write_env_key('DOMAIN_MAIN',          ip)
+        write_env_key('TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
+        write_env_key('REACT_APP_BASE_DOMAIN', ip)
+        write_env_key('REACT_APP_API_URL',    f'http://{ip}:{django_port}/api')
+        ok(f"Modo IP directa — acceso en http://{ip}:{react_port}")
+        ok(f"Backend API en http://{ip}:{django_port}/api")
+
+    else:  # localhost
+        write_env_key('ENVIRONMENT',          'development')
+        write_env_key('DEBUG',                'True')
+        write_env_key('DOMAIN_MAIN',          'localhost')
+        write_env_key('TENANT_DOMAIN_SUFFIX', '.localhost')
+        write_env_key('REACT_APP_BASE_DOMAIN', 'localhost')
+        write_env_key('REACT_APP_API_URL',    f'http://localhost:{django_port}/api')
+        ok("Modo Localhost configurado")
+
+
+def _create_minimal_env():
+    """Crea un .env mínimo de arranque si no existe."""
+    sk = secrets.token_urlsafe(50)
+    content = f"""ENVIRONMENT=development
 DEBUG=True
-DJANGO_SECRET_KEY={secret_key}
+DJANGO_SECRET_KEY={sk}
 DJANGO_PORT=8001
 REACT_PORT=3000
-
-# Base de datos (Local por defecto)
-DATABASE_NAME=miqhatu_db
+NGINX_PORT=80
+DOMAIN_MAIN=localhost
+TENANT_DOMAIN_SUFFIX=.localhost
+REACT_APP_BASE_DOMAIN=localhost
+REACT_APP_API_URL=http://localhost:8001/api
+DATABASE_ENGINE=django_tenants.postgresql_backend
+DATABASE_NAME=mi_saas_db
 DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_HOST=localhost
+DATABASE_PASSWORD=
+DATABASE_HOST=127.0.0.1
 DATABASE_PORT=5432
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+TENANT_MODEL=customers.Client
+TENANT_DOMAIN_MODEL=customers.Domain
+LOG_LEVEL=INFO
 """
     with open(ENV_PATH, 'w', encoding='utf-8') as f:
-        f.write(env_content)
-    print_success("Archivo .env creado con configuración de desarrollo.")
+        f.write(content)
+    ok(".env creado")
+
+# ── PASO 0b: Credenciales ─────────────────────────────────────────────────
+
+def ask_credentials(ip):
+    """
+    Pregunta las credenciales de email y base de datos.
+    Si el usuario no ingresa nada, se usan los defaults.
+    """
+    step('0b', 'Configuración de credenciales (Enter = dejar como está / usar default)')
+
+    env = load_env()
+
+    print(f"\n  {C.BOLD}── Correo (Gmail){C.RESET}")
+    current_email = env.get('EMAIL_HOST_USER', '')
+    hint = f"actual: {current_email}" if current_email else "ej: tu@gmail.com"
+    email_val = input(f"  Email [{hint}]: ").strip()
+    if email_val:
+        write_env_key('EMAIL_HOST_USER', email_val)
+        ok(f"Email configurado: {email_val}")
+    elif current_email:
+        ok(f"Email sin cambios: {current_email}")
+    else:
+        warn("Email no configurado (recuperar contraseña no funcionará)")
+
+    current_pass = env.get('EMAIL_HOST_PASSWORD', '')
+    hint_pass = "configurada" if current_pass else "sin configurar"
+    app_pass = input(f"  App Password de Gmail [{hint_pass}]: ").strip()
+    if app_pass:
+        write_env_key('EMAIL_HOST_PASSWORD', app_pass)
+        ok("App Password guardada")
+    elif current_pass:
+        ok("App Password sin cambios")
+    else:
+        warn("App Password no configurada")
+
+    print(f"\n  {C.BOLD}── Base de Datos (PostgreSQL){C.RESET}")
+
+    # Nombre de la BD
+    current_db = env.get('DATABASE_NAME', 'mi_saas_db')
+    db_name = input(f"  Nombre de BD [{current_db}]: ").strip()
+    db_name = db_name if db_name else current_db
+    write_env_key('DATABASE_NAME', db_name)
+    ok(f"BD: {db_name}")
+
+    # Host = misma IP del despliegue (solo confirmar)
+    current_host = env.get('DATABASE_HOST', ip)
+    db_host = input(f"  Host de BD [{current_host}]: ").strip()
+    db_host = db_host if db_host else current_host
+    write_env_key('DATABASE_HOST', db_host)
+    ok(f"Host BD: {db_host}")
+
+    # Puerto — siempre 5432 por default
+    write_env_key('DATABASE_PORT', '5432')
+    ok("Puerto BD: 5432 (default)")
+
+    # Usuario
+    current_user = env.get('DATABASE_USER', 'postgres')
+    db_user = input(f"  Usuario de BD [{current_user}]: ").strip()
+    db_user = db_user if db_user else current_user
+    write_env_key('DATABASE_USER', db_user)
+    ok(f"Usuario BD: {db_user}")
+
+    # Contraseña
+    current_pw = env.get('DATABASE_PASSWORD', '')
+    hint_pw = "configurada" if current_pw else "vacía (postgres sin contraseña)"
+    db_pw = input(f"  Contraseña de BD [{hint_pw}]: ").strip()
+    if db_pw:
+        write_env_key('DATABASE_PASSWORD', db_pw)
+        ok("Contraseña BD guardada")
+    elif current_pw:
+        ok("Contraseña BD sin cambios")
+    else:
+        warn("Contraseña BD vacía — asegúrate de que postgres lo permita")
+
+
+# ── PASO 1: Backend ───────────────────────────────────────────────────────
 
 def setup_backend():
-    print_step("2. Configurando Backend (Django)")
-    
-    if sys.platform == "win32":
-        venv_path = BACKEND_DIR / 'venv'
-        python_exe = venv_path / 'Scripts' / 'python.exe'
-        pip_exe = venv_path / 'Scripts' / 'pip.exe'
-    else:
-        venv_path = BACKEND_DIR / 'venv'
-        python_exe = venv_path / 'bin' / 'python'
-        pip_exe = venv_path / 'bin' / 'pip'
+    step('1', 'Configurando Backend (Django + venv)')
+
+    venv_path  = BACKEND_DIR / 'venv'
+    python_exe = venv_path / ('Scripts/python.exe' if ES_WINDOWS else 'bin/python')
+    pip_exe    = venv_path / ('Scripts/pip.exe'    if ES_WINDOWS else 'bin/pip')
 
     if not venv_path.exists():
-        print("Creando entorno virtual (venv)...")
+        info("Creando entorno virtual...")
         subprocess.run([sys.executable, '-m', 'venv', str(venv_path)], check=True)
-        print_success("Entorno virtual creado.")
+        ok("Entorno virtual creado")
     else:
-        print_success("Entorno virtual ya existe.")
+        ok("Entorno virtual ya existe")
 
-    requirements = BACKEND_DIR / 'requirements.txt'
-    if requirements.exists():
-        print("Instalando dependencias de Python (puede tardar unos minutos)...")
+    req = BACKEND_DIR / 'requirements.txt'
+    if req.exists():
+        info("Instalando dependencias Python...")
         try:
-            subprocess.run([str(pip_exe), 'install', '-r', str(requirements)], cwd=str(BACKEND_DIR), check=True)
-            print_success("Dependencias del backend instaladas correctamente.")
+            subprocess.run([str(pip_exe), 'install', '-r', str(req)],
+                           cwd=str(BACKEND_DIR), check=True)
+            ok("Dependencias backend instaladas")
         except subprocess.CalledProcessError:
-            print_error("Hubo un error instalando las dependencias del backend.")
+            err("Error instalando dependencias del backend")
     else:
-        print_error("No se encontró requirements.txt en el backend.")
+        warn("requirements.txt no encontrado — omitiendo pip install")
 
-def setup_frontend():
-    print_step("3. Configurando Frontend (React)")
-    
-    # Buscar npm
-    npm_cmd = 'npm.cmd' if sys.platform == "win32" else 'npm'
-    
+# ── PASO 2: Frontend ──────────────────────────────────────────────────────
+
+def setup_frontend(modo):
+    step('2', 'Configurando Frontend (React / Node)')
+
+    npm = shutil.which('npm') or ('npm.cmd' if ES_WINDOWS else 'npm')
+
     if not FRONTEND_DIR.exists():
-        print_error(f"El directorio frontend no existe: {FRONTEND_DIR}")
+        err(f"Directorio frontend no encontrado: {FRONTEND_DIR}")
         return
 
-    package_json = FRONTEND_DIR / 'package.json'
-    if package_json.exists():
-        # Limpieza previa si existe node_modules
-        node_modules = FRONTEND_DIR / 'node_modules'
-        package_lock = FRONTEND_DIR / 'package-lock.json'
-        
-        if node_modules.exists():
-            print(f"{Colors.YELLOW}Detectado node_modules previo. Limpiando para instalación fresca...{Colors.RESET}")
-            import shutil
-            try:
-                shutil.rmtree(node_modules)
-                if package_lock.exists():
-                    package_lock.unlink()
-                print_success("Limpieza completada.")
-            except Exception as e:
-                print_error(f"No se pudo limpiar node_modules: {e}")
-        
-        print("Instalando dependencias de Node.js (npm install)...")
-        try:
-            subprocess.run([npm_cmd, 'install'], cwd=str(FRONTEND_DIR), check=True)
-            print_success("Dependencias del frontend instaladas correctamente.")
-            
-            # Nuevo paso: Build para producción
-            print("Generando versión de producción (npm run build)...")
-            subprocess.run([npm_cmd, 'run', 'build'], cwd=str(FRONTEND_DIR), check=True)
-            print_success("Build del frontend completado.")
-            
-        except subprocess.CalledProcessError:
-            print_error("Hubo un error en los comandos de Node.js (install/build).")
+    node_modules = FRONTEND_DIR / 'node_modules'
+    if node_modules.exists():
+        warn("node_modules ya existe — usando existente (usa Mantenimiento → Limpieza si tienes problemas)")
     else:
-        print_error("No se encontró package.json en el frontend.")
+        info("Ejecutando npm install...")
+        try:
+            subprocess.run([npm, 'install'], cwd=str(FRONTEND_DIR),
+                           check=True, shell=ES_WINDOWS)
+            ok("Dependencias del frontend instaladas")
+        except subprocess.CalledProcessError:
+            err("Error en npm install")
+            return
+
+    if modo == 'nginx':
+        info("Generando build de producción (npm run build)...")
+        try:
+            subprocess.run([npm, 'run', 'build'], cwd=str(FRONTEND_DIR),
+                           check=True, shell=ES_WINDOWS)
+            ok("Build completado")
+        except subprocess.CalledProcessError:
+            err("Error en npm run build")
+
+# ── PASO 3: Migraciones ───────────────────────────────────────────────────
+
+def run_migrations():
+    step('3', 'Aplicando migraciones de base de datos')
+
+    venv_path  = BACKEND_DIR / 'venv'
+    python_exe = str(venv_path / ('Scripts/python.exe' if ES_WINDOWS else 'bin/python'))
+
+    if not Path(python_exe).exists():
+        warn("Python del venv no encontrado — omitiendo migraciones")
+        return
+
+    try:
+        info("makemigrations...")
+        subprocess.run([python_exe, 'manage.py', 'makemigrations'],
+                       cwd=str(BACKEND_DIR), check=True)
+        info("migrate...")
+        subprocess.run([python_exe, 'manage.py', 'migrate_schemas', '--shared'],
+                       cwd=str(BACKEND_DIR), check=True)
+        ok("Migraciones aplicadas")
+    except subprocess.CalledProcessError as e:
+        err(f"Error en migraciones: {e}")
+        warn("Revisa que la BD esté corriendo y que DATABASE_* en .env sean correctos")
+
+# ── Main ──────────────────────────────────────────────────────────────────
 
 def run_setup():
-    print(f"{Colors.BOLD}{Colors.GREEN}=========================================={Colors.RESET}")
-    print(f"{Colors.BOLD}{Colors.GREEN}    ASISTENTE DE INSTALACIÓN RÁPIDA       {Colors.RESET}")
-    print(f"{Colors.BOLD}{Colors.GREEN}=========================================={Colors.RESET}")
-    print("Este script configurará el entorno automáticamente para que sea plug & play.")
-    
-    create_env()
-    setup_backend()
-    setup_frontend()
-    
-    print(f"\n{Colors.BOLD}{Colors.GREEN}=========================================={Colors.RESET}")
-    print(f"{Colors.BOLD}{Colors.GREEN}    INSTALACIÓN COMPLETADA                {Colors.RESET}")
-    print(f"{Colors.BOLD}{Colors.GREEN}=========================================={Colors.RESET}")
-    print("\nPasos siguientes (opcionales pero recomendados):")
-    print("1. Revisa tu archivo .env por si necesitas cambiar la contraseña de PostgreSQL.")
-    print("2. En el menú, ve a 'Gestión de Datos' -> 'Resetear BD' para inicializar la base de datos.")
-    print("3. Selecciona 'Iniciar Todo' para correr el servidor.")
+    header("ASISTENTE DE INSTALACIÓN RÁPIDA")
+
+    print(f"{C.YELLOW}Este asistente configura automáticamente:{C.RESET}")
+    print("  ✓ Variables de entorno (.env) según el modo elegido")
+    print("  ✓ Entorno virtual Python (venv) + dependencias")
+    print("  ✓ Dependencias Node.js")
+    print("  ✓ Migraciones de base de datos")
     print()
+    print(f"{C.YELLOW}Lo que debes configurar MANUALMENTE en .env:{C.RESET}")
+    print("  • DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME")
+    print("  • EMAIL_HOST_USER, EMAIL_HOST_PASSWORD")
+    print()
+
+    if input(f"  {C.BOLD}¿Continuar? (s/n): {C.RESET}").strip().lower() != 's':
+        print("Cancelado.")
+        return
+
+    # Paso 0: elegir modo
+    modo, ip, django_port, react_port = ask_deployment_mode()
+    configure_env(modo, ip, django_port, react_port)
+
+    # Paso 0b: credenciales
+    ask_credentials(ip)
+
+    # Paso 1: backend
+    setup_backend()
+
+    # Paso 2: frontend
+    setup_frontend(modo)
+
+    # Paso 3: migraciones
+    run_mig = input(f"\n  {C.BOLD}¿Aplicar migraciones ahora? (requiere BD activa) (s/n): {C.RESET}").strip().lower()
+    if run_mig == 's':
+        run_migrations()
+    else:
+        warn("Migraciones omitidas. Puedes correrlas luego desde el menú → Gestión BD")
+
+    # Resumen
+    header("INSTALACIÓN COMPLETADA")
+    print(f"  Modo:    {C.BOLD}{modo.upper()}{C.RESET}")
+    if modo != 'localhost':
+        print(f"  IP/Host: {C.YELLOW}{ip}{C.RESET}")
+    print()
+    print(f"{C.BOLD}Próximos pasos:{C.RESET}")
+    if modo == 'nginx':
+        print("  1. Configura DATABASE_* y EMAIL_* en .env")
+        print("  2. Ve al menú → Servicios → Con Nginx para crear los servicios systemd")
+    elif modo == 'ip':
+        print("  1. Configura DATABASE_* y EMAIL_* en .env")
+        print(f"  2. Desde el menú → Opción 1 para Backend | Opción 2 para Frontend")
+        print(f"  3. Accede en http://{ip}:{react_port}")
+    else:
+        print("  1. Ve al menú → Opción 3 para iniciar todo")
+        print(f"  2. Accede en http://localhost:{react_port}")
+    print()
+
 
 if __name__ == '__main__':
     run_setup()

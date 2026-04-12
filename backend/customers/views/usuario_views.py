@@ -140,8 +140,11 @@ def send_email_ssl(to_email, subject, body):
     msg['To'] = to_email
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
-        server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
-        server.sendmail(settings.EMAIL_HOST_USER, [to_email], msg.as_string())
+        # Gmail App Passwords se muestran con espacios pero se usan sin ellos
+        user     = settings.EMAIL_HOST_USER.strip()
+        password = settings.EMAIL_HOST_PASSWORD.strip().replace(' ', '')
+        server.login(user, password)
+        server.sendmail(user, [to_email], msg.as_string())
 
 
 class PasswordResetRequestView(APIView):
