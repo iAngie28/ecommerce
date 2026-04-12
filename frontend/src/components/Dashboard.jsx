@@ -134,8 +134,8 @@ const Dashboard = () => {
             </div>
             <Bell size={20} className="icon-btn" />
             <div className="user-profile">
-              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('user_full_name') || 'User')}&background=18aea4&color=fff`} alt="User" />
-              <span>{localStorage.getItem('user_full_name') || 'Usuario'}</span>
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent((localStorage.getItem('user_full_name') && localStorage.getItem('user_full_name') !== 'null' && localStorage.getItem('user_full_name').trim() !== '') ? localStorage.getItem('user_full_name') : 'Usuario')}&background=18aea4&color=fff`} alt="User" />
+              <span>{(localStorage.getItem('user_full_name') && localStorage.getItem('user_full_name') !== 'null' && localStorage.getItem('user_full_name').trim() !== '') ? localStorage.getItem('user_full_name') : 'Usuario'}</span>
             </div>
           </div>
         </header>
