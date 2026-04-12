@@ -124,27 +124,10 @@ class TenantListView(APIView):
             })
         return Response(result)
 def send_email_ssl(to_email, subject, body):
-    """Envío de email vía Gmail usando SSL directo (puerto 465)"""
-    import ssl
-    import smtplib
-    from email.mime.text import MIMEText
+    """Envío de email usando el backend de email de Django (configurado en settings)."""
+    from django.core.mail import send_mail
     from django.conf import settings
-    
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-
-    msg = MIMEText(body, 'plain', 'utf-8')
-    msg['Subject'] = subject
-    msg['From'] = settings.EMAIL_HOST_USER
-    msg['To'] = to_email
-
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
-        # Gmail App Passwords se muestran con espacios pero se usan sin ellos
-        user     = settings.EMAIL_HOST_USER.strip()
-        password = settings.EMAIL_HOST_PASSWORD.strip().replace(' ', '')
-        server.login(user, password)
-        server.sendmail(user, [to_email], msg.as_string())
+    send_mail(subject, body, settings.EMAIL_HOST_USER, [to_email], fail_silently=False)
 
 
 class PasswordResetRequestView(APIView):

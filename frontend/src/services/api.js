@@ -1,13 +1,9 @@
 import axios from 'axios';
+import { getApiUrl } from '../utils/domain';
 
 // ========================================================================
 // CONFIGURACIÓN DINÁMICA DE API BASEURL
-// Lee desde .env (REACT_APP_API_URL) que es copiado desde la raíz
 // ========================================================================
-
-import { getApiUrl } from '../utils/domain';
-
-// Detectar dinámicamente el host del backend según el subdominio actual.
 const hostname = window.location.hostname;
 const backendPort = process.env.REACT_APP_API_PORT || '8001';
 const API_BASE_URL = getApiUrl(hostname, backendPort);
@@ -15,7 +11,7 @@ const API_BASE_URL = getApiUrl(hostname, backendPort);
 console.log(`API Base URL: ${API_BASE_URL}`);
 
 // ========================================================================
-// CREAR INSTANCIA DE AXIOS
+// INSTANCIA PRINCIPAL DE AXIOS
 // ========================================================================
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -23,7 +19,7 @@ const api = axios.create({
 });
 
 // ========================================================================
-// INTERCEPTOR: Inyectar Token JWT en cada petición
+// INTERCEPTOR REQUEST: Inyectar Token JWT
 // ========================================================================
 api.interceptors.request.use(
     (config) => {
@@ -33,25 +29,89 @@ api.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // ========================================================================
-// INTERCEPTOR: Manejo de errores (especialmente 401)
+// INTERCEPTOR RESPONSE: Refresh automático en 401
 // ========================================================================
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+const redirectToLogin = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_full_name');
+    // Redirigir al login del dominio base
+    const baseDomain = process.env.REACT_APP_BASE_DOMAIN || window.location.hostname;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    const protocol = window.location.protocol;
+    window.location.href = `${protocol}//${baseDomain}${port}/login`;
+};
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        // Si el token expiró (401), limpiar localStorage y redirigir a login
-        if (error.response && error.response.status === 401) {
-            console.warn('Token expirado o inválido');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            // Redirigir a login (ajusta según tu routing)
-            // window.location.href = '/login';
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Solo intentar refresh si es 401 y no es la propia llamada de refresh
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url?.includes('/token/refresh/')
+        ) {
+            if (isRefreshing) {
+                // Encolar mientras se refresca
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return api(originalRequest);
+                }).catch(err => Promise.reject(err));
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken) {
+                isRefreshing = false;
+                redirectToLogin();
+                return Promise.reject(error);
+            }
+
+            try {
+                const res = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+                    refresh: refreshToken
+                });
+                const newToken = res.data.access;
+                localStorage.setItem('access_token', newToken);
+
+                api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+                processQueue(null, newToken);
+                return api(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError, null);
+                redirectToLogin();
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
         }
+
         return Promise.reject(error);
     }
 );
