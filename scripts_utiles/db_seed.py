@@ -116,12 +116,21 @@ class DatabaseSeeder:
         print("\n[TIP] Usa estas credenciales para entrar a los respectivos subdominios.")
 
     def seed_tenants(self, count, u_range, p_range):
+        from django.conf import settings
+        
+        # Obtener el sufijo del dominio desde settings (respeta el .env)
+        suffix = getattr(settings, 'TENANT_DOMAIN_SUFFIX', '.localhost')
+        if not suffix.startswith('.') and suffix != 'localhost':
+            suffix = f".{suffix}"
+            
         print(f"\n[+] Iniciando generacion de {count} tenants...")
+        print(f"[i] Usando sufijo de dominio: {suffix}")
         
         for i in range(1, count + 1):
             schema = f"tienda_{i}"
             name = f"Mi Tienda {i}"
-            domain_name = f"tienda{i}.localhost"
+            # Usamos el esquema para el subdominio y el sufijo para el dominio base
+            domain_name = f"tienda{i}{suffix}"
 
             # Operaciones de Tenant en el esquema publico (CORE de django-tenants)
             with schema_context('public'):
@@ -130,7 +139,7 @@ class DatabaseSeeder:
                     defaults={'name': name}
                 )
                 Domain.objects.get_or_create(domain=domain_name, tenant=tenant)
-                print(f"\n  [Paso {i}/{count}] Poblando: {schema}...")
+                print(f"\n  [Paso {i}/{count}] Poblando: {schema} ({domain_name})...")
 
             with tenant_context(tenant):
                 admin_email = f"admin@{schema}.local"

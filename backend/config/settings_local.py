@@ -99,16 +99,8 @@ elif ENVIRONMENT == 'production':
     # MODO NUKE: Permitir todo temporalmente para estabilizar producción
     ALLOWED_HOSTS = ['*']
     
-    # Agregar hosts adicionales del .env
-    additional_hosts = config(
-        'DOMAIN_ALLOWED_HOSTS',
-        default='',
-        cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
-    )
-    ALLOWED_HOSTS.extend(additional_hosts)
-
     # En producción usando HTTP (Sin SSL)
-    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_ALL_ORIGINS = True # Apertura total para estabilizar
     CORS_ALLOW_CREDENTIALS = True
     
     # Blindaje dinámico para subdominios nip.io vía Regex
@@ -121,6 +113,7 @@ elif ENVIRONMENT == 'production':
     CSRF_TRUSTED_ORIGINS = [
         f"http://{DOMAIN_MAIN}",
         f"http://{DEVICE_HOSTNAME}",
+        "http://*.nip.io", # Permitir cualquier subdominio de nip.io para estabilizar
         f"http://*{TENANT_DOMAIN_SUFFIX}"
     ]
     # Agregar la IP directamente si está en DOMAIN_MAIN
