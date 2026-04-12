@@ -1,13 +1,6 @@
-# ========================================================================
-# CONFIGURACIÓN LOCAL DE SETTINGS.PY
-# ========================================================================
-# Este archivo mantiene la lógica de configuración dinámica basada en
-# variables de entorno. Se importa en settings.py para mantener 
-# las configuraciones separadas.
-# ========================================================================
-
 import os
 import socket
+import re
 from pathlib import Path
 from decouple import config
 from dotenv import load_dotenv
@@ -40,6 +33,10 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 # ========================================================================
 DOMAIN_MAIN = config('DOMAIN_MAIN', default='localhost')
 
+# Sufijo para subdominios (ej: .localhost o .157.173.102.129.nip.io)
+# IMPORTANTE: Debe empezar con un punto.
+TENANT_DOMAIN_SUFFIX = config('TENANT_DOMAIN_SUFFIX', default='.localhost')
+
 # Obtener hostname del dispositivo
 DEVICE_HOSTNAME = socket.gethostname()
 
@@ -58,19 +55,24 @@ if ENVIRONMENT == 'development':
         'localhost',
         '127.0.0.1',
         DEVICE_HOSTNAME,  # Hostname del dispositivo (ej: DESKTOP-ABC123)
-        '.localhost',     # ← Wildcard correcto para *.localhost (empresa1, empresa2, etc.)
+        '.localhost',     # ← Wildcard correcto para *.localhost
     ]
     # Agregar hosts adicionales del .env
     ALLOWED_HOSTS.extend(additional_hosts)
+    
+    # Agregar el sufijo a ALLOWED_HOSTS si no está
+    if TENANT_DOMAIN_SUFFIX not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(TENANT_DOMAIN_SUFFIX)
     
     # En desarrollo permitimos todos los orígenes y subdominios
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
     
-    # Soportar específicamente subdominios dinámicos en el puerto 3000 (React)
+    # Soportar específicamente subdominios dinámicos (Sin SSL)
     CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^http://.*\.localhost:3000$",
-        r"^http://localhost:3000$",
+        r"^http://.*\.localhost(:\d+)?$",
+        r"^http://localhost(:\d+)?$",
+        r"^http://.*" + re.escape(TENANT_DOMAIN_SUFFIX) + r"(:\d+)?$",
     ]
 
     # Permitir cabeceras comunes y necesarias
@@ -86,19 +88,44 @@ if ENVIRONMENT == 'development':
         "x-requested-with",
     ]
     
+    # CSRF Trusted para desarrollo
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost",
+        "http://127.0.0.1",
+        f"http://*{TENANT_DOMAIN_SUFFIX}"
+    ]
+    
 elif ENVIRONMENT == 'production':
-    ALLOWED_HOSTS = config(
+    # En producción, permitimos el dominio principal y el wildcard del sufijo
+    ALLOWED_HOSTS = [
+        DOMAIN_MAIN,
+        TENANT_DOMAIN_SUFFIX, # Django-tenants usa el punto inicial como wildcard
+        f"*{TENANT_DOMAIN_SUFFIX}"
+    ]
+    
+    # Agregar hosts adicionales del .env
+    additional_hosts = config(
         'DOMAIN_ALLOWED_HOSTS',
-        default='localhost,.localhost',
-        cast=lambda v: [s.strip() for s in v.split(',')]
+        default='',
+        cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
     )
-    # En producción, ser específico con CORS
-    CORS_ALLOWED_ORIGINS = config(
-        'CORS_ALLOWED_ORIGINS',
-        default=f'https://{DOMAIN_MAIN},https://*.{DOMAIN_MAIN}',
-        cast=lambda v: [s.strip() for s in v.split(',')]
-    )
+    ALLOWED_HOSTS.extend(additional_hosts)
+
+    # En producción usando HTTP (Sin SSL)
     CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_CREDENTIALS = True
+    
+    # Blindaje dinámico para subdominios nip.io vía Regex
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://.*" + re.escape(TENANT_DOMAIN_SUFFIX) + r"$",
+        r"^http://" + re.escape(DOMAIN_MAIN) + r"$",
+    ]
+
+    # CSRF Trusted Origins (Obligatorio para POST en subdominios)
+    CSRF_TRUSTED_ORIGINS = [
+        f"http://{DOMAIN_MAIN}",
+        f"http://*{TENANT_DOMAIN_SUFFIX}"
+    ]
 
 # ========================================================================
 # 3. SECRET KEY (CAMBIAR EN PRODUCCIÓN)

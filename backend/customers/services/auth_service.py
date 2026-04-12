@@ -19,6 +19,9 @@ def get_auth_extra_data(user):
         if domain_obj:
             extra_data['subdomain'] = domain_obj.domain
         else:
-            extra_data['subdomain'] = f"{user.tenant.schema_name}.localhost"
+            # Fallback dinámico usando el sufijo configurado en .env
+            from django.conf import settings
+            suffix = getattr(settings, 'TENANT_DOMAIN_SUFFIX', '.localhost')
+            extra_data['subdomain'] = f"{user.tenant.schema_name}{suffix}"
         
     return extra_data

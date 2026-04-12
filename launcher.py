@@ -537,6 +537,7 @@ def show_config_menu():
         print_section("Proyecto")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Ver info del proyecto")
         print_option(f"{Colors.CYAN}4{Colors.RESET} - Configuración avanzada (project_config.py)")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - Configurar Dominio SaaS (nip.io / localhost)")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver")
         print()
@@ -594,11 +595,74 @@ def show_config_menu():
         elif choice == '4':
             run_python_script('project_config.py')
             pause()
+        elif choice == '5':
+            setup_saas_domain()
+            pause()
         elif choice == 'b':
             break
         else:
             print_error("Opción inválida")
             time.sleep(1)
+
+def setup_saas_domain():
+    """Configura el sufijo del dominio para SaaS (multi-tenant)"""
+    print_header("CONFIGURAR DOMINIO SAAS (MULTI-TENANT)")
+    
+    print_info("El sufijo determina cómo se crean las URLs de tus tiendas.")
+    print(f"  {Colors.BULLET} Local: .localhost (ej: tienda1.localhost)")
+    print(f"  {Colors.BULLET} VPS:   .157.173.102.129.nip.io (ej: tienda1.157.173.102.129.nip.io)")
+    print()
+    
+    env_vars = load_env_manual()
+    current_suffix = env_vars.get('TENANT_DOMAIN_SUFFIX', '.localhost')
+    print(f"Sufijo actual: {Colors.YELLOW}{current_suffix}{Colors.RESET}")
+    print()
+    
+    print("Selecciona modo:")
+    print("1. Local (.localhost)")
+    print("2. VPS (IP + nip.io)")
+    print("3. Personalizado")
+    print("0. Cancelar")
+    print()
+    
+    choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip()
+    
+    new_suffix = None
+    if choice == '1':
+        new_suffix = '.localhost'
+    elif choice == '2':
+        vps_ip = env_vars.get('DOMAIN_MAIN', '157.173.102.129')
+        if not vps_ip or vps_ip == 'localhost':
+            vps_ip = input(f"{Colors.BOLD}Dime la IP del VPS: {Colors.RESET}").strip()
+        new_suffix = f".{vps_ip}.nip.io"
+    elif choice == '3':
+        new_suffix = input(f"{Colors.BOLD}Dime el sufijo (debe empezar con punto): {Colors.RESET}").strip()
+        if not new_suffix.startswith('.'):
+            new_suffix = '.' + new_suffix
+            
+    if new_suffix:
+        # Guardar en .env
+        env_path = PROJECT_ROOT / '.env'
+        lines = []
+        found = False
+        
+        if env_path.exists():
+            with open(env_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip().startswith('TENANT_DOMAIN_SUFFIX='):
+                        lines.append(f"TENANT_DOMAIN_SUFFIX='{new_suffix}'\n")
+                        found = True
+                    else:
+                        lines.append(line)
+        
+        if not found:
+            lines.append(f"\n# Configuración SaaS integrada\nTENANT_DOMAIN_SUFFIX='{new_suffix}'\n")
+            
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+            
+        print_success(f"Dominio SaaS configurado: {new_suffix}")
+        print_info("Reinicia el backend para aplicar los cambios.")
 
 def show_scripts_menu():
     """Menú de scripts útiles"""
