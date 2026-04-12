@@ -945,6 +945,7 @@ def show_vps_control_menu():
         
         print_section("Mantenimiento")
         print_option(f"{Colors.CYAN}4{Colors.RESET} - Limpieza de Sistema (Logs >100MB y Caché)")
+        print_option(f"{Colors.CYAN}7{Colors.RESET} - Limpieza Profunda Frontend (Borrar build y Reconstruir)")
         print_option(f"{Colors.CYAN}5{Colors.RESET} - Crear Usuario de Sistema")
         
         print_option(f"{Colors.RED}b{Colors.RESET} - Volver al menú anterior")
@@ -970,6 +971,34 @@ def show_vps_control_menu():
             pause()
         elif choice == '4':
             run_python_script('vps.py', 'system', 'CLEAN')
+            pause()
+        elif choice == '7':
+            print_header("LIMPIEZA PROFUNDA FRONTEND")
+            print_warning("Esto detendrá el frontend, borrará la carpeta 'build' y la reconstruirá.")
+            confirm = input("¿Continuar? (s/n): ").lower()
+            if confirm == 's':
+                print_info("Deteniendo servicios y limpiando puertos...")
+                subprocess.run(['sudo', 'systemctl', 'stop', 'frontend_saas'], check=False)
+                subprocess.run(['sudo', 'fuser', '-k', '3000/tcp'], capture_output=True)
+                
+                # Borrar build
+                build_dir = FRONTEND_DIR / "build"
+                if build_dir.exists():
+                    print_info(f"Borrando {build_dir}...")
+                    import shutil
+                    shutil.rmtree(build_dir)
+                
+                # Reconstruir
+                print_info("Ejecutando npm run build... (un momento por favor)")
+                try:
+                    subprocess.run(['npm', 'run', 'build'], cwd=str(FRONTEND_DIR), check=True, shell=True)
+                    print_success("Build completado con éxito.")
+                except Exception as e:
+                    print_error(f"Error en el build: {e}")
+                
+                # Iniciar
+                subprocess.run(['sudo', 'systemctl', 'start', 'frontend_saas'], check=True)
+                print_success("¡Servicio Frontend reiniciado y limpio!")
             pause()
         elif choice == '5':
             user = input("Nombre de usuario: ")

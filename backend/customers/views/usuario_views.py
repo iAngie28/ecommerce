@@ -158,9 +158,10 @@ class PasswordResetRequestView(APIView):
         except Usuario.DoesNotExist:
             return Response({'message': 'Si el email existe, recibirás un enlace.'})
 
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"http://localhost:3000/reset-password/{uid}/{token}/"
+        # Construir la URL de reset dinámicamente según el entorno (IP o Dominio)
+        host = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        reset_url = f"{protocol}://{host}/reset-password/{uid}/{token}/"
 
         try:
             send_email_ssl(

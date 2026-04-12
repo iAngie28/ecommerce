@@ -243,6 +243,13 @@ WantedBy=multi-user.target
             print_info(f"Deteniendo servicio existente {service_name}...")
             subprocess.run(['systemctl', 'stop', service_name], timeout=10)
         
+        # Limpiar procesos en puerto (Evita bloqueos de npm start manuales)
+        print_info(f"Limpiando puerto {react_port} para evitar bloqueos de procesos huérfanos...")
+        try:
+            subprocess.run(['sudo', 'fuser', '-k', f'{react_port}/tcp'], capture_output=True)
+        except:
+            pass
+        
         # Crear/reemplazar archivo
         with open(service_file, 'w') as f:
             f.write(service_content)
