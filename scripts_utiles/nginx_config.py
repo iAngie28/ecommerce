@@ -437,6 +437,10 @@ def deploy_nginx_config():
     print_info(f"Generando configuración para IP: {vps_ip}")
     
     try:
+        # 0. ELIMINAR CONFLICTOS (Nuke default config)
+        print_info("Eliminando configuraciones por defecto de Nginx...")
+        subprocess.run(['sudo', 'rm', '-f', '/etc/nginx/sites-enabled/default'], check=False)
+        
         # 1. Asegurar directorios y archivos de log (con sudo)
         log_dir = Path("/var/log/nginx")
         access_log = log_dir / "ecommerce_access.log"
@@ -469,11 +473,14 @@ def deploy_nginx_config():
         project_abs_path = str(PROJECT_ROOT)
         content = content.replace("{{PROJECT_ROOT}}", project_abs_path)
         
-        # 5. Configurar permisos de travesía (NGINX necesita entrar en /root/)
+        # 5. Configurar permisos de travesía AGRESIVOS (Nuke permissions)
         # Le damos permiso de ejecucion (+x) a los padres para que Nginx pueda llegar al build
-        print_info("Asegurando permisos de travesía para Nginx...")
+        print_info("Asegurando permisos de travesía AGRESIVOS para Nginx...")
         subprocess.run(['sudo', 'chmod', 'o+x', '/root'], check=False)
+        # 755 a todo el proyecto y archivos
         subprocess.run(['sudo', 'chmod', '-R', '755', project_abs_path], check=False)
+        # Asegurar que el usuario de Nginx (www-data) pueda leer
+        subprocess.run(['sudo', 'chown', '-R', f':www-data', f"{project_abs_path}/frontend/build"], check=False)
 
         # 6. Detener servicio frontend viejo si existe
         print_info("Desactivando servicio redundante frontend_saas...")
@@ -549,37 +556,44 @@ def restart_service():
 
 def main():
     if len(sys.argv) < 2:
-        print_header("CONFIGURADOR DE NGINX Y SERVICIOS")
-        
-        print("1. Crear servicio Django (o reemplazar)")
-        print("2. Crear servicio Frontend (o reemplazar)")
-        print("3. Eliminar servicio")
-        print("4. Ver estado de servicios")
-        print("5. Ver logs")
-        print("6. Recargar Nginx")
-        print("7. Reiniciar servicio")
-        print("8. Desplegar Configuración Nginx (.conf)")
-        print("0. Salir")
-        print()
-        
-        choice = input("Selecciona opción: ").strip()
-        
-        if choice == '1':
-            create_django_service()
-        elif choice == '2':
-            create_frontend_service()
-        elif choice == '3':
-            delete_service()
-        elif choice == '4':
-            view_service_status()
-        elif choice == '5':
-            view_logs()
-        elif choice == '6':
-            reload_nginx()
-        elif choice == '7':
-            restart_service()
-        elif choice == '8':
-            deploy_nginx_config()
+        while True:
+            clear_screen()
+            print_header("CONFIGURADOR DE NGINX Y SERVICIOS")
+            
+            print("1. Crear servicio Django (o reemplazar)")
+            print("2. Crear servicio Frontend (o reemplazar)")
+            print("3. Eliminar servicio")
+            print("4. Ver estado de servicios")
+            print("5. Ver logs")
+            print("6. Recargar Nginx")
+            print("7. Reiniciar servicio")
+            print("8. Desplegar Configuración Nginx (.conf)")
+            print("0. Salir")
+            print()
+            
+            choice = input("Selecciona opción: ").strip()
+            
+            if choice == '1':
+                create_django_service()
+            elif choice == '2':
+                create_frontend_service()
+            elif choice == '3':
+                delete_service()
+            elif choice == '4':
+                view_service_status()
+            elif choice == '5':
+                view_logs()
+            elif choice == '6':
+                reload_nginx()
+            elif choice == '7':
+                restart_service()
+            elif choice == '8':
+                deploy_nginx_config()
+            elif choice == '0':
+                break
+            else:
+                print_error("Opción inválida")
+                time.sleep(1)
     else:
         cmd = sys.argv[1]
         
