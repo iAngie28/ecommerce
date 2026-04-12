@@ -45,6 +45,7 @@ function ForgotPassword() {
                             </label>
                             <input
                                 id="email-input"
+                                name="email"
                                 type="email"
                                 placeholder="tu@email.com"
                                 value={email}

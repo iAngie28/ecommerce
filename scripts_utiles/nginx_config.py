@@ -471,23 +471,39 @@ def deploy_nginx_config():
         
         # 4. Dinamizar la ruta del proyecto (RUTA ABSOLUTA PARA NGINX)
         project_abs_path = str(PROJECT_ROOT)
-        content = content.replace("{{PROJECT_ROOT}}", project_abs_path)
+        # Nota: {{PROJECT_ROOT}} ya no se usa en el template pues root es fijo en /var/www/
         
-        # 5. Configurar permisos de travesía AGRESIVOS (Nuke permissions)
-        # Le damos permiso de ejecucion (+x) a los padres para que Nginx pueda llegar al build
-        print_info("Asegurando permisos de travesía AGRESIVOS para Nginx...")
-        subprocess.run(['sudo', 'chmod', 'o+x', '/root'], check=False)
-        # 755 a todo el proyecto y archivos
-        subprocess.run(['sudo', 'chmod', '-R', '755', project_abs_path], check=False)
-        # Asegurar que el usuario de Nginx (www-data) pueda leer
-        subprocess.run(['sudo', 'chown', '-R', f':www-data', f"{project_abs_path}/frontend/build"], check=False)
+        # 5. MIGRACIÓN A TERRITORIO SEGURO (/var/www/ ecommerce)
+        print_info("Migrando frontend a territorio seguro (/var/www/)...")
+        secure_root = Path("/var/www/ecommerce")
+        secure_build = secure_root / "build"
+        
+        # Crear carpetas con sudo
+        subprocess.run(['sudo', 'mkdir', '-p', str(secure_build)], check=True)
+        
+        # Copiar contenido del build (si existe)
+        local_build = Path(project_abs_path) / "frontend" / "build"
+        if local_build.exists():
+            print_info(f"Copiando archivos de {local_build} a {secure_build}...")
+            # Usamos rsync si está disponible o cp -r
+            subprocess.run(['sudo', 'cp', '-rn', f"{local_build}/.", str(secure_build)], check=True)
+        else:
+            print_warning("No se encontró carpeta 'build' local. Asegúrate de ejecutar el comando build en el VPS.")
 
-        # 6. Detener servicio frontend viejo si existe
-        print_info("Desactivando servicio redundante frontend_saas...")
+        # 6. Configurar permisos AGRESIVOS en el nuevo territorio
+        print_info("Configurando permisos en /var/www/ecommerce...")
+        subprocess.run(['sudo', 'chown', '-R', 'www-data:www-data', str(secure_root)], check=True)
+        subprocess.run(['sudo', 'chmod', '-R', '755', str(secure_root)], check=True)
+        
+        # 7. Permisos de travesía en /root (para el backend)
+        print_info("Asegurando permisos de travesía en /root para API...")
+        subprocess.run(['sudo', 'chmod', 'o+x', '/root'], check=False)
+
+        # 8. Detener servicio frontend viejo si existe
         subprocess.run(['sudo', 'systemctl', 'stop', 'frontend_saas'], check=False)
         subprocess.run(['sudo', 'systemctl', 'disable', 'frontend_saas'], check=False)
 
-        # 7. Guardar configuración mediante archivo temporal y SUDO
+        # 9. Guardar configuración mediante archivo temporal y SUDO
         temp_file = Path("/tmp/ecommerce_nginx.tmp")
         with open(temp_file, 'w') as f:
             f.write(content)
