@@ -127,62 +127,63 @@ class DatabaseSeeder:
         print(f"[i] Usando sufijo de dominio: {suffix}")
         
         for i in range(1, count + 1):
-            # USAMOS 'x' como separador alfanumérico para evitar guiones y guiones bajos (Problemas DNS)
             schema = f"tiendax{i}"
             name = f"Mi Tienda {i}"
-            # Usamos el mismo nombre para el subdominio
             domain_name = f"tiendax{i}{suffix}"
 
-            # Operaciones de Tenant en el esquema publico (CORE de django-tenants)
+            # Operaciones de Tenant en el esquema publico
             with schema_context('public'):
                 tenant, created = Client.objects.get_or_create(
                     schema_name=schema, 
                     defaults={'name': name}
                 )
-                Domain.objects.get_or_create(domain=domain_name, tenant=tenant)
+                # Sincroniza el dominio. Limpia dominios viejos si cambió la IP o entorno
+                Domain.objects.filter(tenant=tenant).delete()
+                Domain.objects.create(domain=domain_name, tenant=tenant, is_primary=True)
                 print(f"\n  [Paso {i}/{count}] Poblando: {schema} ({domain_name})...")
 
             with tenant_context(tenant):
                 admin_email = f"admin@{schema}.local"
                 
-                # Aseguramos contexto publico para el Usuario (Shared Model)
                 with schema_context('public'):
                     admin_data = BusinessGenerator.random_user_data(0, schema)
                     admin_data['email'] = admin_email
+                    
                     if not Usuario.objects.filter(email=admin_email).exists():
-                        admin = Usuario.objects.create_user(**admin_data)
+                        admin = Usuario.objects.create_user(**admin_data, tenant=tenant, is_staff=True)
                     else:
                         admin = Usuario.objects.get(email=admin_email)
+                        # Fix: si fue generado antes de este arreglo, forzamos asignación
+                        if admin.tenant != tenant:
+                            admin.tenant = tenant
+                            admin.is_staff = True
+                            admin.save()
                     
-                    # Siempre añadir al reporte para que el usuario sepa con qué entrar
                     self.credentials_report.append({
                         'schema': schema,
                         'email': admin_email,
                         'password': admin_data['password']
                     })
 
-                # 2. Crear Usuarios (Shared Model, contexto publico)
+                # 2. Crear Usuarios extras
                 num_users = random.randint(u_range[0], u_range[1])
                 with schema_context('public'):
                     for u in range(1, num_users + 1):
                         u_data = BusinessGenerator.random_user_data(u, schema)
                         if not Usuario.objects.filter(email=u_data['email']).exists():
-                            Usuario.objects.create_user(**u_data)
-                print(f"    - {num_users} usuarios adicionales creados en public.")
+                            Usuario.objects.create_user(**u_data, tenant=tenant)
+                print(f"    - {num_users} usuarios adicionales creados.")
 
-                # 3. Crear Productos (Tenant Model, contexto de tienda)
+                # 3. Crear Productos (dentro del tenant actual)
                 num_prods = random.randint(p_range[0], p_range[1])
                 for p in range(1, num_prods + 1):
                     p_data = BusinessGenerator.random_product_data(p)
                     Producto.objects.create(**p_data)
                 print(f"    - {num_prods} productos creados en {schema}.")
 
-                # 4. Crear Histórico de Bitácora (Shared Model, contexto publico)
+                # 4. Bitácora
                 print(f"    - Generando historico de auditoria...")
                 with schema_context('public'):
-                    # Simular flujo: Login -> 3 acciones -> Logout
-                    # Usamos el servicio directamente para asegurar IP y metadatos
-                    
                     # Login
                     ev = BusinessGenerator.random_audit_event_data("Autenticación", "LOGIN")
                     BitacoraService.registrar(admin, ev['modulo'], ev['accion'], metadatos={'ip': ev['ip'], 'browser': ev['browser']})
@@ -195,10 +196,24 @@ class DatabaseSeeder:
                     # Logout
                     ev = BusinessGenerator.random_audit_event_data("Autenticación", "LOGOUT")
                     BitacoraService.registrar(admin, ev['modulo'], ev['accion'], metadatos={'ip': ev['ip'], 'browser': ev['browser']})
-                
-                print(f"    - Historial de bitacora guardado en public para {admin.email}.")
 
         print("\n[OK] Generacion procedimental finalizada.")
+
+    def seed_only_products_for_all_tenants(self, p_range):
+        """Si el usuario solo quiere meter productos a tiendas ya existentes"""
+        tenants = Client.objects.exclude(schema_name='public')
+        print(f"\n[+] Generando productos para {tenants.count()} tiendas...")
+        
+        for tenant in tenants:
+            with tenant_context(tenant):
+                num_prods = random.randint(p_range[0], p_range[1])
+                for p in range(1, num_prods + 1):
+                    # Agregamos random int superior para evitar choques en el sufijo del SKU o Nombre de p_data
+                    p_data = BusinessGenerator.random_product_data(p + random.randint(1000, 9999))
+                    Producto.objects.create(**p_data)
+                print(f"  - {num_prods} productos añadidos a {tenant.schema_name}")
+        print("\n[OK] Generacion de productos finalizada.")
+
 
 def parse_quantity(user_input, default_min, default_max=None):
     """
@@ -235,26 +250,37 @@ def main():
     print(" Soporta: Cantidad exacta (ej: 5), Rangos (ej: 2-10) o Default (Enter)")
     
     try:
-        # 1. Tenants
-        t_input = input("\n  1. ¿Cuantos Tenants/Tiendas? [Default 2]: ")
-        t_min, t_max = parse_quantity(t_input, 2, 2)
-        t_count = random.randint(t_min, t_max)
-        
-        # 2. Usuarios
-        u_input = input("  2. ¿Usuarios por tienda? (ej: 5 o 2-8) [Default 3-8]: ")
-        u_range = parse_quantity(u_input, 3, 8)
-        
-        # 3. Productos
-        p_input = input("  3. ¿Productos por tienda? (ej: 20 o 10-30) [Default 10-20]: ")
-        p_range = parse_quantity(p_input, 10, 20)
-        
-        print("\n" + "-"*70)
-        print(f" CONFIGURACIÓN: {t_count} tiendas | {u_range[0]}-{u_range[1]} users | {p_range[0]}-{p_range[1]} prods")
-        print("-" * 70)
-        
+        print("\nOpciones de Generación:")
+        print("  1. Generar Negocios Completos (Tiendas, Usuarios, Productos)")
+        print("  2. Solo generar Productos para TODAS las tiendas existentes")
+        opcion = input("\nElige una opción [1/2] (Default 1): ").strip()
+
         seeder = DatabaseSeeder()
-        seeder.seed_tenants(t_count, u_range, p_range)
-        seeder.print_report()
+
+        if opcion == '2':
+            p_input = input("\n  ¿Productos por tienda? (ej: 20 o 10-30) [Default 10-20]: ")
+            p_range = parse_quantity(p_input, 10, 20)
+            seeder.seed_only_products_for_all_tenants(p_range)
+        else:
+            # 1. Tenants
+            t_input = input("\n  1. ¿Cuantos Tenants/Tiendas? [Default 2]: ")
+            t_min, t_max = parse_quantity(t_input, 2, 2)
+            t_count = random.randint(t_min, t_max)
+            
+            # 2. Usuarios
+            u_input = input("  2. ¿Usuarios por tienda? (ej: 5 o 2-8) [Default 3-8]: ")
+            u_range = parse_quantity(u_input, 3, 8)
+            
+            # 3. Productos
+            p_input = input("  3. ¿Productos por tienda? (ej: 20 o 10-30) [Default 10-20]: ")
+            p_range = parse_quantity(p_input, 10, 20)
+            
+            print("\n" + "-"*70)
+            print(f" CONFIGURACIÓN: {t_count} tiendas | {u_range[0]}-{u_range[1]} users | {p_range[0]}-{p_range[1]} prods")
+            print("-" * 70)
+            
+            seeder.seed_tenants(t_count, u_range, p_range)
+            seeder.print_report()
         
     except KeyboardInterrupt:
         print(f"\n[!] Operacion cancelada por el usuario.")
