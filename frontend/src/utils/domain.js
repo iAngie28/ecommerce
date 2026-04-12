@@ -35,6 +35,13 @@ export const getBaseDomain = (hostname) => {
  * Construye la URL base del API dinámicamente según el hostname.
  */
 export const getApiUrl = (hostname, port = '8001') => {
-    // El usuario pidió mantenerlo en HTTP (sin SSL forzado)
-    return `http://${hostname}:${port}/api`;
+    // Si estamos en localhost (desarrollo directo), usamos el puerto explícito
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return `http://${hostname}:${port}/api`;
+    }
+    
+    // En producción (VPS), usamos rutas RELATIVAS.
+    // Esto obliga al navegador a usar el mismo HOST y PUERTO (80) por el que entró,
+    // permitiendo que Nginx intercepte el prefijo /api/ y lo redireccione internamente.
+    return '/api';
 };

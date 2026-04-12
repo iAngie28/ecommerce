@@ -405,6 +405,48 @@ def reload_nginx():
     except Exception as e:
         print_error(f"Error: {str(e)}")
 
+def deploy_nginx_config():
+    """
+    Lee la IP del .env, carga el template de nginx/prod.vps.conf,
+    lo genera y lo activa en /etc/nginx/sites-enabled/
+    """
+    print_header("DESPLEGAR CONFIGURACIÓN NGINX")
+    
+    if os.geteuid() != 0:
+        print_error("Debes ejecutar como root (sudo)")
+        return
+        
+    config = get_env_config()
+    vps_ip = config.get('DOMAIN_MAIN', 'localhost')
+    
+    template_path = PROJECT_ROOT / 'nginx' / 'prod.vps.conf'
+    target_path = Path("/etc/nginx/sites-available/ecommerce.conf")
+    link_path = Path("/etc/nginx/sites-enabled/ecommerce.conf")
+    
+    if not template_path.exists():
+        print_error(f"No se encontró el template en {template_path}")
+        return
+        
+    print_info(f"Generando configuración para IP: {vps_ip}")
+    
+    try:
+        with open(template_path, 'r') as f:
+            content = f.read()
+            
+        content = content.replace("TU_IP_VPS", vps_ip)
+        
+        with open(target_path, 'w') as f:
+            f.write(content)
+        
+        if not link_path.exists():
+            os.symlink(target_path, link_path)
+            
+        print_success(f"Configuración desplegada en {target_path}")
+        reload_nginx()
+        
+    except Exception as e:
+        print_error(f"Error en despliegue: {str(e)}")
+
 def restart_service():
     """Reinicia un servicio"""
     print_header("REINICIAR SERVICIO")
@@ -454,6 +496,7 @@ def main():
         print("5. Ver logs")
         print("6. Recargar Nginx")
         print("7. Reiniciar servicio")
+        print("8. Desplegar Configuración Nginx (.conf)")
         print("0. Salir")
         print()
         
@@ -473,6 +516,8 @@ def main():
             reload_nginx()
         elif choice == '7':
             restart_service()
+        elif choice == '8':
+            deploy_nginx_config()
     else:
         cmd = sys.argv[1]
         
