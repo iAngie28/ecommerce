@@ -991,7 +991,9 @@ def show_vps_control_menu():
                 # Reconstruir
                 print_info("Ejecutando npm run build... (un momento por favor)")
                 try:
-                    subprocess.run(['npm', 'run', 'build'], cwd=str(FRONTEND_DIR), check=True, shell=True)
+                    # En Linux con shell=True es mejor pasar el comando como string único
+                    build_cmd = "npm run build"
+                    subprocess.run(build_cmd, cwd=str(FRONTEND_DIR), check=True, shell=True)
                     print_success("Build completado con éxito.")
                 except Exception as e:
                     print_error(f"Error en el build: {e}")
