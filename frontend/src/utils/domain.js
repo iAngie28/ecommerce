@@ -15,30 +15,30 @@ export const getBaseDomain = (hostname) => {
 };
 
 /**
- * Construye la URL base del API según el modo de ejecución.
- *
- * Modos:
- *  - localhost/desarrollo : http://localhost:8001/api
- *  - IP directa (red/VPS) : http://192.168.x.x:8001/api  (env actualizado por run_services.py)
- *  - Nginx producción    : /api  (relativo, Nginx hace el proxy)
+ * Construye la URL base del API según el modo de ejecución asegurando
+ * que el Host header enviado coincida con el tenant en el que estamos.
  */
 export const getApiUrl = (hostname, port = '8001') => {
-    // 1. Usar la variable de entorno si está definida (actualizada por run_services.py al elegir modo)
+    // Si estamos en Nginx (producción real), usamos proxy inverso
+    if (process.env.REACT_APP_API_URL === '/api') {
+        return '/api';
+    }
+
+    // El servidor Django necesita el subdominio en la cabecera Host.
+    // Si REACT_APP_API_URL tiene una IP hardcoreada (ej. http://192.168.1.1:8001/api),
+    // django-tenants no sabrá qué tenant es y usará el schema "public" (0 productos).
+    // Por eso SIEMPRE enviamos la petición al mismo `hostname` (subdominio nip.io incluido)
+    // que la URL de la barra del navegador, apuntando al puerto del API.
+    
+    // Extraer el puerto original de REACT_APP_API_URL si existe, si no, usar fallback
+    let apiPort = port;
     if (process.env.REACT_APP_API_URL) {
-        return process.env.REACT_APP_API_URL;
+        const match = process.env.REACT_APP_API_URL.match(/:(\d+)\//);
+        if (match) {
+            apiPort = match[1]; // ej: '8001'
+        }
     }
 
-    // 2. Cualquier variante de localhost (incluyendo subdominios como tienda.localhost)
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
-        return `http://localhost:${port}/api`;
-    }
-
-    // 3. Modo IP directa: usar REACT_APP_BASE_DOMAIN si está definido con una IP real
-    const baseDomain = process.env.REACT_APP_BASE_DOMAIN;
-    if (baseDomain && baseDomain !== 'localhost') {
-        return `http://${baseDomain}:${port}/api`;
-    }
-
-    // 4. Producción con Nginx: ruta relativa (nginx hace el proxy al puerto interno)
-    return '/api';
+    const protocol = window.location.protocol;
+    return `${protocol}//${hostname}:${apiPort}/api`;
 };
