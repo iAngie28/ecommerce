@@ -149,32 +149,35 @@ def configure_env(modo, ip, django_port, react_port):
         _create_minimal_env()
 
     if modo == 'nginx':
-        write_env_key('ENVIRONMENT',          'production')
-        write_env_key('DEBUG',                'False')
-        write_env_key('DOMAIN_MAIN',          ip)
-        write_env_key('TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
-        write_env_key('REACT_APP_BASE_DOMAIN', ip)
-        write_env_key('REACT_APP_API_URL',    '/api')           # Nginx hace el proxy
+        write_env_key('ENVIRONMENT',                   'production')
+        write_env_key('DEBUG',                         'False')
+        write_env_key('DOMAIN_MAIN',                   ip)
+        write_env_key('TENANT_DOMAIN_SUFFIX',          f'.{ip}.nip.io')
+        write_env_key('REACT_APP_BASE_DOMAIN',         ip)
+        write_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
+        write_env_key('REACT_APP_API_URL',             '/api')           # Nginx hace el proxy
         ok(f"Modo Nginx — dominio base: {ip}")
         ok(f"Sufijo tenants: .{ip}.nip.io")
 
     elif modo == 'ip':
-        write_env_key('ENVIRONMENT',          'development')
-        write_env_key('DEBUG',                'True')
-        write_env_key('DOMAIN_MAIN',          ip)
-        write_env_key('TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
-        write_env_key('REACT_APP_BASE_DOMAIN', ip)
-        write_env_key('REACT_APP_API_URL',    f'http://{ip}:{django_port}/api')
+        write_env_key('ENVIRONMENT',                   'development')
+        write_env_key('DEBUG',                         'True')
+        write_env_key('DOMAIN_MAIN',                   ip)
+        write_env_key('TENANT_DOMAIN_SUFFIX',          f'.{ip}.nip.io')
+        write_env_key('REACT_APP_BASE_DOMAIN',         ip)
+        write_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
+        write_env_key('REACT_APP_API_URL',             f'http://{ip}:{django_port}/api')
         ok(f"Modo IP directa — acceso en http://{ip}:{react_port}")
         ok(f"Backend API en http://{ip}:{django_port}/api")
 
     else:  # localhost
-        write_env_key('ENVIRONMENT',          'development')
-        write_env_key('DEBUG',                'True')
-        write_env_key('DOMAIN_MAIN',          'localhost')
-        write_env_key('TENANT_DOMAIN_SUFFIX', '.localhost')
-        write_env_key('REACT_APP_BASE_DOMAIN', 'localhost')
-        write_env_key('REACT_APP_API_URL',    f'http://localhost:{django_port}/api')
+        write_env_key('ENVIRONMENT',                   'development')
+        write_env_key('DEBUG',                         'True')
+        write_env_key('DOMAIN_MAIN',                   'localhost')
+        write_env_key('TENANT_DOMAIN_SUFFIX',          '.localhost')
+        write_env_key('REACT_APP_BASE_DOMAIN',         'localhost')
+        write_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', '.localhost')
+        write_env_key('REACT_APP_API_URL',             f'http://localhost:{django_port}/api')
         ok("Modo Localhost configurado")
 
 
@@ -342,29 +345,101 @@ def setup_frontend(modo):
         except subprocess.CalledProcessError:
             err("Error en npm run build")
 
-# ── PASO 3: Migraciones ───────────────────────────────────────────────────
+# ── PASO 3: Migraciones y base de datos ──────────────────────────────────
 
 def run_migrations():
-    step('3', 'Aplicando migraciones de base de datos')
+    step('3', 'Base de Datos: Reset + Migraciones')
 
     venv_path  = BACKEND_DIR / 'venv'
     python_exe = str(venv_path / ('Scripts/python.exe' if ES_WINDOWS else 'bin/python'))
 
     if not Path(python_exe).exists():
-        warn("Python del venv no encontrado — omitiendo migraciones")
+        err("Python del venv no encontrado — omitiendo migraciones")
         return
 
+    env = load_env()
+    db_name = env.get('DATABASE_NAME', 'mi_saas_db')
+    db_user = env.get('DATABASE_USER', 'postgres')
+    db_host = env.get('DATABASE_HOST', '127.0.0.1')
+    db_port = env.get('DATABASE_PORT', '5432')
+    db_pass = env.get('DATABASE_PASSWORD', '')
+
+    # Entorno con password para psql
+    pg_env = os.environ.copy()
+    if db_pass:
+        pg_env['PGPASSWORD'] = db_pass
+
+    psql = shutil.which('psql') or 'psql'
+
+    # ── 3a. Drop + Create BD ──────────────────────────────────────────────
+    warn(f"Se eliminará y recreará la BD '{db_name}' en {db_host}. Todos los datos se perderán.")
+    confirm = input(f"  {C.BOLD}¿Continuar? (s/n): {C.RESET}").strip().lower()
+    if confirm != 's':
+        warn("Reset de BD cancelado. Saltando a migraciones sin reset.")
+    else:
+        try:
+            info("Eliminando BD existente...")
+            subprocess.run(
+                [psql, '-h', db_host, '-p', db_port, '-U', db_user,
+                 '-c', f'DROP DATABASE IF EXISTS "{db_name}";', 'postgres'],
+                env=pg_env, check=True
+            )
+            info("Creando BD nueva...")
+            subprocess.run(
+                [psql, '-h', db_host, '-p', db_port, '-U', db_user,
+                 '-c', f'CREATE DATABASE "{db_name}";', 'postgres'],
+                env=pg_env, check=True
+            )
+            ok(f"BD '{db_name}' recreada")
+        except Exception as e:
+            warn(f"Error con psql ({e}). Intentando continuar con migraciones de todas formas...")
+
+    # ── 3b. makemigrations ────────────────────────────────────────────────
     try:
-        info("makemigrations...")
+        info("Generando migraciones (makemigrations)...")
         subprocess.run([python_exe, 'manage.py', 'makemigrations'],
                        cwd=str(BACKEND_DIR), check=True)
-        info("migrate...")
-        subprocess.run([python_exe, 'manage.py', 'migrate_schemas', '--shared'],
-                       cwd=str(BACKEND_DIR), check=True)
-        ok("Migraciones aplicadas")
+        ok("makemigrations completado")
     except subprocess.CalledProcessError as e:
-        err(f"Error en migraciones: {e}")
-        warn("Revisa que la BD esté corriendo y que DATABASE_* en .env sean correctos")
+        err(f"makemigrations falló: {e}")
+        return
+
+    # ── 3c. migrate (shared = public schema) ─────────────────────────────
+    try:
+        info("Aplicando migraciones al schema público (migrate_schemas --shared)...")
+        subprocess.run(
+            [python_exe, 'manage.py', 'migrate_schemas', '--shared'],
+            cwd=str(BACKEND_DIR), check=True
+        )
+        ok("Migraciones aplicadas al schema público")
+    except subprocess.CalledProcessError:
+        # Fallback: migrate estándar
+        warn("migrate_schemas no disponible, usando migrate estándar...")
+        try:
+            subprocess.run([python_exe, 'manage.py', 'migrate'],
+                           cwd=str(BACKEND_DIR), check=True)
+            ok("migrate completado")
+        except subprocess.CalledProcessError as e:
+            err(f"migrate falló: {e}")
+            return
+
+    # ── 3d. Seeders opcionales ────────────────────────────────────────────
+    seed = input(f"\n  {C.BOLD}¿Quieres poblar la BD con datos de prueba? (seeders) (s/n): {C.RESET}").strip().lower()
+    if seed == 's':
+        seed_script = BACKEND_DIR.parent / 'scripts_utiles' / 'db_seed.py'
+        if not seed_script.exists():
+            seed_script = Path(__file__).parent / 'db_seed.py'
+        if seed_script.exists():
+            try:
+                subprocess.run([python_exe, str(seed_script)],
+                               cwd=str(BACKEND_DIR), check=True)
+                ok("Seeders ejecutados correctamente")
+            except subprocess.CalledProcessError as e:
+                err(f"Error en seeders: {e}")
+        else:
+            err("db_seed.py no encontrado")
+    else:
+        warn("Seeders omitidos")
 
 # ── Main ──────────────────────────────────────────────────────────────────
 

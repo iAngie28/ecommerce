@@ -147,12 +147,14 @@ def ask_run_mode():
         ip = manual if manual else detected
         update_env_key('REACT_APP_BASE_DOMAIN', ip)
         update_env_key('TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
+        update_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
         update_env_key('REACT_APP_API_URL', f'http://{ip}:{django_port}/api')
         ok(f"Modo IP directa: {ip}")
         return 'ip', ip
     else:
         update_env_key('REACT_APP_BASE_DOMAIN', 'localhost')
         update_env_key('TENANT_DOMAIN_SUFFIX', '.localhost')
+        update_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', '.localhost')
         update_env_key('REACT_APP_API_URL', f'http://localhost:{django_port}/api')
         ok("Modo Localhost")
         return 'localhost', 'localhost'
