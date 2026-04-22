@@ -7,7 +7,6 @@ El sistema sigue una arquitectura **Desacoplada (Decoupled Architecture)**, dond
 En el Backend, aplicamos los principios de **Clean Architecture** (arquitectura por capas) para separar las responsabilidades de infraestructura, validación y lógica de negocio.
 
 <img width="1536" height="1024" alt="Flujo de datos Django" src="https://github.com/user-attachments/assets/1d783a2e-1842-46e9-92a3-af49d49a5bbd" />
-<img width="2752" height="1536" alt="unnamed (1)" src="https://github.com/user-attachments/assets/c75456eb-2762-493e-a3b4-3396b03f4139" />
 <img width="2752" height="1536" alt="unnamed (2)" src="https://github.com/user-attachments/assets/17bd9b49-2c1b-44ed-a1d1-00fcd2854c83" />
 
 ---
