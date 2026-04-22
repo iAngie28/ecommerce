@@ -1,0 +1,64 @@
+/* ============================================================
+   MIQHATU — TYPOGRAPHY SCALE
+   Escala tipográfica consistente. Usa estas clases en cualquier
+   componente sin repetir estilos.
+   ============================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: var(--text-4xl); font-weight: var(--font-extra); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl);  }
+h5 { font-size: var(--text-lg);  }
+h6 { font-size: var(--text-base);}
+
+p {
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+small {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Utility Classes ────────────────────────────────────── */
+.text-xs    { font-size: var(--text-xs) !important; }
+.text-sm    { font-size: var(--text-sm) !important; }
+.text-base  { font-size: var(--text-base) !important; }
+.text-lg    { font-size: var(--text-lg) !important; }
+.text-xl    { font-size: var(--text-xl) !important; }
+.text-2xl   { font-size: var(--text-2xl) !important; }
+.text-3xl   { font-size: var(--text-3xl) !important; }
+
+.font-light  { font-weight: var(--font-light) !important; }
+.font-normal { font-weight: var(--font-regular) !important; }
+.font-medium { font-weight: var(--font-medium) !important; }
+.font-semi   { font-weight: var(--font-semi) !important; }
+.font-bold   { font-weight: var(--font-bold) !important; }
+
+.text-primary   { color: var(--color-primary) !important; }
+.text-secondary { color: var(--color-text-secondary) !important; }
+.text-muted     { color: var(--color-text-muted) !important; }
+.text-success   { color: var(--color-success) !important; }
+.text-warning   { color: var(--color-warning) !important; }
+.text-danger    { color: var(--color-danger) !important; }
+
+.text-center { text-align: center !important; }
+.text-left   { text-align: left !important; }
+.text-right  { text-align: right !important; }
+
+/* ── Gradient Text ─────────────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

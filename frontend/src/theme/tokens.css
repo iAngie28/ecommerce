@@ -1,0 +1,158 @@
+/* ============================================================
+   MIQHATU — DESIGN TOKENS
+   Fuente única de verdad para colores, tipografía, espaciado.
+   NUNCA pongas colores hardcodeados en los componentes.
+   Siempre usa var(--token).
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* ────────────────────────────────────────────────────────
+     BRAND — MiQhatu Teal × Navy Dark
+  ──────────────────────────────────────────────────────── */
+  --color-primary:          hsl(176, 73%, 39%);   /* #18aea4 */
+  --color-primary-light:    hsl(176, 73%, 52%);
+  --color-primary-dark:     hsl(176, 73%, 28%);
+  --color-primary-ghost:    hsl(176, 73%, 39% / 0.12);
+  --color-primary-glow:     hsl(176, 73%, 39% / 0.35);
+
+  --color-accent:           hsl(258, 80%, 65%);   /* purple accent */
+  --color-accent-ghost:     hsl(258, 80%, 65% / 0.12);
+
+  /* ────────────────────────────────────────────────────────
+     BACKGROUNDS & SURFACES (Dark Mode)
+  ──────────────────────────────────────────────────────── */
+  --color-bg:               hsl(222, 47%, 6%);    /* deep navy */
+  --color-bg-alt:           hsl(222, 47%, 8%);
+  --color-surface:          hsl(222, 35%, 11%);
+  --color-surface-2:        hsl(222, 30%, 15%);
+  --color-surface-3:        hsl(222, 28%, 20%);
+  --color-surface-hover:    hsl(222, 28%, 24%);
+
+  /* Glass effect */
+  --glass-bg:               hsl(222, 35% 15% / 0.6);
+  --glass-border:           hsl(222, 25% 30% / 0.4);
+
+  /* ────────────────────────────────────────────────────────
+     BORDERS
+  ──────────────────────────────────────────────────────── */
+  --color-border:           hsl(222, 25%, 20%);
+  --color-border-light:     hsl(222, 25%, 26%);
+
+  /* ────────────────────────────────────────────────────────
+     TEXT
+  ──────────────────────────────────────────────────────── */
+  --color-text:             hsl(210, 20%, 92%);
+  --color-text-secondary:   hsl(210, 12%, 68%);
+  --color-text-muted:       hsl(210, 10%, 45%);
+  --color-text-disabled:    hsl(210, 8%, 32%);
+  --color-text-inverse:     hsl(222, 47%, 6%);
+
+  /* ────────────────────────────────────────────────────────
+     SEMANTIC COLORS
+  ──────────────────────────────────────────────────────── */
+  --color-success:          hsl(145, 63%, 42%);
+  --color-success-light:    hsl(145, 63%, 42% / 0.15);
+  --color-warning:          hsl(38,  92%, 50%);
+  --color-warning-light:    hsl(38,  92%, 50% / 0.15);
+  --color-danger:           hsl(355, 78%, 56%);
+  --color-danger-light:     hsl(355, 78%, 56% / 0.15);
+  --color-info:             hsl(217, 91%, 60%);
+  --color-info-light:       hsl(217, 91%, 60% / 0.15);
+
+  /* ────────────────────────────────────────────────────────
+     SPACING SCALE (rem)
+  ──────────────────────────────────────────────────────── */
+  --space-1:   0.25rem;
+  --space-2:   0.5rem;
+  --space-3:   0.75rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+  --space-24:  6rem;
+
+  /* ────────────────────────────────────────────────────────
+     TYPOGRAPHY
+  ──────────────────────────────────────────────────────── */
+  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:      0.75rem;    /* 12px */
+  --text-sm:      0.875rem;   /* 14px */
+  --text-base:    1rem;       /* 16px */
+  --text-lg:      1.125rem;   /* 18px */
+  --text-xl:      1.25rem;    /* 20px */
+  --text-2xl:     1.5rem;     /* 24px */
+  --text-3xl:     1.875rem;   /* 30px */
+  --text-4xl:     2.25rem;    /* 36px */
+  --text-5xl:     3rem;       /* 48px */
+
+  --font-light:   300;
+  --font-regular: 400;
+  --font-medium:  500;
+  --font-semi:    600;
+  --font-bold:    700;
+  --font-extra:   800;
+
+  --leading-tight:  1.25;
+  --leading-snug:   1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* ────────────────────────────────────────────────────────
+     BORDER RADIUS
+  ──────────────────────────────────────────────────────── */
+  --radius-xs:    4px;
+  --radius-sm:    6px;
+  --radius-md:    10px;
+  --radius-lg:    16px;
+  --radius-xl:    20px;
+  --radius-2xl:   28px;
+  --radius-full:  9999px;
+
+  /* ────────────────────────────────────────────────────────
+     SHADOWS
+  ──────────────────────────────────────────────────────── */
+  --shadow-xs:    0 1px 2px hsl(222 47% 4% / .4);
+  --shadow-sm:    0 2px 6px hsl(222 47% 4% / .45);
+  --shadow-md:    0 4px 16px hsl(222 47% 4% / .5);
+  --shadow-lg:    0 8px 32px hsl(222 47% 4% / .6);
+  --shadow-xl:    0 16px 48px hsl(222 47% 4% / .7);
+  --shadow-glow:  0 0 20px var(--color-primary-glow),
+                  0 0 60px hsl(176 73% 39% / .15);
+
+  /* ────────────────────────────────────────────────────────
+     TRANSITIONS
+  ──────────────────────────────────────────────────────── */
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:    cubic-bezier(0.4, 0, 1, 1);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --transition-fast:   150ms var(--ease-out);
+  --transition-base:   250ms var(--ease-out);
+  --transition-slow:   400ms var(--ease-out);
+  --transition-spring: 600ms var(--ease-out);
+
+  /* ────────────────────────────────────────────────────────
+     LAYOUT
+  ──────────────────────────────────────────────────────── */
+  --sidebar-width:    240px;
+  --topbar-height:    64px;
+  --content-max-w:    1280px;
+
+  /* ────────────────────────────────────────────────────────
+     Z-INDEX SCALE
+  ──────────────────────────────────────────────────────── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-dropdown: 100;
+  --z-sticky:  200;
+  --z-modal:   300;
+  --z-toast:   400;
+  --z-tooltip: 500;
+}

@@ -1,0 +1,8 @@
+/* ============================================================
+   MIQHATU — THEME BARREL
+   Importa aquí todo el design system en orden correcto.
+   Este archivo es importado UNA SOLA VEZ en src/index.js.
+   ============================================================ */
+@import './tokens.css';
+@import './globals.css';
+@import './typography.css';
