@@ -8,6 +8,7 @@ En el Backend, aplicamos los principios de **Clean Architecture** (arquitectura 
 
 <img width="1536" height="1024" alt="Flujo de datos Django" src="https://github.com/user-attachments/assets/1d783a2e-1842-46e9-92a3-af49d49a5bbd" />
 <img width="1536" height="1024" alt="Conceptos claves" src="https://github.com/user-attachments/assets/c92be764-520c-4720-bdf6-05e060dc6538" />
+<img width="2752" height="1536" alt="unnamed (2)" src="https://github.com/user-attachments/assets/17bd9b49-2c1b-44ed-a1d1-00fcd2854c83" />
 
 ---
 
