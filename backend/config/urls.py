@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from app_negocio.views.producto_views import ProductoViewSet
 from app_negocio.views.categoria_views import CategoriaViewSet
 from app_negocio.views.carrito_views import CarritoViewSet
@@ -47,7 +48,11 @@ urlpatterns = [
     # 3. Incluimos las rutas de nuestra API de negocio (Productos)
     path('api/', include(router.urls)),
 
-
     path('api/tiendas/', TenantListView.as_view()),
     path('api/tiendas/crear/', TenantCreateView.as_view()),
+
+    # 4. Rutas de Documentación (drf-spectacular)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

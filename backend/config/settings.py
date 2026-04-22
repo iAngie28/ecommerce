@@ -122,7 +122,7 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Ecommerce API',
     'DESCRIPTION': 'Sistema Multi-tenant de Ecommerce con CRUDs completos',
     'VERSION': '1.0.0',
-    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAuthenticated'],
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
     'SERVE_INCLUDE_SCHEMA': True,
 }
 
