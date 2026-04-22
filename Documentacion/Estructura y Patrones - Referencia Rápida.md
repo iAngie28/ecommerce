@@ -1,10 +1,12 @@
-# Estructura y Patrones - Referencia Rápida para Desarrolladores
 
+# Estructura y Patrones - Referencia Rápida para Desarrolladores
+<img width="2752" height="1536" alt="unnamed (1)" src="https://github.com/user-attachments/assets/e1367603-f583-4ab9-8745-280065eb6dd4" />
 **Objetivo:** Guía rápida para entender dónde va cada cosa y cómo implementar nuevas funcionalidades.
 
 ---
 
 ## 1. ¿QUÉ ES UN MIXIN?
+<img width="2752" height="1536" alt="mixin" src="https://github.com/user-attachments/assets/783a681b-68f6-4753-adbb-bb488d3f0d2c" />
 
 Un **Mixin** es una clase pequeña que "inyecta" funcionalidad reutilizable en otras clases sin necesidad de repetir código.
 
