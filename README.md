@@ -310,6 +310,7 @@ Nginx como proxy inverso, servicios en interno.
 ## 📝 Documentación Completa
 
 - **[ARQUITECTURA.md](Documentacion/ARQUITECTURA.md)** - Arquitectura completa
+- **[Plantilla Prompt IA Generador](Documentacion/Plantilla%20Prompt%20IA%20Generador.md)** - Esquema reusable para generar proyectos con IA
 - **[LANZADORES.md](LANZADORES.md)** - Guía de herramientas
 - **[Configuración inicial.md](Documentacion/Configuración%20inicial.md)** - Setup inicial
 - **[Login.md](Documentacion/Login.md)** - Sistema de autenticación
