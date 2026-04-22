@@ -38,10 +38,23 @@ El Backend responde de forma dinámica según el **Host** de la petición. El pu
 |`/api/productos/`|`GET`|Lista los productos del tenant activo (identificado por el subdominio).|
 |`/api/productos/`|`POST`|Crea un nuevo producto en el esquema correspondiente.|
 
-### 💡 Notas para el Desarrollador (QA)
+### 💡 Notas para el Desarrollador
 
 1. **Aislamiento de Cookies/Storage:** Recuerda que `localhost` no comparte datos con `cliente1.localhost`. Por eso la ruta `/sso` es vital.
     
 2. **Redirección de Red:** Para que `cliente1.localhost` resuelva correctamente en tu máquina local, asegúrate de que el backend tenga el dominio registrado exactamente igual en la tabla `Domain`.
     
 3. **CORS:** El backend permite peticiones desde cualquier subdominio de `.localhost` gracias a la configuración de `django-cors-headers`.
+
+## 5. Documentación Interactiva de APIs
+
+Para revisar todos los endpoints disponibles con sus parámetros, métodos y ejemplos:
+
+|   |   |
+|---|---|
+|**URL**|**Propósito**|
+|`http://localhost:8001/api/schema/swagger-ui/`|**Swagger UI** - Interfaz interactiva para probar endpoints. Usa el botón "Authorize" para autenticarse con JWT.|
+|`http://localhost:8001/api/schema/redoc/`|**ReDoc** - Documentación limpia y profesional de todos los endpoints.|
+|`http://localhost:8001/api/schema/`|**OpenAPI Schema** - Formato JSON estándar (importable en Postman, Insomnia, etc.)|
+
+**Autenticación en Swagger:** Obtén un token en `/api/token/` con tus credenciales, luego en Swagger haz clic en "Authorize" y escribe: `Bearer <tu_access_token>`

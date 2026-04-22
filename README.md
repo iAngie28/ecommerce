@@ -315,6 +315,14 @@ Nginx como proxy inverso, servicios en interno.
 - **[Login.md](Documentacion/Login.md)** - Sistema de autenticación
 - **[Rutas.md](Documentacion/Rutas.md)** - API endpoints
 
+### 🔍 Documentación Interactiva de APIs (drf-spectacular)
+
+Con el backend corriendo en `http://localhost:8001`:
+
+- **[Swagger UI](http://localhost:8001/api/schema/swagger-ui/)** - Interfaz interactiva (recomendada)
+- **[ReDoc](http://localhost:8001/api/schema/redoc/)** - Documentación legible
+- **[OpenAPI Schema](http://localhost:8001/api/schema/)** - JSON para importar en Postman
+
 ---
 
 ## 🐛 Troubleshooting

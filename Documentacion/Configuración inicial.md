@@ -228,6 +228,9 @@ d:\ecommerce\
 - **Frontend Login**: `http://localhost:3001/login`
 - **Django Admin**: `http://localhost:8000/admin/` (no implementado en UI)
 - **Backend API**: `http://localhost:8000/api/`
+- **Swagger UI (Documentación Interactiva)**: `http://localhost:8001/api/schema/swagger-ui/` - Prueba endpoints con JWT
+- **ReDoc (Documentación)**: `http://localhost:8001/api/schema/redoc/` - Documentación limpia
+- **OpenAPI Schema**: `http://localhost:8001/api/schema/` - JSON estándar para importar en Postman
 - **Backend Docs**: Ver `Documentacion/`
 
 ---

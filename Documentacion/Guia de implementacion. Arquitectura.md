@@ -1,6 +1,6 @@
 ## 1. Entorno de Backend
 
-**Directorio inicial:** `C:\Users\nextr\Desktop\SI@\Trabajo Grupal\`
+
 
 1. **Creación del entorno virtual:**
     
@@ -136,3 +136,34 @@ class ProductoViewSet(BaseViewSet):
 1. **Backend:** `python manage.py runserver`
     
 2. **Frontend:** `npm start`
+
+## 8. Documentación de APIs (Swagger/OpenAPI)
+
+La documentación interactiva de todos los endpoints REST está disponible automáticamente:
+
+**Con el backend corriendo en `http://localhost:8001`:**
+
+- **Swagger UI (Interfaz interactiva recomendada):**
+  ```
+  http://localhost:8001/api/schema/swagger-ui/
+  ```
+  - Puedes probar todos los endpoints directamente desde el navegador
+  - Soporte para autenticación JWT (botón "Authorize")
+  - Visualización clara de parámetros y respuestas
+
+- **ReDoc (Documentación legible):**
+  ```
+  http://localhost:8001/api/schema/redoc/
+  ```
+  - Interfaz limpia y ordenada
+  - Ideal para compartir con el equipo
+  - Mejor para lectura completa de la API
+
+- **OpenAPI JSON (Raw schema):**
+  ```
+  http://localhost:8001/api/schema/
+  ```
+  - Formato JSON estándar OpenAPI 3.0
+  - Importable en Postman, Insomnia u otras herramientas
+
+**Nota:** La documentación es pública (sin autenticación), pero los endpoints REST siguen siendo protegidos con JWT.
