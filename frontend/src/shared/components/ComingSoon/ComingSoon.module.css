@@ -1,0 +1,64 @@
+/* ComingSoon.module.css */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+  gap: var(--space-8);
+  min-height: 60vh;
+}
+
+.badge {
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-accent-ghost);
+  border: 1px solid hsl(258 80% 65% / 0.3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semi);
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.icon {
+  width: 80px; height: 80px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg, var(--color-primary-ghost));
+  color: var(--card-color, var(--color-primary));
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extra);
+  letter-spacing: -0.03em;
+}
+
+.description {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  max-width: 460px;
+  line-height: var(--leading-relaxed);
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  max-width: 600px;
+}
+
+.feature {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}

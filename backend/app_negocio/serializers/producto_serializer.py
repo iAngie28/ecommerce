@@ -1,7 +1,20 @@
 from rest_framework import serializers
 from ..models import Producto
+from ..models.categoria import Categoria
+from .categoria_serializer import CategoriaSerializer
+
 
 class ProductoSerializer(serializers.ModelSerializer):
+    categoria_detail = CategoriaSerializer(source='categoria', read_only=True)
+    categoria = serializers.PrimaryKeyRelatedField(
+        queryset=Categoria.objects.all()
+    )
+
     class Meta:
         model = Producto
-        fields = '__all__' # Expone todos los campos (nombre, precio, stock, etc.)
+        fields = [
+            'id', 'nombre', 'sku', 'descripcion', 'precio',
+            'stock', 'categoria', 'categoria_detail',
+            'activo', 'imagen_url', 'creado_en', 'actualizado_en',
+        ]
+        read_only_fields = ['id', 'creado_en', 'actualizado_en', 'categoria_detail']

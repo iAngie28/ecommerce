@@ -1,0 +1,91 @@
+/* Button.module.css */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  line-height: 1;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
+  user-select: none;
+  text-decoration: none;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Sizes ──────────────────────────────────────────────── */
+.sm { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); border-radius: var(--radius-sm); }
+.md { padding: var(--space-3) var(--space-5); }
+.lg { padding: var(--space-4) var(--space-8); font-size: var(--text-base); }
+
+/* ── Variants ───────────────────────────────────────────── */
+.primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 0 0 0 var(--color-primary-glow);
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-primary-light);
+  box-shadow: var(--shadow-glow);
+}
+
+.secondary {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-light);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  border-color: var(--color-primary);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+.ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+.danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+/* ── Full width ─────────────────────────────────────────── */
+.full { width: 100%; }
+
+/* ── Loading state ──────────────────────────────────────── */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
