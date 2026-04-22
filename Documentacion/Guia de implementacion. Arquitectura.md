@@ -10,7 +10,7 @@
         
 2. **Instalación de dependencias base:**
     
-    - Comando: `pip install django django-tenants djangorestframework psycopg2-binary`
+    - Comando: `pip install -r requirements.txt`
         
     - **django-tenants:** Gestión de aislamiento de datos mediante esquemas de PostgreSQL.
         
@@ -18,69 +18,109 @@
         
     - **psycopg2-binary:** Adaptador para la comunicación con el motor de base de datos PostgreSQL.
         
-
-## 2. Configuración Multi-tenant
-
-**Directorio:** `\backend\`
-
-1. **Definición de aplicaciones (settings.py):**
-    
-    - División de aplicaciones en `SHARED_APPS` (dominio, clientes) y `TENANT_APPS` (app_negocio para productos).
-        
-    - Uso de `django_tenants.routers.TenantSyncRouter` para direccionar las consultas al esquema correspondiente.
-        
-2. **Ejecución de migraciones:**
-    
-    - Comando: `python manage.py migrate_schemas`
-        
-    - Uso: Crear las tablas globales en el esquema `public` y las tablas de negocio en los esquemas de cada cliente.
+    - **djangorestframework-simplejwt:** Gestión de tokens JWT para autenticación.
         
 
-## 3. Seguridad y API
+## 2. Configuración Multi-tenant y Arquitectura de Capas
 
 **Directorio:** `\backend\`
 
-1. **Instalación de seguridad y tokens:**
-    
-    - Comando: `pip install django-cors-headers djangorestframework-simplejwt`
-        
-    - **django-cors-headers:** Middleware para permitir peticiones desde el origen del frontend (puerto 3000).
-        
-    - **simplejwt:** Implementación de JSON Web Tokens para autenticación sin estado.
-        
-2. **Configuración de acceso:**
-    
-    - Configuración de `CORS_ALLOW_ALL_ORIGINS = True` en `settings.py` para habilitar el tráfico entre puertos durante el desarrollo.
-        
+### 2.1 Infraestructura Base (core/)
 
-## 4. Modelo de Negocio (Productos)
+El sistema centraliza la lógica reutilizable en la carpeta `core/`:
 
-**Directorio:** `\backend\app_negocio\`
+- **`core/services.py`**: Clase `BaseService` que proporciona CRUD genérico a todos los servicios.
+- **`core/mixins.py`**: Mixins que inyectan funcionalidad común:
+    - `MultiTenantMixin`: Filtra automáticamente los datos por esquema (schema-based multi-tenancy).
+    - `AuditoriaMixin`: Registra automáticamente todas las acciones (CREAR, EDITAR, ELIMINAR) en la Bitácora.
+- **`core/views.py`**: `BaseViewSet` que hereda de ambos Mixins y `ModelViewSet`.
+- **`core/validators.py`**: Validadores centralizados por dominio (validaciones de negocio, no solo serializers).
+- **`core/exceptions.py`**: Excepciones personalizadas del negocio.
 
-1. **Creación de modelos:**
+### 2.2 Aplicaciones Modulares
+
+Cada aplicación (customers, app_negocio) sigue la estructura:
+
+```
+app/
+├── models/           → Definición de tablas (sin lógica de negocio)
+├── serializers/      → Conversión a JSON + validaciones básicas
+├── services/         → Lógica de negocio (heredan de BaseService)
+├── views/            → Orquestadores HTTP (heredan de BaseViewSet)
+├── admin/            → Interfaz administrativa
+└── tests/            → Tests unitarios e integración
+```
+
+## 3. Ejecución de Migraciones
+
+**Directorio:** `\backend\`
+
+- Comando: `python manage.py migrate_schemas`
     
-    - Archivo: `models.py`. Definición de la clase `Producto` (nombre, descripción, precio, stock).
-        
-2. **Exposición de datos:**
+- Uso: Crear las tablas globales en el esquema `public` y las tablas de negocio en los esquemas de cada cliente.
     
-    - Archivo: `serializers.py` (uso de `ModelSerializer`).
-        
-    - Archivo: `views.py` (uso de `ModelViewSet`).
-        
-    - Uso: Operaciones CRUD filtradas automáticamente por el esquema del inquilino activo.
-        
 
-## 5. Entorno de Frontend
+## 4. Seguridad y API
+
+**Directorio:** `\backend\`
+
+- CORS configurado para permitir peticiones desde el frontend (puerto 3000).
+- JWT para autenticación sin estado.
+- Multi-tenant aislamiento garantizado por `django-tenants` (schema-based).
+
+## 5. Modelo de Negocio (Aplicaciones)
+
+### Estructura Típica de un CRUD (Ej: Producto)
+
+**1. Modelo** (`models/producto.py`):
+```python
+class Producto(models.Model):
+    nombre = models.CharField(max_length=200)
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.IntegerField(default=0)
+```
+
+**2. Serializer** (`serializers/producto_serializer.py`):
+```python
+class ProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Producto
+        fields = ['id', 'nombre', 'precio', 'stock']  # ✅ Lista explícita (no __all__)
+```
+
+**3. Service** (`services/producto_service.py`):
+```python
+class ProductoService(BaseService):
+    def __init__(self):
+        super().__init__(Producto)
+    
+    def rebajar_stock(self, producto, cantidad):
+        if producto.stock < cantidad:
+            raise ValueError("Stock insuficiente")
+        producto.stock -= cantidad
+        producto.save()
+        return producto
+```
+
+**4. View** (`views/producto_views.py`):
+```python
+from core.views import BaseViewSet
+
+class ProductoViewSet(BaseViewSet):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer
+    modulo_auditoria = "Producto"  # ✅ AuditoriaMixin usa esto
+```
+
+**Beneficio:** La auditoría se registra automáticamente (sin código manual). MultiTenantMixin filtra automáticamente por esquema.
+
+## 6. Entorno de Frontend
 
 **Directorio:** `\frontend\`
 
-1. **Inicialización del proyecto:**
+1. **Instalación de librerías:**
     
-    - Comando: `npx create-react-app .`
-        
-2. **Instalación de librerías de interfaz:**
-    
-    - Comando: `npm install axios react-router-dom lucide-react`
+    - Comando: `npm install`
         
     - **axios:** Cliente HTTP configurado con interceptores para inyectar el token JWT en las cabeceras.
         
@@ -88,49 +128,7 @@
         
     - **lucide-react:** Librería de iconos para la interfaz.
         
-
-## 6. Gestión de Inquilinos por Consola
-
-Debido a la ausencia de una interfaz administrativa (CRUD) para la gestión de inquilinos en esta fase, todas las operaciones de registro deben ejecutarse vía consola.
-
-**Directorio:** `\backend\`
-
-1. **Registro de Tenant y Dominio:**
-    
-    - Comando: `python manage.py shell`
-        
-    - Ejecución interna:
-        
-        ```
-        from app_usuarios.models import Client, Domain
-        # Crear el inquilino
-        tenant = Client.objects.create(schema_name='cliente1', name='Cliente 1')
-        # Vincular el dominio para identificación por URL
-        Domain.objects.create(domain='cliente1.localhost', tenant=tenant, is_primary=True)
-        ```
-        
-2. **Identificación por URL:**
-    
-    - El sistema identifica al inquilino mediante el `Middleware` de `django-tenants`.
-        
-    - Proceso: La petición entrante (ej: `cliente1.localhost:8000`) es interceptada; el host es comparado con la tabla `Domain`. Al hallar coincidencia, se establece el `search_path` de PostgreSQL al esquema `cliente1`.
-        
-3. **Creación de usuarios por esquema:**
-    
-    - Comando: `python manage.py tenant_command createsuperuser --schema=cliente1`
-        
-    - Uso: Registrar credenciales administrativas aisladas dentro del esquema del cliente.
-        
-4. **Poblamiento de productos por esquema:**
-    
-    - Comando: `python manage.py tenant_command shell --schema=cliente1`
-        
-    - Ejecución interna:
-        
-        ```
-        from app_negocio.models import Producto
-        Producto.objects.create(nombre="Laptop", precio=1200, stock=5)
-        ```
+    - **tailwind css:** Framework de estilos.
         
 
 ## 7. Ejecución de servicios

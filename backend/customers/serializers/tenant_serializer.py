@@ -1,14 +1,13 @@
 from rest_framework import serializers
-from customers.models import Client, Domain, Usuario
-from django_tenants.utils import tenant_context
+from customers.models import Client, Domain
+from ..services.tenant_service import TenantService # ✅ Importación del servicio
 import re
-
 
 class TenantCreateSerializer(serializers.Serializer):
     # Datos de la tienda
     nombre_tienda = serializers.CharField(max_length=100)
-    schema_name   = serializers.SlugField(max_length=50)  # ej: tienda_ropa
-    dominio       = serializers.CharField(max_length=100, required=False)  # Opcional, se genera auto
+    schema_name   = serializers.SlugField(max_length=50)
+    dominio       = serializers.CharField(max_length=100, required=False)
 
     # Datos del dueño
     email         = serializers.EmailField()
@@ -28,48 +27,8 @@ class TenantCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Ese dominio ya está en uso.")
         return value
 
-    def validate_email(self, value):
-        return value  # el email se valida dentro del tenant_context
-
     def create(self, validated_data):
-        # 1. Obtener el sufijo de configuración dinámico (.localhost o .nip.io)
-        from django.conf import settings
-        suffix = getattr(settings, 'TENANT_DOMAIN_SUFFIX', '.localhost')
-        
-        # Construir el dominio completo automáticamente (ej: tienda1.localhost)
-        dominio_final = f"{validated_data['schema_name']}{suffix}"
-
-        # 2. Crear el tenant
-        tenant = Client.objects.create(
-            schema_name=validated_data['schema_name'],
-            name=validated_data['nombre_tienda'],
-        )
-
-        # 3. Crear el dominio sincronizado con el sufijo configurado
-        Domain.objects.create(
-            domain=dominio_final,
-            tenant=tenant,
-            is_primary=True
-        )
-
-        # 4. Crear el usuario admin dentro del contexto del tenant
-        with tenant_context(tenant):
-            if Usuario.objects.filter(email=validated_data['email']).exists():
-                raise serializers.ValidationError("Ese email ya existe en esta tienda.")
-
-            admin = Usuario.objects.create_user(
-                email=validated_data['email'],
-                password=validated_data['password'],
-                first_name=validated_data['first_name'],
-                last_name=validated_data['last_name'],
-                is_staff=True,
-                is_active=True,
-                tenant=tenant,
-            )
-
-        return {
-            'tienda': tenant.name,
-            'schema': tenant.schema_name,
-            'dominio': dominio_final,
-            'admin_email': admin.email,
-        }
+        """
+        Delega la creación compleja al servicio de dominio.
+        """
+        return TenantService.crear_tienda_completa(validated_data)

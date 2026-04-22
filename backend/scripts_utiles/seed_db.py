@@ -1,7 +1,14 @@
 import os
+import sys
 import django
+from pathlib import Path
 
-# 1. Configuración del entorno
+# 1. AJUSTE DE RUTAS
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BACKEND_DIR = BASE_DIR / "backend"
+sys.path.append(str(BACKEND_DIR))
+
+# 2. Configuración del entorno
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
@@ -10,64 +17,60 @@ from app_negocio.models import Producto
 from django_tenants.utils import schema_context
 
 def run_seeder():
-    print("--- 🚀 Iniciando Seeder Multi-tenant (Localhost) ---")
+    print("--- 🚀 Iniciando Seeder Multi-tenant corregido ---")
 
-    # 2. Esquema Público
-    print("Configurando esquema público...")
+    # 3. Esquema Público
     public_tenant, _ = Client.objects.get_or_create(
         schema_name='public', 
-        name='Plataforma Global'
+        defaults={'name': 'Plataforma Global'}
     )
     Domain.objects.get_or_create(
         domain='localhost', 
         tenant=public_tenant, 
-        is_primary=True
+        defaults={'is_primary': True}
     )
-    print("✅ Dominio base 'localhost' registrado.")
+    print("✅ Dominio 'localhost' listo.")
 
-    # 3. Datos de los Clientes
+    # 4. Datos de los Clientes
     tenants_data = [
         {
             'schema': 'cliente1', 
             'name': 'Tienda de Tecnología', 
-            'domain': 'cliente1.localhost', # Volvemos a .localhost
-            'custom_user': 'adm1'
+            'domain': 'cliente1.localhost', 
+            'admin_email': 'adm1@admin.com' # Usamos email como ID
         },
         {
             'schema': 'cliente2', 
             'name': 'Boutique de Ropa', 
-            'domain': 'cliente2.localhost', # Volvemos a .localhost
-            'custom_user': 'adm2'
+            'domain': 'cliente2.localhost', 
+            'admin_email': 'adm2@admin.com'
         },
     ]
 
     for data in tenants_data:
         print(f"\n⚙️ Procesando: {data['name']}...")
         
-        # Crear el Cliente
         tenant, _ = Client.objects.get_or_create(
             schema_name=data['schema'], 
-            name=data['name']
+            defaults={'name': data['name']}
         )
         
-        # Crear el Dominio
         Domain.objects.get_or_create(
             domain=data['domain'], 
             tenant=tenant, 
-            is_primary=True
+            defaults={'is_primary': True}
         )
 
-        # 4. Crear Usuario con el nombre solicitado
-        if not Usuario.objects.filter(username=data['custom_user']).exists():
+        # 5. CREACIÓN DE USUARIO (CORREGIDO: usando email)
+        if not Usuario.objects.filter(email=data['admin_email']).exists():
             Usuario.objects.create_superuser(
-                username=data['custom_user'],
-                email=f"admin@{data['schema']}.com",
+                email=data['admin_email'],
                 password="123",
                 tenant=tenant 
             )
-            print(f"👤 Usuario '{data['custom_user']}' creado.")
+            print(f"👤 Superusuario '{data['admin_email']}' creado.")
 
-        # 5. Crear Productos
+        # 6. Crear Productos dentro del esquema
         with schema_context(tenant.schema_name):
             Producto.objects.all().delete()
             

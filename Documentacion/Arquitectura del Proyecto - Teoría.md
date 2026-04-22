@@ -17,17 +17,23 @@ Django no devuelve vistas HTML (como lo haría Blade en Laravel), sino que actú
 
 ### 🧠 El Corazón de la Arquitectura: Vistas, Serializadores y Servicios
 
-Para que el sistema sea escalable y fácil de mantener, el procesamiento de cada petición se divide en tres actores principales:
+Para que el sistema sea escalable y fácil de mantener, el procesamiento de cada petición se divide en cuatro actores principales:
 
 1.  **La Vista (El Orquestador):**
-    * **Función:** Es la puerta de entrada. Su único trabajo es recibir la petición HTTP, llamar al Serializador para validar los datos, llamar al Servicio para ejecutar la lógica de negocio y, finalmente, devolver la respuesta HTTP (200 OK, 400 Bad Request).
+    * **Función:** Es la puerta de entrada. Su único trabajo es recibir la petición HTTP, llamar al Serializador para validar los datos, delegar al Servicio para ejecutar la lógica de negocio y, finalmente, devolver la respuesta HTTP (200 OK, 400 Bad Request).
+    * **Herencia:** Todos heredan de `BaseViewSet` que incluye **Mixins** para auditoría y multi-tenant automáticos.
     * **Regla:** *No contiene lógica compleja ni hace consultas directas a la base de datos.*
 2.  **El Serializador (El Traductor y Filtro):**
     * **Función:** Convierte los objetos complejos de la Base de Datos a JSON (para que React los entienda) y viceversa. Además, es la "Aduana": valida que los datos que entran tengan el formato correcto (ej. que un email sea realmente un email, o que un precio sea un número positivo).
     * **Regla:** *No toma decisiones de negocio (ej. no decide si aplicar un descuento o enviar un correo).*
 3.  **El Servicio (El Cerebro / Lógica de Negocio):**
     * **Función:** Aquí vive la inteligencia del sistema. Son funciones puras de Python que hacen el trabajo pesado: calculan inventarios, crean registros, asignan permisos o envían notificaciones.
+    * **Herencia:** Heredan de `BaseService` que proporciona CRUD genérico con transacciones automáticas.
     * **Regla:** *No saben qué es un JSON ni una petición HTTP. Solo reciben datos limpios, ejecutan reglas del negocio y devuelven un resultado a la Vista.*
+4.  **Los Mixins (Reutilización de Lógica):**
+    * **Función:** Clases que inyectan funcionalidad común (auditoría, filtrado multi-tenant) en las Vistas sin necesidad de código duplicado.
+    * **Tipos:** `MultiTenantMixin` (filtra datos por esquema), `AuditoriaMixin` (registra acciones automáticamente).
+    * **Regla:** *Una sola vez de lógica = aplicado a todos los CRUDs automáticamente.*
 
 ### 🔄 ¿Cómo funciona el flujo de una petición ahora?
 
@@ -57,15 +63,21 @@ Basado en el directorio del servidor, el código se divide en paquetes funcional
 * 📂 **`config/`** *(El cerebro del proyecto)*
     * `settings.py`: Variables globales, conexión a BD, configuración de apps (Shared vs Tenant).
     * `urls.py`: El mapa maestro de rutas globales.
+* 📂 **`core/`** *(Infraestructura Compartida - NUEVO)*
+    * `mixins.py`: `MultiTenantMixin` y `AuditoriaMixin` reutilizables.
+    * `views.py`: `BaseViewSet` que hereda de ambos Mixins.
+    * `services.py`: `BaseService` con CRUD genérico y transacciones automáticas.
+    * `validators.py`: Validadores centralizados por dominio.
+    * `exceptions.py`: Excepciones personalizadas del negocio.
 * 📂 **`customers/`** *(App Compartida - Esquema Público)*
     * Contiene la lógica global del SaaS y la gestión de la infraestructura (Inquilinos y Dominios).
 * 📂 **`app_negocio/`** *(App del Inquilino - Esquemas Aislados)*
     * Contiene la lógica exclusiva del negocio (Productos, Ventas).
     * *Internamente, ambas apps siguen esta estructura modular:*
         * 📁 `models/`: Archivos separados por entidad (ej. `producto.py`, `categoria.py`) que definen las tablas de la BD.
-        * 📁 `views/`: Los orquestadores HTTP separados por dominio (ej. `producto_views.py`).
+        * 📁 `views/`: Los orquestadores HTTP (ViewSets que heredan de `BaseViewSet`).
         * 📁 `serializers/`: Los traductores de JSON (ej. `producto_serializers.py`).
-        * 📁 `services/`: Las reglas de negocio independientes (ej. `inventory_service.py`).
+        * 📁 `services/`: Las reglas de negocio (heredan de `BaseService`).
         * 📁 `admin/`: Configuración de seguridad e interfaz del panel administrativo (`TenantSafeAdmin`).
         * 📄 `__init__.py`: Archivos índice que mantienen las importaciones limpias y centralizadas en todo el sistema.
 

@@ -7,18 +7,23 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
-import ssl
-import smtplib
-from email.mime.text import MIMEText
-from ..serializers.usuario_serializers import MyTokenObtainPairSerializer
+
+# Imports de Core y Servicios
+from core.views import BaseViewSet
+from ..services.usuario_service import UsuarioService
 from ..services.auth_service import get_auth_extra_data
 from ..services.bitacora_service import BitacoraService
+
+# Modelos y Serializadores
 from customers.models.usuario import Usuario
-from customers.serializers.usuario_serializers import UsuarioCrudSerializer
+from customers.serializers.usuario_serializers import (
+    MyTokenObtainPairSerializer, 
+    UsuarioCrudSerializer
+)
 from customers.serializers.tenant_serializer import TenantCreateSerializer
 
-
 class MyTokenObtainPairView(APIView):
+    """Vista para el inicio de sesión con JWT."""
     permission_classes = [AllowAny]
     serializer_class = MyTokenObtainPairSerializer
 
@@ -34,13 +39,14 @@ class MyTokenObtainPairView(APIView):
         extra_data = get_auth_extra_data(serializer.user)
         response_data.update(extra_data)
 
-        # Registro en Bitácora
+        # Registro manual de acceso (Especial para Login)
         BitacoraService.registrar_acceso(request, serializer.user, "LOGIN")
 
         return Response(response_data, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):
+    """Vista para el cierre de sesión."""
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -49,8 +55,9 @@ class LogoutView(APIView):
             refresh_token = request.data.get("refresh")
             if not refresh_token:
                 return Response({"detail": "Refresh token no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
+            
             token = RefreshToken(refresh_token)
-            # Registro en Bitácora (antes de invalidar si es posible)
+            
             if request.user.is_authenticated:
                 BitacoraService.registrar_acceso(request, request.user, "LOGOUT")
             
@@ -60,45 +67,50 @@ class LogoutView(APIView):
             return Response({"detail": "Token inválido o ya expirado"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UsuarioCrudViewSet(viewsets.ModelViewSet):
+class UsuarioCrudViewSet(BaseViewSet):
+    """
+    Vista de usuarios refactorizada. 
+    Hereda de BaseViewSet para auditoría y multi-tenant automáticos.
+    """
     queryset = Usuario.objects.all()
     serializer_class = UsuarioCrudSerializer
+    modulo_auditoria = "Usuario"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.service = UsuarioService()
+
+    def perform_create(self, serializer):
+        # Delega la creación (con hashing de password) al servicio
+        return self.service.crear_usuario(serializer.validated_data)
+
+    def perform_update(self, serializer):
+        # Delega la actualización al servicio
+        return self.service.actualizar_usuario(self.get_object(), serializer.validated_data)
 
     @action(detail=True, methods=['get'])
     def status(self, request, pk=None):
         usuario = self.get_object()
-        return Response({'id': usuario.id, 'is_active': usuario.status()})
+        return Response({'id': usuario.id, 'is_active': usuario.is_active})
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         usuario = self.get_object()
-        usuario.activate()
+        self.service.activar(usuario)
         
-        # Registro en Bitácora
-        BitacoraService.registrar_accion(
-            request.user, "Usuario", "ACTIVAR", 
-            request=request, 
-            metadatos={'id_usuario': usuario.id, 'email': usuario.email}
-        )
-        
+        # El Mixin detecta el .save() interno del servicio para auditoría
         return Response({'detail': 'Usuario activado exitosamente', 'is_active': True})
 
     @action(detail=True, methods=['post'])
     def disable(self, request, pk=None):
         usuario = self.get_object()
-        usuario.disable()
-        
-        # Registro en Bitácora
-        BitacoraService.registrar_accion(
-            request.user, "Usuario", "DESACTIVAR", 
-            request=request, 
-            metadatos={'id_usuario': usuario.id, 'email': usuario.email}
-        )
+        self.service.desactivar(usuario)
         
         return Response({'detail': 'Usuario desactivado exitosamente', 'is_active': False})
 
 
 class TenantCreateView(APIView):
+    """Creación de nuevos esquemas (tiendas)."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -108,7 +120,9 @@ class TenantCreateView(APIView):
             return Response(result, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 class TenantListView(APIView):
+    """Listado público de tiendas registradas."""
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -123,15 +137,16 @@ class TenantListView(APIView):
                 'dominio': domain.domain if domain else None,
             })
         return Response(result)
+
+
+# --- Utilidades y Recuperación de Contraseña ---
+
 def send_email_ssl(to_email, subject, body):
-    """Envío de email usando el backend de email de Django (configurado en settings)."""
     from django.core.mail import send_mail
-    from django.conf import settings
     send_mail(subject, body, settings.EMAIL_HOST_USER, [to_email], fail_silently=False)
 
 
 class PasswordResetRequestView(APIView):
-    """Solicita restablecimiento de contraseña generando un token único"""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -144,24 +159,18 @@ class PasswordResetRequestView(APIView):
         except Usuario.DoesNotExist:
             return Response({'message': 'Si el email existe, recibirás un enlace.'})
 
-        # Construir la URL de reset dinámicamente según el entorno (IP o Dominio)
         host = request.get_host()
         protocol = 'https' if request.is_secure() else 'http'
         
-        # Generar UID y Token
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        
         reset_url = f"{protocol}://{host}/reset-password/{uid}/{token}/"
 
-        # Verificar que el email esté configurado antes de intentar enviar
-        from django.conf import settings as dj_settings
-        if not dj_settings.EMAIL_HOST_USER or not dj_settings.EMAIL_HOST_PASSWORD:
-            # Email no configurado: en desarrollo, devolver el enlace directamente
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
             return Response({
                 'message': 'Email no configurado en el servidor.',
-                'dev_reset_url': reset_url  # Solo visible si DEBUG=True
-            }, status=503 if not dj_settings.DEBUG else 200)
+                'dev_reset_url': reset_url
+            }, status=503 if not settings.DEBUG else 200)
 
         try:
             send_email_ssl(
@@ -176,7 +185,6 @@ class PasswordResetRequestView(APIView):
 
 
 class PasswordResetConfirmView(APIView):
-    """Confirma el cambio de contraseña validando el token recibido"""
     permission_classes = [AllowAny]
 
     def post(self, request):

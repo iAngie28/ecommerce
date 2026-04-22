@@ -61,7 +61,7 @@ def run_django_commands():
     os.system("python manage.py migrate_schemas --shared")
     # Ejecutamos tu seeder automáticamente al final
     print("--- 🌱 Sembrando datos iniciales ---")
-    os.system("python seed_db.py")
+    os.system("python scripts_utiles/seed_db.py")
 
 if __name__ == "__main__":
     clean_migrations()
