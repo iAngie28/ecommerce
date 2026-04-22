@@ -1,4 +1,6 @@
 from django.db import models
+from .categoria import Categoria
+from .promocion import Promocion
 
 class Producto(models.Model):
     nombre = models.CharField(max_length=200)
@@ -6,7 +8,25 @@ class Producto(models.Model):
     descripcion = models.TextField(blank=True, null=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock = models.IntegerField(default=0)
-    categoria = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Cambiar de CharField a ForeignKey
+    categoria = models.ForeignKey(
+        Categoria,
+        on_delete=models.RESTRICT,
+        related_name='productos',
+        verbose_name='Categoría'
+    )
+    
+    # Relación con Promoción
+    promocion = models.ForeignKey(
+        Promocion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='productos',
+        verbose_name='Promoción'
+    )
+    
     activo = models.BooleanField(default=True)
     imagen_url = models.URLField(max_length=500, blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)

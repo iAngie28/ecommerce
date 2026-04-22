@@ -1,4 +1,6 @@
 
 from .producto_views import ProductoViewSet
-# Si tienes otras vistas, también con el punto:
-# from .usuario_views import UsuarioViewSet
+from .categoria_views import CategoriaViewSet
+from .carrito_views import CarritoViewSet
+from .pedido_views import PedidoViewSet
+from .factura_views import FacturaViewSet, TipoPagoViewSet

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from .tenant import Client
+from .rol import Rol
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -26,6 +27,15 @@ class Usuario(AbstractUser):
         on_delete=models.CASCADE, 
         related_name='usuarios',
         null=True, 
+        blank=True
+    )
+    
+    rol = models.ForeignKey(
+        Rol,
+        on_delete=models.RESTRICT,
+        related_name='usuarios',
+        verbose_name='Rol',
+        null=True,
         blank=True
     )
 

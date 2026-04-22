@@ -2,17 +2,36 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from app_negocio.views.producto_views import ProductoViewSet
+from app_negocio.views.categoria_views import CategoriaViewSet
+from app_negocio.views.carrito_views import CarritoViewSet
+from app_negocio.views.pedido_views import PedidoViewSet
+from app_negocio.views.factura_views import FacturaViewSet, TipoPagoViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView, UsuarioCrudViewSet,
     PasswordResetRequestView, PasswordResetConfirmView,
     TenantListView, TenantCreateView
 )
+from customers.views.rol_views import RolViewSet
+from customers.views.plan_views import PlanViewSet
+from customers.views.cliente_views import ClienteViewSet
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()
+
+# App Negocio
 router.register(r'productos', ProductoViewSet, basename='productos')
+router.register(r'categorias', CategoriaViewSet, basename='categorias')
+router.register(r'carritos', CarritoViewSet, basename='carritos')
+router.register(r'pedidos', PedidoViewSet, basename='pedidos')
+router.register(r'facturas', FacturaViewSet, basename='facturas')
+router.register(r'tipos-pago', TipoPagoViewSet, basename='tipos-pago')
+
+# Customers
 router.register(r'usuarios', UsuarioCrudViewSet, basename='usuarios')
+router.register(r'roles', RolViewSet, basename='roles')
+router.register(r'planes', PlanViewSet, basename='planes')
+router.register(r'clientes', ClienteViewSet, basename='clientes')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

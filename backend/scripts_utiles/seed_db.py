@@ -12,8 +12,8 @@ sys.path.append(str(BACKEND_DIR))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from customers.models import Client, Domain, Usuario
-from app_negocio.models import Producto
+from customers.models import Client, Domain, Usuario, Rol
+from app_negocio.models import Producto, Categoria
 from django_tenants.utils import schema_context
 
 def run_seeder():
@@ -37,7 +37,7 @@ def run_seeder():
             'schema': 'cliente1', 
             'name': 'Tienda de Tecnología', 
             'domain': 'cliente1.localhost', 
-            'admin_email': 'adm1@admin.com' # Usamos email como ID
+            'admin_email': 'adm1@admin.com'
         },
         {
             'schema': 'cliente2', 
@@ -61,36 +61,49 @@ def run_seeder():
             defaults={'is_primary': True}
         )
 
-        # 5. CREACIÓN DE USUARIO (CORREGIDO: usando email)
-        if not Usuario.objects.filter(email=data['admin_email']).exists():
-            Usuario.objects.create_superuser(
-                email=data['admin_email'],
-                password="123",
-                tenant=tenant 
-            )
-            print(f"👤 Superusuario '{data['admin_email']}' creado.")
-
-        # 6. Crear Productos dentro del esquema
+        # Entramos al contexto del esquema del cliente para crear datos internos
         with schema_context(tenant.schema_name):
+            
+            # 5. CREACIÓN DE ROLES (Indispensable para el sistema)
+            rol_admin, _ = Rol.objects.get_or_create(nombre="Administrador", descripcion="Acceso total")
+            Rol.objects.get_or_create(nombre="Vendedor", descripcion="Gestión de ventas y productos")
+            Rol.objects.get_or_create(nombre="Cliente", descripcion="Acceso a catálogo y compras")
+            print(f"🔑 Roles creados en '{tenant.schema_name}'")
+
+            # 6. CREACIÓN DE USUARIO SUPERVISOR
+            if not Usuario.objects.filter(email=data['admin_email']).exists():
+                Usuario.objects.create_superuser(
+                    email=data['admin_email'],
+                    password="123",
+                    tenant=tenant,
+                    rol=rol_admin # Asignamos el rol creado
+                )
+                print(f"👤 Superusuario '{data['admin_email']}' creado.")
+
+            # 7. CREACIÓN DE CATEGORÍAS (Para evitar el error de NotNullViolation)
             Producto.objects.all().delete()
+            Categoria.objects.all().delete()
             
             if 'Tecnología' in tenant.name:
+                cat_principal, _ = Categoria.objects.get_or_create(nombre="Hardware")
                 items = [
-                    {'nombre': 'Laptop Pro 16"', 'precio': 2500.0, 'stock': 5},
-                    {'nombre': 'Mouse Ergonómico', 'precio': 45.0, 'stock': 20},
+                    {'nombre': 'Laptop Pro 16"', 'precio': 2500.0, 'stock': 5, 'categoria': cat_principal},
+                    {'nombre': 'Mouse Ergonómico', 'precio': 45.0, 'stock': 20, 'categoria': cat_principal},
                 ]
             else:
+                cat_principal, _ = Categoria.objects.get_or_create(nombre="Vestimenta")
                 items = [
-                    {'nombre': 'Chaqueta de Cuero', 'precio': 89.99, 'stock': 12},
-                    {'nombre': 'Jeans Slim Fit', 'precio': 45.50, 'stock': 30},
+                    {'nombre': 'Chaqueta de Cuero', 'precio': 89.99, 'stock': 12, 'categoria': cat_principal},
+                    {'nombre': 'Jeans Slim Fit', 'precio': 45.50, 'stock': 30, 'categoria': cat_principal},
                 ]
             
+            # 8. INSERTAR PRODUCTOS
             for item in items:
                 Producto.objects.create(**item)
             
-            print(f"📦 Productos insertados en '{tenant.schema_name}'")
+            print(f"📦 Categoría '{cat_principal.nombre}' y productos creados.")
 
-    print("\n--- ✨ Seeder finalizado ---")
+    print("\n--- ✨ Seeder finalizado con éxito ---")
 
 if __name__ == "__main__":
     run_seeder()

@@ -1,1 +1,4 @@
 from .usuario_serializers import MyTokenObtainPairSerializer
+from .rol_serializer import RolSerializer
+from .plan_serializer import PlanSerializer
+from .cliente_serializer import ClienteSerializer

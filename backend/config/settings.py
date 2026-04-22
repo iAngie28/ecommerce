@@ -18,6 +18,7 @@ SHARED_APPS = (
     'django_tenants',
     'customers',
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -110,10 +111,19 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Ecommerce API',
+    'DESCRIPTION': 'Sistema Multi-tenant de Ecommerce con CRUDs completos',
+    'VERSION': '1.0.0',
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAuthenticated'],
+    'SERVE_INCLUDE_SCHEMA': True,
 }
 
 # ========================================================================
