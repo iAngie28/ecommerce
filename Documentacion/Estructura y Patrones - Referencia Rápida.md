@@ -6,7 +6,7 @@
 ---
 
 ## 1. ¿QUÉ ES UN MIXIN?
-<img width="2752" height="1536" alt="mixin" src="https://github.com/user-attachments/assets/783a681b-68f6-4753-adbb-bb488d3f0d2c" />
+<img width="2752" height="1536" alt="mixin" src="https://github.com/user-attachments/assets/04ca8d1f-1b00-4e67-99a6-be5abbb76dd1" />
 
 Un **Mixin** es una clase pequeña que "inyecta" funcionalidad reutilizable en otras clases sin necesidad de repetir código.
 
