@@ -38,10 +38,10 @@ class UsuarioService(BaseService):
 ---
 
 ### BaseViewSet
-Clase base que hereda de `MultiTenantMixin`, `AuditoriaMixin` y `ModelViewSet`.
+Clase base que hereda de `AuditoriaMixin` y `ModelViewSet`. La multi-tenancia es manejada automáticamente por `django-tenants`.
 
 ```python
-class ProductoViewSet(BaseViewSet):  # ✅ Multi-tenant + Auditoría automáticos
+class ProductoViewSet(BaseViewSet):  # ✅ Auditoría automática + Multi-tenant (via django-tenants)
     queryset = Producto.objects.all()
 ```
 
@@ -269,7 +269,7 @@ for producto in productos:          # ✅ Aquí sí ejecuta
     print(producto.nombre)
 ```
 
-**MultiTenantMixin override `get_queryset()`** para filtrar automáticamente.
+**Nota:** `django-tenants` filtra automáticamente por schema a través del middleware, no requiere override manual de `get_queryset()`.
 
 ---
 

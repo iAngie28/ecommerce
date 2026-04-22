@@ -31,9 +31,9 @@ El sistema centraliza la lógica reutilizable en la carpeta `core/`:
 
 - **`core/services.py`**: Clase `BaseService` que proporciona CRUD genérico a todos los servicios.
 - **`core/mixins.py`**: Mixins que inyectan funcionalidad común:
-    - `MultiTenantMixin`: Filtra automáticamente los datos por esquema (schema-based multi-tenancy).
     - `AuditoriaMixin`: Registra automáticamente todas las acciones (CREAR, EDITAR, ELIMINAR) en la Bitácora.
-- **`core/views.py`**: `BaseViewSet` que hereda de ambos Mixins y `ModelViewSet`.
+- **`core/views.py`**: `BaseViewSet` que hereda de `AuditoriaMixin` y `ModelViewSet`.
+- **Nota:** Multi-tenancia es manejada automáticamente por `django-tenants` a través del middleware.
 - **`core/validators.py`**: Validadores centralizados por dominio (validaciones de negocio, no solo serializers).
 - **`core/exceptions.py`**: Excepciones personalizadas del negocio.
 
@@ -112,7 +112,7 @@ class ProductoViewSet(BaseViewSet):
     modulo_auditoria = "Producto"  # ✅ AuditoriaMixin usa esto
 ```
 
-**Beneficio:** La auditoría se registra automáticamente (sin código manual). MultiTenantMixin filtra automáticamente por esquema.
+**Beneficio:** La auditoría se registra automáticamente (sin código manual). La multi-tenancia es garantizada por `django-tenants` automáticamente.
 
 ## 6. Entorno de Frontend
 

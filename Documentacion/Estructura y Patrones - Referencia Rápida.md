@@ -51,28 +51,6 @@ class UsuarioCrudViewSet(AuditoriaMixin, ModelViewSet):
 
 ## 2. MIXINS EN ESTE PROYECTO
 
-### Mixin: MultiTenantMixin
-
-**¿Qué hace?** Filtra automáticamente los datos por esquema (schema-based multi-tenancy).
-
-```python
-class MultiTenantMixin:
-    def get_queryset(self):
-        from django.db import connection
-        
-        # Si estamos en schema 'public', no devolvemos nada (seguridad)
-        if connection.schema_name == 'public':
-            return self.queryset.none()
-        
-        return super().get_queryset()
-```
-
-**¿Quién lo usa?** Todas las ViewSets que hereden de `BaseViewSet`.
-
-**¿Beneficio?** No necesitas escribir `Producto.objects.filter(tenant=...)`. El Mixin lo hace automáticamente.
-
----
-
 ### Mixin: AuditoriaMixin
 
 **¿Qué hace?** Registra automáticamente todas las acciones (CREAR, EDITAR, ELIMINAR) en la Bitácora.
@@ -114,15 +92,15 @@ class AuditoriaMixin:
 
 **¿Beneficio?** NO necesitas escribir `BitacoraService.registrar_accion()` en cada método. El Mixin lo hace automáticamente.
 
----
+**¿Y la Multi-tenancia?** `django-tenants` ya lo maneja automáticamente a través del middleware. No requiere mixin adicional.
 
 ## 3. ESTRUCTURA DE CARPETAS: ¿POR QUÉ ASÍ?
 
 ```
 backend/
 ├── core/                     ← INFRAESTRUCTURA (COMPARTIDA)
-│   ├── mixins.py             [MultiTenantMixin, AuditoriaMixin]
-│   ├── views.py              [BaseViewSet que hereda de Mixins]
+│   ├── mixins.py             [AuditoriaMixin]
+│   ├── views.py              [BaseViewSet que hereda de AuditoriaMixin]
 │   ├── services.py           [BaseService con CRUD genérico]
 │   ├── validators.py         [Validadores centralizados]
 │   └── exceptions.py         [Excepciones de negocio]
@@ -189,8 +167,8 @@ backend/
 
 4. VISTA (ProductoViewSet)
    └─ Hereda de BaseViewSet
-      ├─ MultiTenantMixin ✅ (get_queryset filtrado)
       └─ AuditoriaMixin ✅ (auditoría automática)
+      └─ (Multi-tenancia: manejada automáticamente por django-tenants)
    
    └─ Llama: perform_create(serializer)
       ├─ Serializer valida JSON
@@ -281,7 +259,7 @@ class CategoriaViewSet(BaseViewSet):
     serializer_class = CategoriaSerializer
     modulo_auditoria = "Categoria"  # ✅ Para AuditoriaMixin
     
-    # ✅ MultiTenantMixin + AuditoriaMixin automáticos
+    # ✅ AuditoriaMixin automático + Multi-tenancia via django-tenants
     # ✅ CRUD completo heredado de BaseViewSet
 ```
 

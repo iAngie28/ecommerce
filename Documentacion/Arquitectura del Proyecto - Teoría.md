@@ -31,9 +31,10 @@ Para que el sistema sea escalable y fácil de mantener, el procesamiento de cada
     * **Herencia:** Heredan de `BaseService` que proporciona CRUD genérico con transacciones automáticas.
     * **Regla:** *No saben qué es un JSON ni una petición HTTP. Solo reciben datos limpios, ejecutan reglas del negocio y devuelven un resultado a la Vista.*
 4.  **Los Mixins (Reutilización de Lógica):**
-    * **Función:** Clases que inyectan funcionalidad común (auditoría, filtrado multi-tenant) en las Vistas sin necesidad de código duplicado.
-    * **Tipos:** `MultiTenantMixin` (filtra datos por esquema), `AuditoriaMixin` (registra acciones automáticamente).
+    * **Función:** Clases que inyectan funcionalidad común (auditoría) en las Vistas sin necesidad de código duplicado.
+    * **Tipos:** `AuditoriaMixin` (registra acciones automáticamente).
     * **Regla:** *Una sola vez de lógica = aplicado a todos los CRUDs automáticamente.*
+    * **Nota:** La multi-tenancia es manejada automáticamente por `django-tenants` vía middleware, no requiere mixin.
 
 ### 🔄 ¿Cómo funciona el flujo de una petición ahora?
 
@@ -64,8 +65,8 @@ Basado en el directorio del servidor, el código se divide en paquetes funcional
     * `settings.py`: Variables globales, conexión a BD, configuración de apps (Shared vs Tenant).
     * `urls.py`: El mapa maestro de rutas globales.
 * 📂 **`core/`** *(Infraestructura Compartida - NUEVO)*
-    * `mixins.py`: `MultiTenantMixin` y `AuditoriaMixin` reutilizables.
-    * `views.py`: `BaseViewSet` que hereda de ambos Mixins.
+    * `mixins.py`: `AuditoriaMixin` reutilizable.
+    * `views.py`: `BaseViewSet` que hereda de `AuditoriaMixin`.
     * `services.py`: `BaseService` con CRUD genérico y transacciones automáticas.
     * `validators.py`: Validadores centralizados por dominio.
     * `exceptions.py`: Excepciones personalizadas del negocio.

@@ -388,12 +388,13 @@ No requiere código adicional en Services ni ViewSets.
 
 ### Multi-tenancy Automática
 
-Todos los CRUDs heredan de `MultiTenantMixin` (incluido en `BaseViewSet`), lo que:
-- Filtra queries por `schema_name` del tenant actual.
-- Valida que el usuario no acceda a datos de otros tenants.
-- Se aplica automáticamente via middleware `django-tenants`.
+La multi-tenancia es manejada automáticamente por `django-tenants` a través del middleware:
+- Detecta el subdominio/host de la petición.
+- Enruta la conexión al schema correspondiente.
+- Todas las queries se filtran automáticamente por schema.
+- Se valida que el usuario no acceda a datos de otros tenants.
 
-No requiere filtros manuales en queries.
+No requiere mixins ni filtros manuales en queries.
 
 ### Transacciones Atómicas
 

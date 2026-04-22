@@ -1,19 +1,5 @@
 from customers.services.bitacora_service import BitacoraService
 
-class MultiTenantMixin:
-    """
-    Filtra los datos para que no se muestren en el esquema 'public'.
-    Asegura que cada tenant solo vea su propia información.
-    """
-    def get_queryset(self):
-        from django.db import connection
-        
-        # Si estamos en el esquema público, no devolvemos nada (seguridad)
-        if connection.schema_name == 'public':
-            return self.queryset.none()
-        
-        return super().get_queryset()
-
 
 class AuditoriaMixin:
     """
