@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView, UsuarioCrudViewSet,
     PasswordResetRequestView, PasswordResetConfirmView,
-    TenantListView, TenantCreateView
+    TenantListView, TenantCreateView, MiPerfilView
 )
 from customers.views.rol_views import RolViewSet
 from customers.views.plan_views import PlanViewSet
@@ -50,6 +50,9 @@ urlpatterns = [
 
     path('api/tiendas/', TenantListView.as_view()),
     path('api/tiendas/crear/', TenantCreateView.as_view()),
+    
+    # 3.5. RUTA DE PERFIL DEL USUARIO AUTENTICADO
+    path('api/usuarios/perfil/', MiPerfilView.as_view(), name='mi_perfil'),
 
     # 4. Rutas de Documentación (drf-spectacular)
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -107,6 +107,49 @@ class UsuarioCrudViewSet(BaseViewSet):
         self.service.desactivar(usuario)
         
         return Response({'detail': 'Usuario desactivado exitosamente', 'is_active': False})
+
+
+# ═══════════════════════════════════════════════════════════
+# PERFIL DEL USUARIO AUTENTICADO
+# ═══════════════════════════════════════════════════════════
+
+class MiPerfilView(APIView):
+    """
+    Obtener y actualizar el perfil del usuario autenticado.
+    
+    GET /api/usuarios/perfil/ → Obtener datos del perfil
+    PATCH /api/usuarios/perfil/ → Actualizar datos
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Obtener datos del perfil del usuario autenticado"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"MiPerfilView GET - User: {request.user}, Authenticated: {request.user.is_authenticated}")
+        # Print explícito para consola
+        try:
+            from django.db import connection
+            print(f"[MiPerfilView] host={request.META.get('HTTP_HOST')} schema={connection.schema_name} user={request.user} authenticated={request.user.is_authenticated}")
+        except Exception as e:
+            print(f"[MiPerfilView] error printing debug info: {e}")
+        
+        usuario = request.user
+        serializer = UsuarioCrudSerializer(usuario)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request):
+        """Actualizar datos del perfil"""
+        usuario = request.user
+        serializer = UsuarioCrudSerializer(
+            usuario,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TenantCreateView(APIView):

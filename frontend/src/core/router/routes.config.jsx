@@ -28,7 +28,10 @@ import {
   ShoppingCart,
   Users,
   BarChart3,
+  User,
 } from 'lucide-react';
+
+
 
 // ─── MÓDULOS AUTENTICADOS (con sidebar) ─────────────────────
 export const APP_MODULES = [
@@ -82,6 +85,18 @@ export const APP_MODULES = [
     inSidebar: true,
     group: 'analisis',
   },
+
+  {
+  id: 'perfil',
+  path: '/perfil',
+  label: 'Mi Perfil',
+  icon: User,
+  component: lazy(() => import('modules/perfil/Views/PerfilView')),
+  protected: true,
+  inSidebar: true,
+  group: 'config',  // Aparecerá en sección de configuración
+  },
+
 ];
 
 // ─── RUTAS PÚBLICAS (sin autenticación) ─────────────────────

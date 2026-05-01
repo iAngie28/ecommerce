@@ -621,6 +621,8 @@ export default function ProductosView() {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [search,       setSearch]       = useState('');
+  const [precioMin,    setPrecioMin]    = useState('');
+  const [precioMax,    setPrecioMax]    = useState('');
   const [selectedCat,  setSelectedCat]  = useState(null);
   const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [editProduct,  setEditProduct]  = useState(null);
@@ -672,6 +674,10 @@ export default function ProductosView() {
 
   // Filtrar productos
   const productosFiltrados = productos.filter((p) => {
+    const min = precioMin === '' ? null : Number(precioMin);
+    const max = precioMax === '' ? null : Number(precioMax);
+    const precio = Number(p.precio ?? 0);
+
     const matchSearch = !search
       || p.nombre?.toLowerCase().includes(search.toLowerCase())
       || p.sku?.toLowerCase().includes(search.toLowerCase());
@@ -683,7 +689,10 @@ export default function ProductosView() {
       return sub.includes(p.categoria);
     })();
 
-    return matchSearch && matchCat;
+    const matchPrecioMin = min === null || Number.isNaN(min) || precio >= min;
+    const matchPrecioMax = max === null || Number.isNaN(max) || precio <= max;
+
+    return matchSearch && matchCat && matchPrecioMin && matchPrecioMax;
   });
 
   // Nombre de la categoría seleccionada (para el breadcrumb)
@@ -771,6 +780,36 @@ export default function ProductosView() {
                     <X size={14} />
                   </button>
                 )}
+              </div>
+
+              <div className={styles.priceFilters}>
+                <div className={styles.filterField}>
+                  <label className={styles.filterLabel} htmlFor="precio-min">Precio mínimo</label>
+                  <input
+                    id="precio-min"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={precioMin}
+                    onChange={(e) => setPrecioMin(e.target.value)}
+                    className={styles.filterInput}
+                  />
+                </div>
+
+                <div className={styles.filterField}>
+                  <label className={styles.filterLabel} htmlFor="precio-max">Precio máximo</label>
+                  <input
+                    id="precio-max"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={precioMax}
+                    onChange={(e) => setPrecioMax(e.target.value)}
+                    className={styles.filterInput}
+                  />
+                </div>
               </div>
             </div>
           </div>

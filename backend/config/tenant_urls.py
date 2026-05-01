@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from app_negocio.views.producto_views import ProductoViewSet
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView,
-    PasswordResetRequestView, PasswordResetConfirmView
+    PasswordResetRequestView, PasswordResetConfirmView, MiPerfilView
 )
 
 # Debug temporal
@@ -29,4 +29,7 @@ urlpatterns = [
     # Password Reset (también en tenants para facilitar acceso)
     path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('api/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+
+    # Perfil del usuario autenticado
+    path('api/usuarios/perfil/', MiPerfilView.as_view(), name='mi_perfil'),
 ]
