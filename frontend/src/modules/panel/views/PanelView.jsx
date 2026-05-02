@@ -14,12 +14,12 @@ const COLUMNS = [
   { key: 'precio',      label: 'Precio',      render: (v) => `BS. ${parseFloat(v).toLocaleString()}` },
   { key: 'stock',       label: 'Stock',       align: 'center', render: (v) => `${v} un.` },
   {
-    key: 'stock',
+    key: 'stock_estado',
     label: 'Estado',
     align: 'center',
-    render: (v) => (
-      <Badge variant={v < 10 ? 'warning' : 'success'} dot>
-        {v < 10 ? 'Bajo Stock' : 'Disponible'}
+    render: (_, row) => (
+      <Badge variant={row.stock < 10 ? 'warning' : 'success'} dot>
+        {row.stock < 10 ? 'Bajo Stock' : 'Disponible'}
       </Badge>
     ),
   },
