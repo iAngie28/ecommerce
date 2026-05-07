@@ -16,6 +16,7 @@ from customers.views.usuario_views import (
 from customers.views.rol_views import RolViewSet
 from customers.views.plan_views import PlanViewSet
 from customers.views.cliente_views import ClienteViewSet
+from customers.views.tenant_views import TiendaPublicViewSet
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()
@@ -33,6 +34,9 @@ router.register(r'usuarios', UsuarioCrudViewSet, basename='usuarios')
 router.register(r'roles', RolViewSet, basename='roles')
 router.register(r'planes', PlanViewSet, basename='planes')
 router.register(r'clientes', ClienteViewSet, basename='clientes')
+
+# Escenario C: Marketplace Público
+router.register(r'tiendas-publicas', TiendaPublicViewSet, basename='tiendas-publicas')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

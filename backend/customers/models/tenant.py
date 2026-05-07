@@ -34,6 +34,33 @@ class Client(TenantMixin):
         default=True,
         verbose_name='Activo'
     )
+    
+    # Campos comerciales para el Marketplace (Escenario C)
+    nombre_comercial = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name='Nombre Comercial de la Tienda'
+    )
+    
+    descripcion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Descripción de la Tienda'
+    )
+    
+    categoria_tienda = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Categoría de la Tienda'
+    )
+    
+    logo_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='URL del Logo de la Tienda'
+    )
 
 class Domain(DomainMixin):
     pass
