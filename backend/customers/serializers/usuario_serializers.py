@@ -38,8 +38,31 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
         }
 
 class UsuarioCrudSerializer(serializers.ModelSerializer):
+    rol = serializers.SerializerMethodField()
+    tenant_info = serializers.SerializerMethodField()
+    
+    def get_rol(self, obj):
+        """Devuelve el nombre del rol si existe"""
+        if obj.rol:
+            return {'id': obj.rol.id, 'nombre': obj.rol.nombre}
+        return None
+    
+    def get_tenant_info(self, obj):
+        """Devuelve info del tenant solo si es admin/superusuario"""
+        if obj.is_staff or obj.is_superuser:
+            if obj.tenant:
+                from customers.models import Domain
+                domain = Domain.objects.filter(tenant=obj.tenant).first()
+                return {
+                    'nombre_tienda': obj.tenant.name,
+                    'schema': obj.tenant.schema_name,
+                    'dominio': domain.domain if domain else None,
+                    'url': f"http://{domain.domain if domain else obj.tenant.schema_name}.localhost:8001" if domain else None,
+                }
+        return None
+    
     class Meta:
         from customers.models.usuario import Usuario
         model = Usuario
-        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'tenant', 'password']
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'tenant', 'rol', 'tenant_info', 'password']
         extra_kwargs = {'password': {'write_only': True, 'required': False}}

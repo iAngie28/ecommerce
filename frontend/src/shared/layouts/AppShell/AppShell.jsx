@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Box, LogOut, Bell, Search, Settings } from 'lucide-react';
 import { getSidebarGroups } from 'core/router/routes.config';
 import { useAuth } from 'core/hooks/useAuth';
@@ -21,11 +21,16 @@ const GROUP_LABELS = {
 const AppShell = () => {
   const { user, logout } = useAuth();
   const tenant = useTenant();
+  const navigate = useNavigate();
 
   const sidebarGroups = getSidebarGroups();
 
   const fullName = user?.fullName || 'Usuario';
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=18aea4&color=fff&bold=true`;
+
+  const handleProfileClick = () => {
+    navigate('/perfil');
+  };
 
   return (
     <div className={styles.shell}>
@@ -102,7 +107,7 @@ const AppShell = () => {
             <div className={styles.iconBtn}>
               <Bell size={20} />
             </div>
-            <div className={styles.userProfile}>
+            <div className={styles.userProfile} onClick={handleProfileClick}>
               <img
                 src={avatarUrl}
                 alt={fullName}
