@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, KeySquare, FileText, ArrowRight } from 'lucide-react';
 import AuthLayout from 'shared/layouts/AuthLayout/AuthLayout';
 import { Button, Input, Alert } from 'shared/components';
@@ -7,17 +7,39 @@ import { useAuth } from 'core/hooks/useAuth';
 import api from 'core/services/api';
 import styles from './AuthView.module.css';
 
+const getErrorMessage = (error) => {
+  const data = error.response?.data;
+  if (!data) return 'Error en el registro. Por favor, intenta de nuevo.';
+
+  const candidates = [
+    data.correo,
+    data.contrasena,
+    data.password,
+    data.redirect,
+    data.non_field_errors,
+    data.detail,
+  ];
+
+  for (const value of candidates) {
+    if (Array.isArray(value) && value[0]) return value[0];
+    if (typeof value === 'string' && value) return value;
+  }
+
+  return 'Error en el registro. Por favor, intenta de nuevo.';
+};
+
 export default function RegistroView() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  
-  // Estados para Registro de Cliente
+  const location = useLocation();
+  const redirect = new URLSearchParams(location.search).get('redirect') || '';
+
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [telefono, setTelefono] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [nit, setNit] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -29,7 +51,6 @@ export default function RegistroView() {
     setSuccess('');
 
     try {
-      // 1. Registro del cliente
       const registroPayload = {
         nombre,
         correo,
@@ -37,49 +58,49 @@ export default function RegistroView() {
         contrasena,
         nit: nit || null,
       };
+      if (redirect) registroPayload.redirect = redirect;
 
       const registroRes = await api.post('/clientes/', registroPayload);
-      
+
       if (registroRes.status === 201) {
         setSuccess('¡Registro exitoso! Iniciando sesión automáticamente...');
 
-        // 2. Auto-login con los mismos datos
-        try {
-          const loginRes = await api.post('/clientes/login/', {
-            correo,
-            contrasena,
-          });
-
-          const { access, refresh } = loginRes.data;
-          const clienteNombre = loginRes.data.cliente?.nombre;
-
-          // 3. Guardar tokens en localStorage y contexto
-          localStorage.setItem('access_token', access);
-          localStorage.setItem('refresh_token', refresh);
-          login(access, refresh, clienteNombre);
-
-          // 4. Redirigir al marketplace
-          setTimeout(() => {
-            navigate('/marketplace', { replace: true });
-          }, 1000);
-        } catch (loginError) {
-          console.error('Error en auto-login:', loginError);
-          // Si falla auto-login, redirigir a login para que lo haga manualmente
-          setTimeout(() => {
-            navigate('/login', { replace: true });
-          }, 2000);
+        if (registroRes.data.sso_url) {
+          window.location.href = registroRes.data.sso_url;
+          return;
         }
+
+        const { access, refresh } = registroRes.data;
+        if (access) {
+          login(access, refresh, registroRes.data.cliente?.nombre || registroRes.data.nombre);
+          navigate('/marketplace', { replace: true });
+          return;
+        }
+
+        const loginRes = await api.post('/clientes/login/', {
+          correo,
+          contrasena,
+          ...(redirect ? { redirect } : {}),
+        });
+
+        if (loginRes.data.sso_url) {
+          window.location.href = loginRes.data.sso_url;
+          return;
+        }
+
+        login(loginRes.data.access, loginRes.data.refresh, loginRes.data.cliente?.nombre);
+        navigate('/marketplace', { replace: true });
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.correo?.[0] 
-        || err.response?.data?.non_field_errors?.[0]
-        || err.response?.data?.detail
-        || 'Error en el registro. Por favor, intenta de nuevo.';
-      setError(errorMsg);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+  const loginUrl = redirect
+    ? `/login?redirect=${encodeURIComponent(redirect)}`
+    : '/login';
 
   return (
     <AuthLayout
@@ -90,6 +111,9 @@ export default function RegistroView() {
         <div className={styles.formHeader}>
           <h1 className={styles.formTitle}>Registro de Comprador</h1>
           <p className={styles.formSubtitle}>Crea tu cuenta para empezar a comprar</p>
+          {redirect && (
+            <p className={styles.formSubtitle}>Volverás a: {redirect}</p>
+          )}
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -163,7 +187,7 @@ export default function RegistroView() {
 
         <p className={styles.footer}>
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login">Inicia sesión aquí</Link>
+          <Link to={loginUrl}>Inicia sesión aquí</Link>
         </p>
       </div>
     </AuthLayout>

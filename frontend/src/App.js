@@ -9,24 +9,12 @@ import PrivateRoute from 'core/guards/PrivateRoute';
 
 // ── Layout ───────────────────────────────────────────────────
 import AppShell from 'shared/layouts/AppShell/AppShell';
-import Spinner  from 'shared/components/Spinner/Spinner';
 
 // ── Loading Fallback ─────────────────────────────────────────
 const LoadingFallback = () => (
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    gap: '16px',
-    background: 'var(--color-bg)',
-  }}>
-    <Spinner size="lg" />
-    <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-      Cargando...
-    </p>
-  </div>
+  <main>
+    <p>Cargando...</p>
+  </main>
 );
 
 // ════════════════════════════════════════════════════════════

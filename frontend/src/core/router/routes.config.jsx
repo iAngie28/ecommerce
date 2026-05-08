@@ -96,22 +96,28 @@ export const APP_MODULES = [
   inSidebar: true,
   group: 'config',  // Aparecerá en sección de configuración
   },
-
-  {
-    id: 'marketplace',
-    path: '/marketplace',
-    component: lazy(() => import('modules/marketplace/views/MarketplaceView')),
-    protected: true,
-    inSidebar: false,  // no aparece en el sidebar
-  }
-
 ];
 
 // ─── RUTAS PÚBLICAS (sin autenticación) ─────────────────────
 export const AUTH_ROUTES = [
   {
-    id: 'home',
+    id: 'root',
     path: '/',
+    component: lazy(() => import('modules/marketplace/views/RootView')),
+  },
+  {
+    id: 'marketplace',
+    path: '/marketplace',
+    component: lazy(() => import('modules/marketplace/views/MarketplaceView')),
+  },
+  {
+    id: 'catalogo',
+    path: '/catalogo',
+    component: lazy(() => import('modules/marketplace/views/CatalogoPublicoView')),
+  },
+  {
+    id: 'home',
+    path: '/home',
     component: lazy(() => import('modules/auth/views/HomeView')),
   },
   {
@@ -149,16 +155,6 @@ export const AUTH_ROUTES = [
     path: '/sso',
     component: lazy(() => import('modules/auth/views/SSOReceiverView')),
   },
-  {
-    id: 'catalogo-vista',
-    path: '/productos/catalogo',  // misma ruta que usa el navigate en CatalogoView
-    component: lazy(() => import('modules/productos_catalogo/views/CatalogoView')),
-    protected: true,
-    inSidebar: false,  // no aparece en el sidebar
-  }
-  
-
-
 ];
 
 // ─── Helper: agrupar módulos del sidebar por grupo ──────────
