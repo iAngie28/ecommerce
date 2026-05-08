@@ -4,6 +4,9 @@ from abc import ABC
 class BaseService(ABC):
     def __init__(self, model_class):
         self.model_class = model_class
+
+    def obtener(self, id):
+        return self.model_class.objects.get(id=id)
     
     @transaction.atomic
     def crear(self, datos_validados):

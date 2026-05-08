@@ -15,8 +15,9 @@ from customers.views.usuario_views import (
 )
 from customers.views.rol_views import RolViewSet
 from customers.views.plan_views import PlanViewSet
-from customers.views.cliente_views import ClienteViewSet
 from voice_query.views.query_view import VoiceQueryView
+from customers.views.cliente_views import ClienteViewSet, ClienteLoginView
+from customers.views.tenant_views import TiendaPublicViewSet
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()
@@ -35,16 +36,22 @@ router.register(r'roles', RolViewSet, basename='roles')
 router.register(r'planes', PlanViewSet, basename='planes')
 router.register(r'clientes', ClienteViewSet, basename='clientes')
 
+# Escenario C: Marketplace Público
+router.register(r'tiendas-publicas', TiendaPublicViewSet, basename='tiendas-publicas')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
     # 2. Rutas para autenticación JWT
-    # CAMBIO: Usamos MyTokenObtainPairView en lugar de la vista por defecto
+    # Login Administrativo (Ya existente)
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'), 
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), 
     path('api/logout/', LogoutView.as_view(), name='logout'),
     path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('api/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    
+    # NUEVO: Login exclusivo para Clientes (Customers)
+    path('api/clientes/login/', ClienteLoginView.as_view(), name='cliente_login'),
 
     path('api/tiendas/', TenantListView.as_view()),
     path('api/tiendas/crear/', TenantCreateView.as_view()),
