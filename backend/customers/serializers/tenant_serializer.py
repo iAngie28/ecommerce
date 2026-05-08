@@ -32,3 +32,30 @@ class TenantCreateSerializer(serializers.Serializer):
         Delega la creación compleja al servicio de dominio.
         """
         return TenantService.crear_tienda_completa(validated_data)
+
+
+class TiendaPublicSerializer(serializers.ModelSerializer):
+    """
+    Serializador público de tiendas para el Marketplace (Escenario C).
+    Solo expone información comercial, sin datos sensibles del tenant.
+    """
+    subdominio = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Client
+        fields = [
+            'id', 
+            'nombre_comercial', 
+            'descripcion', 
+            'categoria_tienda', 
+            'logo_url', 
+            'subdominio'
+        ]
+        read_only_fields = fields
+
+    def get_subdominio(self, obj):
+        """
+        Obtiene el subdominio (dominio principal) asociado a este tenant.
+        """
+        dominio = obj.domains.first()
+        return dominio.domain if dominio else None

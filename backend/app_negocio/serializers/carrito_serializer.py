@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from app_negocio.models import Carrito, CarritoItem, Producto
+from customers.models import Cliente
 
 
 class CarritoItemSerializer(serializers.ModelSerializer):
@@ -22,6 +23,10 @@ class CarritoItemSerializer(serializers.ModelSerializer):
 
 
 class CarritoSerializer(serializers.ModelSerializer):
+    cliente = serializers.PrimaryKeyRelatedField(
+        queryset=Cliente.objects.all(),
+        required=False
+    )
     items = CarritoItemSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.nombre', read_only=True)
     cantidad_items = serializers.IntegerField(read_only=True)
@@ -39,3 +44,13 @@ class CarritoSerializer(serializers.ModelSerializer):
             'items', 'cantidad_items', 'total_carrito'
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        auth = getattr(request, 'auth', None) if request else None
+        role = auth.get('role') if hasattr(auth, 'get') else None
+
+        if self.instance is None and role != 'CLIENTE' and not attrs.get('cliente'):
+            raise serializers.ValidationError({'cliente': 'Este campo es requerido.'})
+
+        return attrs
