@@ -12,6 +12,7 @@ const VoiceQueryWidget = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [showSql, setShowSql] = useState(false);
     const mediaRecorder = useRef(null);
     const audioChunks = useRef([]);
 
@@ -49,41 +50,48 @@ const VoiceQueryWidget = () => {
         }
     };
 
+    const formatHeader = (key) => {
+        return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+    };
+
     const exportToPDF = () => {
-        if (!result || !result.results) return;
+        if (!result || !result.results || result.results.length === 0) return;
 
         const doc = new jsPDF();
-        const tableColumn = Object.keys(result.results[0]).map(key => 
-            key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
-        );
+        const tableColumn = Object.keys(result.results[0]).map(formatHeader);
         const tableRows = result.results.map(row => Object.values(row));
 
-        doc.setFontSize(18);
-        doc.text("Reporte de Consulta por Voz", 14, 22);
-        doc.setFontSize(11);
+        doc.setFontSize(20);
+        doc.setTextColor(41, 128, 185);
+        doc.text("Reporte de Consulta Inteligente", 14, 22);
+        
+        doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Consulta: ${result.prompt}`, 14, 30);
-        doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 36);
+        doc.text(`Consulta: ${result.prompt}`, 14, 32);
+        doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 38);
+        doc.text(`Total registros: ${result.results.length}`, 14, 44);
 
         doc.autoTable({
-            startY: 45,
+            startY: 50,
             head: [tableColumn],
             body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-            alternateRowStyles: { fillColor: [245, 245, 245] }
+            theme: 'striped',
+            headStyles: { fillColor: [44, 62, 80], textColor: 255, fontSize: 10, halign: 'center' },
+            bodyStyles: { fontSize: 9 },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            margin: { top: 50 }
         });
 
-        doc.save(`reporte_${Date.now()}.pdf`);
+        doc.save(`reporte_ia_${Date.now()}.pdf`);
     };
 
     const sendAudio = async (blob) => {
         setLoading(true);
+        setResult(null);
         const formData = new FormData();
         formData.append('audio', blob, 'query.webm');
 
         try {
-            // Usamos el endpoint que creamos en el backend
             const response = await api.post('vquery/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -91,9 +99,8 @@ const VoiceQueryWidget = () => {
             setError(null);
         } catch (err) {
             console.error('Error sending audio:', err);
-            const msg = err.response?.data?.error || 'Error al procesar la consulta por voz. Verifica tu conexión y llaves de API.';
+            const msg = err.response?.data?.error || 'Error al procesar la consulta. Intenta ser más claro o verifica tu conexión.';
             setError(msg);
-            setResult(null);
         } finally {
             setLoading(false);
         }
@@ -101,69 +108,123 @@ const VoiceQueryWidget = () => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <div className={styles.info}>
-                    <h3>Asistente de Reportes IA</h3>
-                    <p>Haz consultas hablando. Ejemplo: "¿Cuáles son los 5 productos con más stock?"</p>
+            <div className={styles.glassHeader}>
+                <div className={styles.titleArea}>
+                    <div className={styles.iconCircle}>
+                        <Mic size={24} className={isRecording ? styles.pulse : ''} />
+                    </div>
+                    <div>
+                        <h3 className={styles.title}>Asistente de Voz IA</h3>
+                        <p className={styles.subtitle}>Genera reportos complejos usando lenguaje natural</p>
+                    </div>
                 </div>
-                <div className={styles.controls}>
+                
+                <div className={styles.actionArea}>
                     {isRecording ? (
                         <Button 
                             variant="danger" 
                             onClick={stopRecording}
                             leftIcon={<Square size={18} />}
-                            className={styles.recordBtn}
+                            className={`${styles.mainBtn} ${styles.btnDanger}`}
                         >
-                            Detener y Consultar
+                            Detener Grabación
                         </Button>
                     ) : (
                         <Button 
                             variant="primary" 
                             onClick={startRecording}
                             disabled={loading}
-                            leftIcon={loading ? <Loader2 className="animate-spin" size={18} /> : <Mic size={18} />}
-                            className={styles.recordBtn}
+                            leftIcon={loading ? <Loader2 className="animate-spin" size={20} /> : <Mic size={20} />}
+                            className={styles.mainBtn}
                         >
-                            {loading ? 'IA Pensando...' : 'Iniciar Consulta por Voz'}
+                            {loading ? 'Analizando...' : 'Hablar ahora'}
                         </Button>
                     )}
                 </div>
             </div>
 
-            {error && <Alert variant="danger" className={styles.alert}>{error}</Alert>}
+            {error && (
+                <div className={styles.errorAlert}>
+                    <Alert variant="danger">{error}</Alert>
+                </div>
+            )}
+
+            {loading && (
+                <div className={styles.loadingState}>
+                    <div className={styles.spinnerWrapper}>
+                        <Loader2 className={styles.spinner} size={40} />
+                    </div>
+                    <p>Procesando tu voz y consultando la base de datos...</p>
+                </div>
+            )}
 
             {result && (
-                <div className={styles.resultContainer}>
-                    <div className={styles.resultHeader}>
-                        <div className={styles.queryInfo}>
-                            <p><strong>Lo que entendí:</strong> "{result.prompt}"</p>
+                <div className={styles.resultSection}>
+                    <div className={styles.resultMeta}>
+                        <div className={styles.promptCard}>
+                            <span className={styles.label}>Lo que entendí:</span>
+                            <p className={styles.promptText}>"{result.prompt}"</p>
                         </div>
-                        {result.results && result.results.length > 0 && (
+                        
+                        <div className={styles.actionButtons}>
                             <Button 
-                                variant="success" 
-                                onClick={exportToPDF}
-                                leftIcon={<Download size={18} />}
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setShowSql(!showSql)}
+                                leftIcon={<FileText size={16} />}
                             >
-                                Descargar PDF
+                                {showSql ? 'Ocultar SQL' : 'Ver SQL'}
                             </Button>
-                        )}
+                            
+                            {result.results && result.results.length > 0 && (
+                                <Button 
+                                    variant="success" 
+                                    size="sm"
+                                    onClick={exportToPDF}
+                                    leftIcon={<Download size={16} />}
+                                >
+                                    Exportar PDF
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
+                    {showSql && (
+                        <div className={styles.sqlCode}>
+                            <pre><code>{result.sql}</code></pre>
+                        </div>
+                    )}
+
                     {result.results && result.results.length > 0 ? (
-                        <div className={styles.tableWrapper}>
-                            <DataTable
-                                title="Datos Encontrados"
-                                data={result.results}
-                                columns={Object.keys(result.results[0]).map(key => ({
-                                    key,
-                                    label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
-                                }))}
-                                compact
-                            />
+                        <div className={styles.tableContainer}>
+                            <div className={styles.tableHeader}>
+                                <span>Resultados encontrados: <strong>{result.results.length}</strong></span>
+                            </div>
+                            <div className={styles.tableScroll}>
+                                <DataTable
+                                    data={result.results}
+                                    columns={Object.keys(result.results[0]).map(key => ({
+                                        key,
+                                        label: formatHeader(key)
+                                    }))}
+                                    compact
+                                />
+                            </div>
                         </div>
                     ) : (
-                        <Alert variant="info">No se encontraron resultados para esta consulta.</Alert>
+                        !loading && <div className={styles.emptyState}>No se encontraron datos para esta consulta.</div>
                     )}
+                </div>
+            )}
+            
+            {!result && !loading && !error && (
+                <div className={styles.helperText}>
+                    <span>Sugerencias:</span>
+                    <ul>
+                        <li>"Muéstrame las ventas de este mes"</li>
+                        <li>"¿Cuáles son los productos con menos de 10 unidades en stock?"</li>
+                        <li>"Lista los 5 clientes que más han comprado"</li>
+                    </ul>
                 </div>
             )}
         </div>
