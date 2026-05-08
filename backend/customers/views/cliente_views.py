@@ -2,13 +2,93 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
+from django.conf import settings
+from urllib.parse import urlencode, urlparse, urlunparse
+import os
 from core.views import BaseViewSet
-from customers.models import Cliente
-from customers.serializers.cliente_serializer import ClienteSerializer, ClienteTokenObtainSerializer
+from customers.models import Cliente, Domain
+from customers.serializers.cliente_serializer import (
+    ClienteSerializer,
+    ClienteTokenObtainSerializer,
+    build_cliente_token_response,
+)
+from customers.services.bitacora_service import BitacoraService
 from customers.services.cliente_service import ClienteService
 
 
-class ClienteLoginView(APIView):
+class ClienteSSOMixin:
+    def _get_redirect_value(self, request):
+        return (
+            request.data.get('redirect')
+            or request.query_params.get('redirect')
+            or request.data.get('next')
+            or request.query_params.get('next')
+        )
+
+    def _resolve_tenant_redirect(self, raw_redirect):
+        """
+        Valida que el retorno apunte a un dominio tenant registrado.
+        Evita enviar tokens a hosts arbitrarios.
+        """
+        if not raw_redirect:
+            return None
+
+        raw_redirect = str(raw_redirect).strip()
+        parsed = urlparse(raw_redirect if '://' in raw_redirect else f"//{raw_redirect}")
+        hostname = (parsed.hostname or '').lower().strip()
+
+        if not hostname:
+            raise ValidationError({'redirect': 'Dominio de retorno inválido.'})
+
+        domain = (
+            Domain.objects
+            .select_related('tenant')
+            .filter(domain__iexact=hostname, tenant__activo=True)
+            .first()
+        )
+        if not domain:
+            raise ValidationError({'redirect': 'La tienda de retorno no existe o no está activa.'})
+
+        return {
+            'domain': domain.domain,
+            'port': parsed.port,
+        }
+
+    def _frontend_port_from_request(self, request):
+        origin = request.headers.get('Origin') or request.META.get('HTTP_REFERER')
+        if origin:
+            parsed = urlparse(origin)
+            if parsed.port:
+                return parsed.port
+        return getattr(settings, 'REACT_PORT', None) or os.environ.get('REACT_PORT', '3000')
+
+    def _build_sso_url(self, request, redirect_data, auth_data):
+        origin = request.headers.get('Origin') or request.META.get('HTTP_REFERER')
+        parsed_origin = urlparse(origin) if origin else None
+        scheme = parsed_origin.scheme if parsed_origin and parsed_origin.scheme else ('https' if request.is_secure() else 'http')
+
+        port = redirect_data.get('port') or self._frontend_port_from_request(request)
+        default_port = (scheme == 'http' and str(port) == '80') or (scheme == 'https' and str(port) == '443')
+        netloc = redirect_data['domain'] if not port or default_port else f"{redirect_data['domain']}:{port}"
+
+        query = urlencode({
+            'token': auth_data['access'],
+            'refresh': auth_data['refresh'],
+            'full_name': auth_data.get('cliente', {}).get('nombre', ''),
+        })
+        return urlunparse((scheme, netloc, '/sso', '', query, ''))
+
+    def _attach_sso_data(self, request, data):
+        redirect_data = self._resolve_tenant_redirect(self._get_redirect_value(request))
+        if redirect_data:
+            data['redirect'] = redirect_data['domain']
+            data['subdomain'] = redirect_data['domain']
+            data['sso_url'] = self._build_sso_url(request, redirect_data, data)
+        return data
+
+
+class ClienteLoginView(ClienteSSOMixin, APIView):
     """
     Vista pública de login para Clientes.
     
@@ -38,11 +118,13 @@ class ClienteLoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = ClienteTokenObtainSerializer(data=request.data)
         if serializer.is_valid():
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+            data = dict(serializer.validated_data)
+            self._attach_sso_data(request, data)
+            return Response(data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ClienteViewSet(BaseViewSet):
+class ClienteViewSet(ClienteSSOMixin, BaseViewSet):
     """
     API de Clientes (Customers).
     
@@ -71,3 +153,26 @@ class ClienteViewSet(BaseViewSet):
         if self.action == 'create':
             return [AllowAny()]
         return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        """
+        Registro público de cliente con auto-login para Escenario B.
+        Mantiene los campos del cliente en la raíz y agrega access/refresh.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        cliente = serializer.save()
+        BitacoraService.registrar_accion(
+            request.user,
+            self.modulo_auditoria,
+            "CREAR",
+            request=request,
+            metadatos={'id': cliente.id}
+        )
+
+        response_data = dict(ClienteSerializer(cliente).data)
+        response_data.update(build_cliente_token_response(cliente))
+        self._attach_sso_data(request, response_data)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)

@@ -3,6 +3,7 @@ from django.db import connection
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from app_negocio.views.carrito_views import CarritoViewSet
 from app_negocio.views.producto_views import ProductoViewSet
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView,
@@ -25,6 +26,14 @@ urlpatterns = [
     # Productos - paths explícitos, sin DefaultRouter
     path('api/productos/', ProductoViewSet.as_view({'get': 'list', 'post': 'create'}), name='producto-list'),
     path('api/productos/<int:pk>/', ProductoViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='producto-detail'),
+
+    # Carritos para sincronización post-SSO de clientes
+    path('api/carritos/', CarritoViewSet.as_view({'get': 'list', 'post': 'create'}), name='carrito-list'),
+    path('api/carritos/<int:pk>/', CarritoViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='carrito-detail'),
+    path('api/carritos/<int:pk>/agregar-item/', CarritoViewSet.as_view({'post': 'agregar_item'}), name='carrito-agregar-item'),
+    path('api/carritos/<int:pk>/eliminar-item/', CarritoViewSet.as_view({'post': 'eliminar_item'}), name='carrito-eliminar-item'),
+    path('api/carritos/<int:pk>/vaciar/', CarritoViewSet.as_view({'post': 'vaciar'}), name='carrito-vaciar'),
+    path('api/carritos/<int:pk>/cerrar/', CarritoViewSet.as_view({'post': 'cerrar'}), name='carrito-cerrar'),
 
     # Password Reset (también en tenants para facilitar acceso)
     path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
