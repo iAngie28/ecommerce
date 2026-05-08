@@ -1,10 +1,11 @@
 from django.http import JsonResponse
 from django.db import connection
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from app_negocio.views.carrito_views import CarritoViewSet
 from app_negocio.views.producto_views import ProductoViewSet
+from voice_query.views.query_view import VoiceQueryView
 from customers.views.usuario_views import (
     MyTokenObtainPairView, LogoutView,
     PasswordResetRequestView, PasswordResetConfirmView, MiPerfilView
@@ -41,4 +42,7 @@ urlpatterns = [
 
     # Perfil del usuario autenticado
     path('api/usuarios/perfil/', MiPerfilView.as_view(), name='mi_perfil'),
+
+    # Consultas por voz
+    path('api/vquery/', VoiceQueryView.as_view(), name='voice_query'),
 ]

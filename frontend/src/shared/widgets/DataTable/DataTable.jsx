@@ -38,9 +38,10 @@ const DataTable = ({
   keyField  = 'id',
   actions,
   footer,
+  compact = false,
 }) => {
   return (
-    <div className={styles.wrap}>
+    <div className={`${styles.wrap} ${compact ? styles.compactWrap : ''}`}>
       {(title || actions) && (
         <div className={styles.header}>
           {title && <span className={styles.title}>{title}</span>}
@@ -60,7 +61,7 @@ const DataTable = ({
         </div>
       ) : (
         <div className={styles.tableScroll}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${compact ? styles.compactTable : ''}`}>
             <thead>
               <tr>
                 {columns.map((col) => (
@@ -73,11 +74,26 @@ const DataTable = ({
             <tbody>
               {data.map((row, rowIdx) => (
                 <tr key={row[keyField] ?? rowIdx}>
-                  {columns.map((col) => (
-                    <td key={col.key} style={{ textAlign: col.align || 'left' }}>
-                      {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const value = row[col.key];
+                    let renderedValue = value;
+
+                    if (col.render) {
+                      renderedValue = col.render(value, row);
+                    } else if (value === null || value === undefined) {
+                      renderedValue = <span className={styles.nullValue}>—</span>;
+                    } else if (typeof value === 'boolean') {
+                      renderedValue = value ? 'Sí' : 'No';
+                    } else if (typeof value === 'object') {
+                      renderedValue = JSON.stringify(value);
+                    }
+
+                    return (
+                      <td key={col.key} style={{ textAlign: col.align || 'left' }}>
+                        {renderedValue}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

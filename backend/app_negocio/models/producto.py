@@ -7,6 +7,7 @@ class Producto(models.Model):
     sku = models.CharField(max_length=50, unique=True, blank=True, null=True)
     descripcion = models.TextField(blank=True, null=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    costo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='Costo de Compra')
     stock = models.IntegerField(default=0)
     
     # Cambiar de CharField a ForeignKey

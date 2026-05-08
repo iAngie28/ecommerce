@@ -15,6 +15,7 @@ from customers.views.usuario_views import (
 )
 from customers.views.rol_views import RolViewSet
 from customers.views.plan_views import PlanViewSet
+from voice_query.views.query_view import VoiceQueryView
 from customers.views.cliente_views import ClienteViewSet, ClienteLoginView
 from customers.views.tenant_views import TiendaPublicViewSet
 
@@ -65,4 +66,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # Consultas por voz (Fallback publico)
+    path('api/vquery/', VoiceQueryView.as_view(), name='voice_query_public'),
 ]
