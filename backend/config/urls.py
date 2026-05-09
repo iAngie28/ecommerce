@@ -18,6 +18,8 @@ from customers.views.plan_views import PlanViewSet
 from voice_query.views.query_view import VoiceQueryView
 from customers.views.cliente_views import ClienteViewSet, ClienteLoginView
 from customers.views.tenant_views import TiendaPublicViewSet
+from customers.views.bitacora_views import BitacoraListView
+
 
 # 1. Configuramos el enrutador de la API
 router = DefaultRouter()
@@ -69,4 +71,5 @@ urlpatterns = [
 
     # Consultas por voz (Fallback publico)
     path('api/vquery/', VoiceQueryView.as_view(), name='voice_query_public'),
+    path('api/bitacora/', BitacoraListView.as_view(), name='bitacora_list'),
 ]

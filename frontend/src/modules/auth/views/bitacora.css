@@ -1,0 +1,163 @@
+/* ── Página ──────────────────────────────────────────────────── */
+.bita-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.bita-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.bita-title {
+  font-size: var(--text-2xl, 22px);
+  font-weight: var(--font-bold, 700);
+  color: var(--color-text, #111);
+  margin: 0;
+}
+.bita-subtitle {
+  color: var(--color-text-muted, #6b7280);
+  font-size: var(--text-sm, 13px);
+  margin: 4px 0 0;
+}
+.bita-refresh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #111);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bita-refresh:hover { background: var(--color-surface-2, #f9fafb); }
+.bita-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.bita-spin { animation: spin 0.8s linear infinite; }
+
+/* ── Filtros ──────────────────────────────────────────────────── */
+.bita-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  padding: 14px 16px;
+}
+.bita-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+  background: var(--color-surface-2, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  padding: 7px 12px;
+  color: var(--color-text-muted, #6b7280);
+}
+.bita-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--color-text, #111);
+}
+.bita-search button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b7280);
+  display: flex;
+  padding: 0;
+}
+.bita-filters select,
+.bita-filters input[type="date"] {
+  padding: 7px 12px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface-2, #f9fafb);
+  font-size: 13px;
+  color: var(--color-text, #111);
+  outline: none;
+  cursor: pointer;
+}
+.bita-clear {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: none;
+  font-size: 13px;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+}
+.bita-clear:hover { background: var(--color-surface-2, #f9fafb); }
+
+/* ── Error ───────────────────────────────────────────────────── */
+.bita-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+}
+
+/* ── Tabla ───────────────────────────────────────────────────── */
+.bita-table-wrap {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+.bita-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bita-table thead tr {
+  background: var(--color-surface-2, #f9fafb);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+.bita-table th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.bita-row td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  color: var(--color-text, #111);
+  vertical-align: middle;
+}
+.bita-row:last-child td { border-bottom: none; }
+.bita-row:hover { background: var(--color-surface-2, #f9fafb); }
+
+/* ── Empty / Center ──────────────────────────────────────────── */
+.bita-center {
+  text-align: center;
+  padding: 40px !important;
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.bita-footer {
+  font-size: 12px;
+  color: var(--color-text-muted, #6b7280);
+  text-align: right;
+}

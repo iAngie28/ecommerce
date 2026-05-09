@@ -29,6 +29,7 @@ import {
   Users,
   BarChart3,
   User,
+  ClipboardList,
 } from 'lucide-react';
 
 
@@ -86,6 +87,16 @@ export const APP_MODULES = [
     group: 'analisis',
   },
 
+  {
+    id: 'bitacora',
+    path: '/bitacora',
+    label: 'Bitácora',
+    icon: ClipboardList,
+    component: lazy(() => import('modules/auth/views/bitacora')),
+    protected: true,
+    inSidebar: true,
+    group: 'bitacora',
+ },
   {
   id: 'perfil',
   path: '/perfil',

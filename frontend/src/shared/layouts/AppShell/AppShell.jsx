@@ -12,6 +12,7 @@ const GROUP_LABELS = {
   analisis:  'Análisis',
   config:    'Configuración',
   general:   'General',
+  Bitacora:  'bitacora',
 };
 
 // ─── AppShell ─────────────────────────────────────────────────
