@@ -9,6 +9,14 @@ import 'gestion_usuario/screens/recuperar_password_screen.dart';
 import 'gestion_usuario/screens/crear_tienda_screen.dart';
 import 'dashboard/screens/dashboard_screen.dart';
 
+import 'gestion_usuario/screens/configuracion_screen.dart';
+import 'gestion_producto/screens/productos_screen.dart';
+import 'gestion_venta/screens/ventas_screen.dart';
+import 'gestion_cliente/screens/clientes_screen.dart';
+import 'gestion_reporte/screens/reportes_screen.dart';
+import 'gestion_producto/screens/inventario_screen.dart';
+import 'gestion_producto/screens/categorias_screen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -37,6 +45,13 @@ class MyApp extends StatelessWidget {
         '/recuperar-password': (context) => const RecuperarPasswordScreen(),
         '/crear-tienda': (context) => const CrearTiendaScreen(),
         '/dashboard': (context) => const DashboardScreen(),
+        '/productos': (context) => const ProductosScreen(),
+        '/categorias': (context) => const CategoriasScreen(),
+        '/ventas': (context) => const VentasScreen(),
+        '/clientes': (context) => const ClientesScreen(),
+        '/reportes': (context) => const ReportesScreen(),
+        '/inventario': (context) => const InventarioScreen(),
+        '/configuracion': (context) => const ConfiguracionScreen(),
       },
     );
   }

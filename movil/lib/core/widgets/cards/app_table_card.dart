@@ -24,7 +24,7 @@ class AppTableCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadows.card,
       ),
-      padding: const EdgeInsets.all(25),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 15 : 25),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

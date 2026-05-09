@@ -27,4 +27,5 @@ class ApiConstants {
   // ── Tenant Endpoints ──
   static const String dashboard = '/dashboard/';
   static const String productos = '/productos/';
+  static const String vquery = '/vquery/';
 }

@@ -1,8 +1,12 @@
 import os
 from pathlib import Path
 from decouple import config
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# CARGAR .ENV DESDE LA RAÍZ DEL PROYECTO
+load_dotenv(os.path.join(BASE_DIR.parent, '.env'))
 
 # ========================================================================
 # CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción)
@@ -109,6 +113,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'customers.authentication.UsuarioJWTAuthentication',
+        'customers.authentication.ClienteJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -134,6 +139,14 @@ SPECTACULAR_SETTINGS = {
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
     'SERVE_INCLUDE_SCHEMA': True,
 }
+
+# 11. STRIPE CONFIGURATION
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+if not STRIPE_SECRET_KEY:
+    print("⚠️ ADVERTENCIA: STRIPE_SECRET_KEY no detectada en el entorno.")
 
 # ========================================================================
 # CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción) Y .ENV
