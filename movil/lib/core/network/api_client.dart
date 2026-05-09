@@ -93,6 +93,51 @@ class ApiClient {
     return response;
   }
 
+  /// Método específico para subir archivos (audio) usando multipart/form-data
+  Future<http.Response> multipartPost(
+    String url, {
+    required String filePath,
+    required String fieldName,
+    Map<String, String>? additionalFields,
+    bool requiresAuth = false,
+    bool includeTenantHost = false,
+  }) async {
+    final headers = await _getHeaders(
+      requiresAuth: requiresAuth,
+      includeTenantHost: includeTenantHost,
+    );
+    // Para multipart, no enviamos 'Content-Type': 'application/json'
+    headers.remove('Content-Type');
+
+    final request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers.addAll(headers);
+
+    if (additionalFields != null) {
+      request.fields.addAll(additionalFields);
+    }
+
+    final file = await http.MultipartFile.fromPath(
+      fieldName,
+      filePath,
+    );
+    request.files.add(file);
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 401 && requiresAuth) {
+      return await _handleTokenRefresh(() => multipartPost(
+            url,
+            filePath: filePath,
+            fieldName: fieldName,
+            additionalFields: additionalFields,
+            requiresAuth: requiresAuth,
+            includeTenantHost: includeTenantHost,
+          ));
+    }
+    return response;
+  }
+
   Future<http.Response> put(
     String url,
     Map<String, dynamic> body, {

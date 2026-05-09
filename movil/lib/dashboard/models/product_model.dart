@@ -4,6 +4,9 @@ class ProductModel {
   final String descripcion;
   final double precio;
   final int stock;
+  final String sku;
+  final int? categoria;
+  final String? categoriaNombre;
 
   ProductModel({
     required this.id,
@@ -11,9 +14,11 @@ class ProductModel {
     required this.descripcion,
     required this.precio,
     required this.stock,
+    this.sku = '',
+    this.categoria,
+    this.categoriaNombre,
   });
 
-  // JSON → Modelo (para parsear respuesta del GET)
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
       id: json['id'] ?? 0,
@@ -21,14 +26,18 @@ class ProductModel {
       descripcion: json['descripcion'] ?? '',
       precio: double.tryParse(json['precio'].toString()) ?? 0.0,
       stock: int.tryParse(json['stock'].toString()) ?? 0,
+      sku: json['sku'] ?? '',
+      categoria: json['categoria'],
+      categoriaNombre: json['categoria_detail']?['nombre'],
     );
   }
 
-  // Modelo → JSON (para enviar en POST/PUT)
   Map<String, dynamic> toJson() => {
         'nombre': nombre,
         'descripcion': descripcion,
         'precio': precio.toString(),
         'stock': stock,
+        'sku': sku,
+        'categoria': categoria,
       };
 }

@@ -9,6 +9,7 @@ class AppButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
+  final Color? color;
   final _AppButtonVariant _variant;
 
   const AppButton.primary({
@@ -16,20 +17,23 @@ class AppButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.onPressed,
-  }) : _variant = _AppButtonVariant.primary;
+  }) : _variant = _AppButtonVariant.primary,
+       color = null;
 
   const AppButton.secondary({
     super.key,
     required this.label,
     this.icon,
     this.onPressed,
-  }) : _variant = _AppButtonVariant.secondary;
+  }) : _variant = _AppButtonVariant.secondary,
+       color = null;
 
   const AppButton.add({
     super.key,
     required this.label,
     this.icon,
     this.onPressed,
+    this.color,
   }) : _variant = _AppButtonVariant.add;
 
   const AppButton.submit({
@@ -37,14 +41,16 @@ class AppButton extends StatelessWidget {
     required this.label,
     this.onPressed,
   })  : _variant = _AppButtonVariant.submit,
-        icon = null;
+        icon = null,
+        color = null;
 
   const AppButton.navRegister({
     super.key,
     required this.label,
     this.onPressed,
   })  : _variant = _AppButtonVariant.navRegister,
-        icon = null;
+        icon = null,
+        color = null;
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +88,7 @@ class AppButton extends StatelessWidget {
           icon: Icon(icon ?? Icons.add, size: 18),
           label: Text(label),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accentTeal,
+            backgroundColor: color ?? AppColors.accentTeal,
             foregroundColor: AppColors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.sm),

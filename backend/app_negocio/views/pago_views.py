@@ -26,6 +26,52 @@ class PagoViewSet(viewsets.ViewSet):
         stripe.api_key = key
         return key
 
+    @action(detail=False, methods=['post'], url_path='create-payment-intent')
+    def create_payment_intent(self, request):
+        pedido_id = request.data.get('pedido_id')
+        print(f"💳 Creando PaymentIntent para pedido: {pedido_id}")
+        
+        if not self._get_stripe_key():
+            return Response({'error': 'Configuración de Stripe incompleta'}, status=500)
+
+        try:
+            pedido = Pedido.objects.get(id=pedido_id)
+            if pedido.estado == 'PAGADO':
+                return Response({'error': 'Este pedido ya ha sido pagado'}, status=400)
+
+            # Calcular monto total
+            monto_centavos = 0
+            for item in pedido.carrito.items.all():
+                if item.producto.precio:
+                    monto_centavos += int(round(float(item.producto.precio) * 100 * item.cantidad))
+
+            if monto_centavos == 0:
+                return Response({'error': 'El monto del pedido es 0'}, status=400)
+
+            # Crear el PaymentIntent
+            intent = stripe.PaymentIntent.create(
+                amount=monto_centavos,
+                currency='bob',
+                metadata={
+                    'pedido_id': pedido.id,
+                    'tenant': connection.schema_name
+                },
+                automatic_payment_methods={
+                    'enabled': True,
+                },
+            )
+
+            return Response({
+                'paymentIntent': intent.client_secret,
+                'publishableKey': settings.STRIPE_PUBLISHABLE_KEY,
+            })
+
+        except Pedido.DoesNotExist:
+            return Response({'error': 'Pedido no encontrado'}, status=404)
+        except Exception as e:
+            print(f"❌ Error creando PaymentIntent: {str(e)}")
+            return Response({'error': str(e)}, status=500)
+
     @action(detail=False, methods=['post'], url_path='create-checkout-session')
     def create_checkout_session(self, request):
         pedido_id = request.data.get('pedido_id')
