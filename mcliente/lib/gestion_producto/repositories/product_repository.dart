@@ -10,8 +10,8 @@ class ProductRepository {
 
   Future<String> _getProductsUrl() async {
     final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty || schemaName == 'public') {
-      return '${ApiConstants.mainBaseUrl}${ApiConstants.productos}';
+    if (schemaName == null || schemaName.isEmpty) {
+      throw Exception('No hay tenant configurado.');
     }
     return '${ApiConstants.tenantBaseUrl(schemaName)}${ApiConstants.productos}';
   }
@@ -22,7 +22,8 @@ class ProductRepository {
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => ProductModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar productos');
@@ -37,7 +38,8 @@ class ProductRepository {
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.cast<Map<String, dynamic>>();
     } else {
       return [];

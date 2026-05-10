@@ -37,8 +37,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   @override
   void initState() {
     super.initState();
-    _inicializar();
-    _loadCartCount();
+    _inicializar().then((_) => _loadCartCount());
   }
 
   Future<void> _loadCartCount() async {
