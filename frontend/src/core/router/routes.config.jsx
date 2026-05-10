@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Shield,
   Store,
+  Database,
 } from 'lucide-react';
 
 // ─── MÓDULOS AUTENTICADOS (con sidebar) ─────────────────────

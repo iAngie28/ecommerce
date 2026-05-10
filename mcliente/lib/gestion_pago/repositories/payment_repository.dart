@@ -11,8 +11,8 @@ class PaymentRepository {
 
   Future<String> _getPagoUrl() async {
     final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty || schemaName == 'public') {
-      return '${ApiConstants.mainBaseUrl}/pagos/';
+    if (schemaName == null || schemaName.isEmpty) {
+      throw Exception('No hay tenant configurado.');
     }
     return '${ApiConstants.tenantBaseUrl(schemaName)}/pagos/';
   }

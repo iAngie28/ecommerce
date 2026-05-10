@@ -10,8 +10,8 @@ class OrderRepository {
 
   Future<String> _getOrdersUrl() async {
     final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty || schemaName == 'public') {
-      return '${ApiConstants.mainBaseUrl}/pedidos/';
+    if (schemaName == null || schemaName.isEmpty) {
+      throw Exception('No hay tenant configurado.');
     }
     return '${ApiConstants.tenantBaseUrl(schemaName)}/pedidos/';
   }
@@ -21,7 +21,8 @@ class OrderRepository {
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => OrderModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar pedidos');
@@ -36,7 +37,8 @@ class OrderRepository {
     final response = await _apiClient.get(globalUrl, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => OrderModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar historial global');
