@@ -50,9 +50,12 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   }
 
   Future<void> _addToCart(ProductModel product) async {
+    print('[DEBUG] _addToCart iniciado para: ${product.nombre} (ID: ${product.id})');
     try {
       final cart = await _cartRepository.fetchActiveCart();
+      print('[DEBUG] Carrito obtenido: ID ${cart.id}');
       await _cartRepository.addItem(cart.id, product.id);
+      print('[DEBUG] Item añadido exitosamente');
       await _loadCartCount();
       if (!mounted) return;
       AppToast.showSuccess(context, '${product.nombre} añadido al carrito');
