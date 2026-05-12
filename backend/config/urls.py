@@ -79,3 +79,11 @@ urlpatterns = [
     # Consultas por voz (Fallback publico)
     path('api/vquery/', VoiceQueryView.as_view(), name='voice_query_public'),
 ]
+
+# Servir archivos media en desarrollo
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

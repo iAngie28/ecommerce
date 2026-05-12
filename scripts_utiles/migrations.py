@@ -86,6 +86,22 @@ def show_migrations():
     """Muestra el estado de las migraciones"""
     run_django_command(['showmigrations'])
 
+def run_fake_migrations():
+    """Aplica migraciones con el flag --fake para resolver conflictos de columnas existentes"""
+    print("\n" + "="*60)
+    print("MODO RECUPERACIÓN: FAKE MIGRATIONS")
+    print("="*60)
+    print("[i] Esto marcará las migraciones como 'aplicadas' sin ejecutar el SQL.")
+    print("[i] Útil si las columnas ya existen en la base de datos.")
+    
+    app = input("\n¿Aplicación específica? (Enter para todas): ").strip()
+    args = ['migrate_schemas', '--shared', '--fake']
+    if app:
+        args.append(app)
+        
+    run_django_command(args)
+    print("\n[OK] Migraciones marcadas como faked. Ahora puedes intentar 'sync' normalmente.")
+
 def main():
     if len(sys.argv) < 2:
         print("\n" + "="*60)
@@ -99,6 +115,7 @@ def main():
         print("  migrate      - Solo aplicar cambios al esquema público")
         print("  tenants      - Solo aplicar cambios a los esquemas de clientes")
         print("  show         - Mostrar estado de migraciones")
+        print("  fake         - Resolver error 'columna ya existe' (Marca migraciones como aplicadas)")
         print("="*60)
         sys.exit(1)
     
@@ -118,6 +135,8 @@ def main():
         run_migrate_schemas()
     elif cmd == 'show':
         show_migrations()
+    elif cmd == 'fake':
+        run_fake_migrations()
     else:
         print(f"[ERROR] Comando desconocido: {cmd}")
         sys.exit(1)

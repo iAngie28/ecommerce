@@ -207,8 +207,11 @@ def run():
             RespaldoSistema.objects.create(
                 nombre=nombre,
                 blob_data=blob,
-                checksum=checksum,
-                metadata={"source": "vps_tool", "raw_size": len(sql_data)}
+                metadata={
+                    "source": "vps_tool", 
+                    "raw_size": len(sql_data),
+                    "checksum": checksum
+                }
             )
             print(f"SNAPSHOT GUARDADO EXITOSAMENTE: {nombre}")
         except Exception as e:

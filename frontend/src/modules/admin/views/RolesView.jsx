@@ -80,24 +80,38 @@ export default function RolesView() {
                 </div>
             )
         },
+        { 
+            key: 'is_global', label: 'Origen', 
+            render: (v) => <Badge variant={v ? 'outline' : 'success'}>{v ? 'SISTEMA' : 'TIENDA'}</Badge> 
+        },
         {
             key: 'id', label: 'Acciones', align: 'right',
             render: (id, row) => (
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <Button variant="ghost" size="sm" onClick={() => {
-                        setEditingId(id);
-                        setFormData({
-                            nombre: row.nombre,
-                            descripcion: row.descripcion,
-                            nivel: row.nivel,
-                            permisos: row.permisos || []
-                        });
-                        setIsModalOpen(true);
-                    }}>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        disabled={row.is_global && window.location.pathname.startsWith('/usuarios')}
+                        onClick={() => {
+                            setEditingId(id);
+                            setFormData({
+                                nombre: row.nombre,
+                                descripcion: row.descripcion,
+                                nivel: row.nivel,
+                                permisos: (row.permisos || []).map(p => p.id || p)
+                            });
+                            setIsModalOpen(true);
+                        }}
+                    >
                         <Edit size={14} />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(id)}>
-                        <Trash2 size={14} color="var(--color-danger)" />
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        disabled={row.is_global && window.location.pathname.startsWith('/usuarios')}
+                        onClick={() => handleDelete(id)}
+                    >
+                        <Trash2 size={14} color={row.is_global && window.location.pathname.startsWith('/usuarios') ? '#ccc' : "var(--color-danger)"} />
                     </Button>
                 </div>
             )

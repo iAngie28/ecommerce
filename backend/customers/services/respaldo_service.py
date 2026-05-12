@@ -34,8 +34,11 @@ class RespaldoService:
         env = os.environ.copy()
         env['PGPASSWORD'] = db_config['PASSWORD']
         
+        import shutil
+        pg_dump_path = shutil.which('pg_dump') or '/usr/bin/pg_dump'
+        
         cmd = [
-            'pg_dump',
+            pg_dump_path,
             '-h', db_config['HOST'],
             '-p', str(db_config['PORT']),
             '-U', db_config['USER'],

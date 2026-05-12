@@ -102,7 +102,8 @@ class DatabaseSeeder:
                 with schema_context('public'):
                     tenant, _ = Client.objects.get_or_create(schema_name=schema, defaults={'name': nombre, 'plan': plan, 'nombre_comercial': nombre, 'categoria_tienda': fake.job()})
                     Domain.objects.get_or_create(domain=f"{schema}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema}.localhost", tenant=tenant, defaults={'is_primary': True})
-                    Usuario.objects.create_user(email=f"admin@{schema}.local", password=BusinessGenerator.PASSWORD_STANDAR, tenant=tenant, rol=rol_admin, is_staff=True)
+                    user = Usuario.objects.create_user(email=f"admin@{schema}.local", password=BusinessGenerator.PASSWORD_STANDAR, tenant=tenant, is_staff=True)
+                    user.roles.add(rol_admin)
 
         # 2. Nuevos Clientes
         if n_clientes > 0:

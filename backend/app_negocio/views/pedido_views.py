@@ -63,9 +63,8 @@ class PedidoViewSet(BaseViewSet):
             
         return qs
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.service = PedidoService()
+    def get_service(self):
+        return PedidoService()
 
     def create(self, request, *args, **kwargs):
         """
@@ -91,7 +90,7 @@ class PedidoViewSet(BaseViewSet):
                     serializer = self.get_serializer(pedido_existente)
                     return Response(serializer.data)
 
-                pedido = self.service.crear_pedido_directo(cliente.id, items)
+                pedido = self.get_service().crear_pedido_directo(cliente.id, items)
                 serializer = self.get_serializer(pedido)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -118,7 +117,7 @@ class PedidoViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            pedido = self.service.crear_pedido_desde_carrito(carrito_id)
+            pedido = self.get_service().crear_pedido_desde_carrito(carrito_id)
             serializer = self.get_serializer(pedido)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -139,7 +138,7 @@ class PedidoViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            pedido = self.service.cambiar_estado(pk, nuevo_estado)
+            pedido = self.get_service().cambiar_estado(pk, nuevo_estado)
             serializer = self.get_serializer(pedido)
             
             return Response(serializer.data, status=status.HTTP_200_OK)

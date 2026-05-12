@@ -58,6 +58,15 @@ export default function PermisosView() {
         { key: 'codigo', label: 'Código', render: (v) => <Badge variant="secondary">{v}</Badge> },
         { key: 'modulo', label: 'Módulo' },
         { key: 'descripcion', label: 'Descripción' },
+        { 
+            key: 'roles_asociados', label: 'Roles Asignados',
+            render: (roles) => (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {roles?.map(r => <Badge key={r.id} variant="primary" size="sm">{r.nombre}</Badge>)}
+                    {!roles?.length && <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>Ninguno</span>}
+                </div>
+            )
+        },
         {
             key: 'id', label: 'Acciones', align: 'right',
             render: (id, row) => (

@@ -7,12 +7,13 @@ import {
     Filter,
     X,
     ImageOff,
-    ShoppingCart
+    ShoppingCart,
+    ArrowLeft
 } from 'lucide-react';
 import { productosApi, categoriasApi } from '../../productos_catalogo/services/productosApi';
 import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
-import api from 'core/services/api';
+import { getBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
 
 const PublicStorefront = () => {
@@ -32,7 +33,7 @@ const PublicStorefront = () => {
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const checkoutInProgress = React.useRef(false);
+    const checkoutInProgress = useRef(false);
 
     // --- Carrito ---
     const { cart, addToCart, removeFromCart, updateQuantity, total, clearCart } = useCart();
@@ -231,6 +232,19 @@ const PublicStorefront = () => {
             {/* --- HEADER TIENDA --- */}
             <header className={styles.storeHeader}>
                 <div className={styles.headerContent}>
+                    <div className={styles.backToPortal}>
+                        <button 
+                            className={styles.backBtn}
+                            onClick={() => {
+                                const base = getBaseDomain(window.location.hostname);
+                                const port = window.location.port ? `:${window.location.port}` : '';
+                                window.location.href = `${window.location.protocol}//${base}${port}/mi-portal`;
+                            }}
+                        >
+                            <ArrowLeft size={18} />
+                            <span>Regresar al Portal</span>
+                        </button>
+                    </div>
                     <div className={styles.searchWrapper}>
                         <Search className={styles.searchIcon} size={18} />
                         <input
@@ -244,6 +258,14 @@ const PublicStorefront = () => {
                         <div className={styles.totalDisplay}>
                             <span>Total:</span>
                             <strong>Bs. {total.toFixed(2)}</strong>
+                        </div>
+                        <div className={styles.sellerAccess}>
+                            <a 
+                                href={`${window.location.protocol}//${getBaseDomain(window.location.hostname)}${window.location.port ? ':' + window.location.port : ''}/login`} 
+                                className={styles.sellerLink}
+                            >
+                                Acceso Vendedor
+                            </a>
                         </div>
                         <button
                             className={styles.cartBtn}
@@ -435,7 +457,7 @@ const PublicStorefront = () => {
                                                     <div className={styles.itemImg}>
                                                         <img src={item.imagen_url || '/placeholder.png'} alt={item.nombre} />
                                                     </div>
-                                                    <div className={item.itemInfo}>
+                                                    <div className={styles.itemInfo}>
                                                         <h4>{item.nombre}</h4>
                                                         <div className={styles.qtyControls}>
                                                             <button onClick={() => updateQuantity(item.id, -1)}>-</button>

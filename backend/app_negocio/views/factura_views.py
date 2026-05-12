@@ -21,9 +21,8 @@ class TipoPagoViewSet(BaseViewSet):
     serializer_class = TipoPagoSerializer
     modulo_auditoria = "TipoPago"
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.service = TipoPagoService()
+    def get_service(self):
+        return TipoPagoService()
 
 
 class FacturaViewSet(BaseViewSet):
@@ -80,9 +79,8 @@ class FacturaViewSet(BaseViewSet):
                         continue
         return super().get_object()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.service = FacturaService()
+    def get_service(self):
+        return FacturaService()
     
     @action(detail=False, methods=['post'])
     def crear_desde_pedido(self, request):
@@ -97,7 +95,7 @@ class FacturaViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            factura = self.service.crear_factura_desde_pedido(pedido_id, tipo_pago_id)
+            factura = self.get_service().crear_factura_desde_pedido(pedido_id, tipo_pago_id)
             serializer = self.get_serializer(factura)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -132,7 +130,7 @@ class FacturaViewSet(BaseViewSet):
     def anular(self, request, nro=None):
         """Anula una factura."""
         try:
-            factura = self.service.anular_factura(nro)
+            factura = self.get_service().anular_factura(nro)
             serializer = self.get_serializer(factura)
             
             return Response(serializer.data, status=status.HTTP_200_OK)

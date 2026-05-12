@@ -24,11 +24,58 @@
     gap: 2rem;
 }
 
+.backToPortal {
+    display: flex;
+    align-items: center;
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.backBtn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: translateX(-4px);
+}
+
 .headerActions {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.5rem;
+}
+
+.sellerAccess {
+    margin-bottom: 2px;
+}
+
+.sellerLink {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    transition: all 0.2s;
+}
+
+.sellerLink:hover {
+    color: #6366f1;
+    background: #6366f110;
 }
 
 
@@ -154,7 +201,7 @@
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #64748b;
+    color: #1a1919;
     margin-bottom: 1rem;
 }
 
@@ -517,6 +564,7 @@
     width: 100%;
     max-width: 450px;
     background: white;
+    color: #1e293b !important;
     height: 100%;
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -650,6 +698,7 @@
 
 .itemInfo {
     flex: 1;
+    color: #1e293b !important;
 }
 
 .itemInfo h4 {
@@ -663,6 +712,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    color: #1e293b !important;
 }
 
 .qtyControls button {
@@ -791,7 +841,7 @@
 .recommendationsTitle {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #475569;
+    color: #1e293b !important;
     margin: 0;
 }
 
@@ -1054,4 +1104,4 @@
     .detailPrice .val {
         font-size: 2.25rem;
     }
-}
+}

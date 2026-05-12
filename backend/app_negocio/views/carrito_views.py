@@ -31,9 +31,8 @@ class CarritoViewSet(BaseViewSet):
     authentication_classes = [ClienteJWTAuthentication, UsuarioJWTAuthentication]
     modulo_auditoria = "Carrito"
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.service = CarritoService()
+    def get_service(self):
+        return CarritoService()
 
     def _cliente_id_autenticado(self):
         auth = getattr(self.request, 'auth', None)
@@ -54,12 +53,17 @@ class CarritoViewSet(BaseViewSet):
     def create(self, request, *args, **kwargs):
         cliente_id = self._cliente_id_autenticado()
         if cliente_id:
-            carrito, created = self.service.obtener_o_crear_carrito_abierto(cliente_id)
-            serializer = self.get_serializer(carrito)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
-            )
+            try:
+                carrito, created = self.get_service().obtener_o_crear_carrito_abierto(cliente_id)
+                serializer = self.get_serializer(carrito)
+                return Response(
+                    serializer.data,
+                    status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+                )
+            except Cliente.DoesNotExist:
+                return Response({'error': 'El cliente asociado al token no existe.'}, status=status.HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
@@ -78,7 +82,7 @@ class CarritoViewSet(BaseViewSet):
             producto_id = request.data.get('producto_id')
             cantidad = request.data.get('cantidad', 1)
             
-            self.service.agregar_item(carrito.id, producto_id, cantidad)
+            self.get_service().agregar_item(carrito.id, producto_id, cantidad)
             carrito.refresh_from_db()
             serializer = self.get_serializer(carrito)
             
@@ -96,7 +100,7 @@ class CarritoViewSet(BaseViewSet):
             carrito = self.get_object()
             producto_id = request.data.get('producto_id')
             
-            self.service.eliminar_item(carrito.id, producto_id)
+            self.get_service().eliminar_item(carrito.id, producto_id)
             carrito.refresh_from_db()
             serializer = self.get_serializer(carrito)
             
@@ -111,7 +115,7 @@ class CarritoViewSet(BaseViewSet):
     def vaciar(self, request, pk=None):
         """Vacía todos los items del carrito."""
         carrito = self.get_object()
-        self.service.vaciar_carrito(carrito.id)
+        self.get_service().vaciar_carrito(carrito.id)
         carrito.refresh_from_db()
         serializer = self.get_serializer(carrito)
         
@@ -121,7 +125,7 @@ class CarritoViewSet(BaseViewSet):
     def cerrar(self, request, pk=None):
         """Cierra el carrito para convertirlo en pedido."""
         carrito = self.get_object()
-        self.service.cerrar_carrito(carrito.id)
+        self.get_service().cerrar_carrito(carrito.id)
         carrito.refresh_from_db()
         serializer = self.get_serializer(carrito)
         
