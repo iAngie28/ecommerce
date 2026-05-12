@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Search,
     ArrowUpDown,
@@ -13,6 +13,7 @@ import {
 import { productosApi, categoriasApi } from '../../productos_catalogo/services/productosApi';
 import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
+import api from 'core/services/api';
 import { getBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
 
@@ -260,12 +261,16 @@ const PublicStorefront = () => {
                             <strong>Bs. {total.toFixed(2)}</strong>
                         </div>
                         <div className={styles.sellerAccess}>
-                            <a 
-                                href={`${window.location.protocol}//${getBaseDomain(window.location.hostname)}${window.location.port ? ':' + window.location.port : ''}/login`} 
+                            <button 
+                                onClick={() => {
+                                    const base = getBaseDomain(window.location.hostname);
+                                    const port = window.location.port ? `:${window.location.port}` : '';
+                                    window.location.href = `${window.location.protocol}//${base}${port}/login`;
+                                }}
                                 className={styles.sellerLink}
                             >
                                 Acceso Vendedor
-                            </a>
+                            </button>
                         </div>
                         <button
                             className={styles.cartBtn}
