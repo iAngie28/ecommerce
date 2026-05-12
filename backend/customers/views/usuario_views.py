@@ -76,16 +76,31 @@ class UsuarioCrudViewSet(BaseViewSet):
     serializer_class = UsuarioCrudSerializer
     modulo_auditoria = "Usuario"
 
+    def get_queryset(self):
+        from django.db import connection
+        qs = super().get_queryset()
+        if connection.schema_name != 'public':
+            return qs.filter(tenant__schema_name=connection.schema_name)
+        return qs
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.service = UsuarioService()
 
     def perform_create(self, serializer):
-        # Delega la creación (con hashing de password) al servicio
-        return self.service.crear_usuario(serializer.validated_data)
+        from django.db import connection
+        from customers.models import Client
+        
+        datos = serializer.validated_data.copy()
+        
+        # Asignación automática de tenant si estamos en una tienda
+        if connection.schema_name != 'public' and not datos.get('tenant'):
+            tenant = Client.objects.get(schema_name=connection.schema_name)
+            datos['tenant'] = tenant
+            
+        return self.service.crear_usuario(datos)
 
     def perform_update(self, serializer):
-        # Delega la actualización al servicio
         return self.service.actualizar_usuario(self.get_object(), serializer.validated_data)
 
     @action(detail=True, methods=['get'])
@@ -136,11 +151,35 @@ class MiPerfilView(APIView):
                 'is_cliente': True
             }, status=status.HTTP_200_OK)
 
-        # Si es un vendedor (Usuario real del modelo)
-        serializer = UsuarioCrudSerializer(usuario)
-        data = dict(serializer.data)
-        data['role'] = 'vendedor'
-        return Response(data, status=status.HTTP_200_OK)
+        # Si es un vendedor/admin (Usuario real del modelo)
+        try:
+            serializer = UsuarioCrudSerializer(usuario)
+            data = serializer.data
+            
+            # Determinar rol dinámico para el frontend (prioridad jerárquica)
+            if usuario.is_superuser:
+                data['role'] = 'admin'
+            else:
+                # Obtenemos los roles y los ordenamos por nivel (1=admin, 2=vendedor, 3=cliente)
+                roles_list = list(usuario.roles.all().order_by('nivel'))
+                if roles_list:
+                    rol_principal = roles_list[0]
+                    if rol_principal.nivel == 1: data['role'] = 'admin'
+                    elif rol_principal.nivel == 2: data['role'] = 'vendedor'
+                    else: data['role'] = 'cliente'
+                else:
+                    # Fallback basado en staff (si no tiene roles vinculados explícitamente)
+                    data['role'] = 'vendedor' if usuario.is_staff else 'cliente'
+            
+            # Asegurar que el frontend sepa si es superuser
+            data['is_superuser'] = usuario.is_superuser
+            
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error': 'Error al procesar el perfil del usuario',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def patch(self, request):
         """Actualizar datos del perfil"""
@@ -173,17 +212,11 @@ class TenantListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        from customers.models import Client, Domain
+        from customers.models import Client
+        from customers.serializers.tenant_serializer import TiendaPublicSerializer
         tenants = Client.objects.exclude(schema_name='public')
-        result = []
-        for t in tenants:
-            domain = Domain.objects.filter(tenant=t).first()
-            result.append({
-                'nombre': t.name,
-                'schema': t.schema_name,
-                'dominio': domain.domain if domain else None,
-            })
-        return Response(result)
+        serializer = TiendaPublicSerializer(tenants, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 # --- Utilidades y Recuperación de Contraseña ---

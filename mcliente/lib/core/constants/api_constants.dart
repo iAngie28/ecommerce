@@ -32,7 +32,7 @@ class ApiConstants {
   // ── Header Host para django-tenants ──
   static String tenantHost(String schemaName) {
     final slug = schemaName.replaceAll('_', '');
-    return '$slug.$vpsIp.nip.io';
+    return '$slug.$vpsIp.nip.io:$djangoPort';
   }
 
   // ── Auth Endpoints (IP directa, sin tenant) ──

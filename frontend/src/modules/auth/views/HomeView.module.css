@@ -43,6 +43,15 @@
 }
 .btnLogin:hover { background: var(--color-surface-2); border-color: var(--color-primary); }
 
+.btnVendedor {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  color: var(--color-primary-light) !important;
+  font-weight: var(--font-medium);
+  transition: all var(--transition-fast);
+}
+.btnVendedor:hover { color: var(--color-primary) !important; background: var(--color-primary-ghost); }
+
 .btnRegister {
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-md);

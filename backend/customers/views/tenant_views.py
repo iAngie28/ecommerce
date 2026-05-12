@@ -61,7 +61,7 @@ class TiendaPerfilView(APIView):
 
     def get(self, request):
         tenant = request.tenant
-        serializer = TiendaPublicSerializer(tenant)
+        serializer = TiendaPublicSerializer(tenant, context={'request': request})
         return Response(serializer.data)
 
     def patch(self, request):
@@ -78,5 +78,5 @@ class TiendaPerfilView(APIView):
             tenant.icono = request.FILES['icono']
             
         tenant.save()
-        serializer = TiendaPublicSerializer(tenant)
+        serializer = TiendaPublicSerializer(tenant, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)

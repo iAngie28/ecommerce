@@ -23,6 +23,7 @@ export default function HomeView() {
         <nav className={styles.navLinks}>
           <a href="#features">Características</a>
           <a href="#pricing">Precios</a>
+          <Link to="/login?type=vendedor" className={styles.btnVendedor}>Acceso Vendedor</Link>
           <Link to="/login"        className={styles.btnLogin}>Iniciar Sesión</Link>
           <Link to="/crear-tienda" className={styles.btnRegister}>Crear tienda</Link>
         </nav>

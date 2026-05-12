@@ -11,7 +11,10 @@ class ClienteRepository {
     try {
       final response = await _apiClient.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final dynamic decoded = jsonDecode(response.body);
+        final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+            ? decoded['results'] 
+            : decoded;
         return data.map((json) => ClientModel.fromJson(json)).toList();
       }
       return [];
@@ -38,7 +41,10 @@ class ClienteRepository {
     try {
       final response = await _apiClient.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final dynamic decoded = jsonDecode(response.body);
+        final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+            ? decoded['results'] 
+            : decoded;
         return data.map((json) => ClientModel.fromJson(json)).toList();
       }
       return [];

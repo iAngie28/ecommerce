@@ -158,3 +158,6 @@ except ImportError:
     SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-8dl7kzt3gurd5j=)2(7=6kkf-vfp(5qq=46*8(w)g_)9q8*t^*')
     DEBUG = config('DEBUG', default=True, cast=bool)
     ALLOWED_HOSTS = ['*']
+
+# 12. AUDITORÍA
+AUDIT_LOG_RETENTION_DAYS = 90

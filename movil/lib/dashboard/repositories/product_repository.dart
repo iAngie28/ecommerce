@@ -32,7 +32,10 @@ class ProductRepository {
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+          ? decoded['results'] 
+          : decoded;
       return data.map((json) => ProductModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar productos: ${response.statusCode}');
@@ -85,7 +88,10 @@ class ProductRepository {
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+          ? decoded['results'] 
+          : decoded;
       return data.map((json) => CategoryModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar categorías');

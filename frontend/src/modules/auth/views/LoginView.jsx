@@ -5,12 +5,19 @@ import AuthLayout from 'shared/layouts/AuthLayout/AuthLayout';
 import { Button, Input, Alert } from 'shared/components';
 import { useAuth } from 'core/hooks/useAuth';
 import api from 'core/services/api';
+import { useLocation } from 'react-router-dom';
 import styles from './AuthView.module.css';
 
 export default function LoginView() {
   const { login } = useAuth();
   const navigate   = useNavigate();
-  const [loginType, setLoginType] = useState('cliente'); // 'cliente' o 'vendedor'
+  const location   = useLocation();
+  
+  // Leer tipo de login desde URL (ej: /login?type=vendedor)
+  const queryParams = new URLSearchParams(location.search);
+  const initialType = queryParams.get('type') === 'vendedor' ? 'vendedor' : 'cliente';
+
+  const [loginType, setLoginType] = useState(initialType); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -166,11 +173,9 @@ export default function LoginView() {
             onChange={(e) => setPassword(e.target.value)}
             required
             labelRight={
-              !isCliente && (
-                <Link to="/forgot-password" className={styles.forgotLink}>
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              )
+              <Link to="/forgot-password" className={styles.forgotLink}>
+                ¿Olvidaste tu contraseña?
+              </Link>
             }
           />
           <Button

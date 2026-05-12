@@ -10,3 +10,11 @@ class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Bitacora.objects.all()
     serializer_class = BitacoraSerializer
     permission_classes = [IsAuthenticated]
+    filterset_fields = {
+        'accion': ['exact', 'icontains'],
+        'modulo': ['exact', 'icontains'],
+        'idUsuario': ['exact'],
+        'fecha': ['gte', 'lte'],
+    }
+    search_fields = ['accion', 'modulo', 'idUsuario__email', 'idUsuario__first_name']
+    ordering_fields = ['fecha', 'accion']

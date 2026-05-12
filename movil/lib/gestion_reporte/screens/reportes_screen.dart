@@ -164,7 +164,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
     if (results.isEmpty) return;
 
     final pdf = pw.Document();
-    final headers = results[0].keys.map((k) => _formatHeader(k.toString())).toList();
+    final List<String> headers = results[0].keys.map<String>((k) => _formatHeader(k.toString())).toList();
     final List<List<dynamic>> data = results.map<List<dynamic>>((row) => row.values.map((v) => v.toString()).toList()).toList();
 
     pdf.addPage(
@@ -208,7 +208,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
     excel.Sheet sheetObject = excelBook['Reporte IA'];
     excelBook.delete('Sheet1');
 
-    final headers = results[0].keys.map((k) => _formatHeader(k.toString())).toList();
+    final List<String> headers = results[0].keys.map<String>((k) => _formatHeader(k.toString())).toList();
     sheetObject.appendRow(headers.map((h) => excel.TextCellValue(h)).toList());
 
     for (var row in results) {
@@ -485,9 +485,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
             if (hasResults)
               AppTableCard(
                 title: 'Resultados (${results.length})',
-                columns: results[0].keys.map((k) => _formatHeader(k.toString())).toList(),
-                rows: results.map((row) {
-                  return (row.values as Iterable).map((v) => Text(v.toString())).toList();
+                columns: results[0].keys.map<String>((k) => _formatHeader(k.toString())).toList(),
+                rows: results.map<List<Widget>>((row) {
+                  return (row.values as Iterable).map<Widget>((v) => Text(v.toString())).toList();
                 }).toList(),
               )
             else

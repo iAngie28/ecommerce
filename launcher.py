@@ -344,6 +344,9 @@ def show_data_menu():
         print_option(f"{Colors.YELLOW}5{Colors.RESET} - Gestión de Usuarios (CRUD Completo)")
         print_option(f"{Colors.YELLOW}6{Colors.RESET} - Ejecutar Seeders (Poblar con datos de prueba)")
 
+        print_section("4. Reparación y Emergencia")
+        print_option(f"{Colors.RED}F{Colors.RESET} - Reparar Migraciones (Error: Columna ya existe)")
+
         print_section("4. Auditoría")
         print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Ver Auditoría Reciente (Bitácora)")
 
@@ -379,6 +382,8 @@ def show_data_menu():
         elif choice == '9':
             print_info("Buscando dominios con guiones bajos...")
             run_script('fix_tenant_domains.py'); pause()
+        elif choice == 'f':
+            run_script('migrations.py', 'fake'); pause()
         elif choice == 'b':
             break
         else:
@@ -401,16 +406,24 @@ def show_users_menu():
         print_option(f"{Colors.GREEN}6{Colors.RESET} - Activar usuario")
         print_option(f"{Colors.RED}7{Colors.RESET} - Desactivar usuario")
 
+        print_section("Roles y Permisos")
+        print_option(f"{Colors.CYAN}8{Colors.RESET} - Ver roles disponibles")
+        print_option(f"{Colors.MAGENTA}9{Colors.RESET} - Asignar ROL a usuario")
+        print_option(f"{Colors.YELLOW}S{Colors.RESET} - {Colors.BOLD}Sincronizar/Ajustar ROLES (Fix){Colors.RESET}")
+
         print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver")
         print()
 
         choice = input(f"{Colors.BOLD}  ? Selecciona: {Colors.RESET}").strip().lower()
         cmds = {
             '1': 'create', '2': 'list', '3': 'edit',
-            '4': 'delete', '5': 'status', '6': 'activate', '7': 'disable'
+            '4': 'delete', '5': 'status', '6': 'activate', 
+            '7': 'disable', '8': 'roles', '9': 'assign-role'
         }
         if choice in cmds:
             run_script('manage_users.py', cmds[choice]); pause()
+        elif choice == 's':
+            run_script('fix_roles.py'); pause()
         elif choice == 'b':
             break
         else:

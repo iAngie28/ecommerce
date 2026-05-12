@@ -1,25 +1,22 @@
 from django.db import connection
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 from .mixins import AuditoriaMixin
 
 class BaseViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
-    BaseViewSet que proporciona auditoría automática y seguridad de esquemas.
+    BaseViewSet que proporciona auditoría automática y manejo de errores con traza.
     """
-    
     def get_queryset(self):
-        """
-        Evita errores de 'table not found' si se accede a un modelo de tenant
-        desde el esquema público.
-        """
-        # Si estamos en el esquema público, no deberíamos consultar modelos de negocio
-        # (a menos que el modelo esté explícitamente en SHARED_APPS)
-        if connection.schema_name == 'public':
-            try:
-                table_name = self.queryset.model._meta.db_table
-                if table_name not in connection.introspection.table_names():
-                    return self.queryset.none()
-            except Exception:
-                return self.queryset.none()
-                
         return super().get_queryset()
+
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            return Response({
+                'error': str(e),
+                'traceback': traceback.format_exc(),
+                'view': self.__class__.__name__
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

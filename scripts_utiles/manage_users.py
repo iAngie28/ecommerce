@@ -39,19 +39,19 @@ def list_users():
         print("No hay usuarios registrados")
         return
     
-    print(f"\n{'Email':<30} {'Nombre':<25} {'Estado':<10} {'Admin':<5} {'Activo':<7}")
-    print("-" * 80)
+    print(f"\n{'Email':<30} {'Nombre':<25} {'Roles':<15} {'Estado':<10} {'Admin':<5}")
+    print("-" * 90)
     
     for user in users:
         email = user.email[:28]
         name = f"{user.first_name} {user.last_name}"[:23]
+        roles_list = ", ".join([r.nombre for r in user.roles.all()])[:14]
         status = "Activo" if user.is_active else "Inactivo"
         admin = "✓" if user.is_superuser else ""
-        active = "✓" if user.is_active else "✗"
         
-        print(f"{email:<30} {name:<25} {status:<10} {admin:<5} {active:<7}")
+        print(f"{email:<30} {name:<25} {roles_list:<15} {status:<10} {admin:<5}")
     
-    print("-" * 80)
+    print("-" * 90)
     print(f"Total: {users.count()} usuarios\n")
 
 def create_user():
@@ -310,6 +310,49 @@ def disable_user():
     except Usuario.DoesNotExist:
         print("[ERROR] Usuario no encontrado\n")
 
+def list_roles():
+    """Lista todos los roles disponibles"""
+    from customers.models import Rol
+    print("\n" + "="*60)
+    print("ROLES DISPONIBLES EN LA BASE DE DATOS")
+    print("="*60)
+    
+    roles = Rol.objects.all()
+    if not roles.exists():
+        print("No hay roles creados.")
+        return
+    
+    print(f"{'ID':<5} {'Nombre':<20} {'Nivel':<10}")
+    print("-" * 40)
+    for r in roles:
+        print(f"{r.id:<5} {r.nombre:<20} {r.get_nivel_display():<10}")
+    print("-" * 40 + "\n")
+
+def assign_role():
+    """Asigna un rol a un usuario"""
+    from customers.models import Rol
+    print("\n" + "="*60)
+    print("ASIGNAR ROL A USUARIO")
+    print("="*60)
+    
+    email = input("\nEmail del usuario: ").strip()
+    try:
+        user = Usuario.objects.get(email=email)
+    except Usuario.DoesNotExist:
+        print("[ERROR] Usuario no encontrado")
+        return
+
+    list_roles()
+    rol_id = input("ID del Rol a asignar: ").strip()
+    try:
+        rol = Rol.objects.get(id=rol_id)
+        user.roles.add(rol)
+        print(f"[OK] Rol '{rol.nombre}' asignado a {user.email}")
+    except Rol.DoesNotExist:
+        print("[ERROR] Rol no encontrado")
+    except Exception as e:
+        print(f"[ERROR] {e}")
+
 def main():
     if len(sys.argv) < 2:
         print("Uso: python manage_users.py [comando]")
@@ -323,6 +366,8 @@ def main():
         print("  status      - Ver estado (activo/inactivo)")
         print("  activate    - Activar usuario")
         print("  disable     - Desactivar usuario")
+        print("  roles       - Listar roles disponibles")
+        print("  assign-role - Asignar un rol a un usuario")
         sys.exit(1)
     
     cmd = sys.argv[1]
@@ -345,6 +390,10 @@ def main():
         activate_user()
     elif cmd == 'disable':
         disable_user()
+    elif cmd == 'roles':
+        list_roles()
+    elif cmd == 'assign-role':
+        assign_role()
     else:
         print(f"[ERROR] Comando desconocido: {cmd}")
         sys.exit(1)

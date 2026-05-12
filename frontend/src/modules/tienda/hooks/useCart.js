@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 
 export const useCart = () => {
     const [cart, setCart] = useState(() => {
-        const saved = localStorage.getItem('miqhatu_cart');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('miqhatu_cart');
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     });
 
     useEffect(() => {
-        localStorage.setItem('miqhatu_cart', JSON.stringify(cart));
+        try {
+            localStorage.setItem('miqhatu_cart', JSON.stringify(cart));
+        } catch (e) {
+            console.error("Error persistiendo el carrito:", e);
+        }
     }, [cart]);
 
     const addToCart = (product) => {
+        if (!product || !product.id) return;
         setCart(prev => {
             const exists = prev.find(item => item.id === product.id);
             if (exists) {

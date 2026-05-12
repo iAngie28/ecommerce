@@ -30,6 +30,14 @@ class Rol(models.Model):
         default=4,
         verbose_name='Nivel de Permisos'
     )
+    tenant = models.ForeignKey(
+        'Client',
+        on_delete=models.CASCADE,
+        related_name='roles',
+        null=True,
+        blank=True,
+        verbose_name='Tienda / Tenant'
+    )
     permisos = models.ManyToManyField(
         Permiso,
         related_name='roles',
