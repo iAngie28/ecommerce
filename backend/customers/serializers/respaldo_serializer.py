@@ -14,4 +14,6 @@ class RespaldoSerializer(serializers.ModelSerializer):
         ]
 
     def get_fecha_display(self, obj):
-        return obj.timestamp.strftime('%d/%m %H:%M')
+        from django.utils import timezone
+        local_dt = timezone.localtime(obj.timestamp)
+        return local_dt.strftime('%d/%m %H:%M')
