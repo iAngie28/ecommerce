@@ -70,6 +70,8 @@
     padding: 4px 8px;
     border-radius: 6px;
     background: #f1f5f9;
+    border: none;
+    cursor: pointer;
     transition: all 0.2s;
 }
 

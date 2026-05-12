@@ -160,25 +160,30 @@ class MiPerfilView(APIView):
             if usuario.is_superuser:
                 data['role'] = 'admin'
             else:
-                # Obtenemos los roles y los ordenamos por nivel (1=admin, 2=vendedor, 3=cliente)
-                roles_list = list(usuario.roles.all().order_by('nivel'))
-                if roles_list:
-                    rol_principal = roles_list[0]
-                    if rol_principal.nivel == 1: data['role'] = 'admin'
-                    elif rol_principal.nivel == 2: data['role'] = 'vendedor'
-                    else: data['role'] = 'cliente'
-                else:
-                    # Fallback basado en staff (si no tiene roles vinculados explícitamente)
-                    data['role'] = 'vendedor' if usuario.is_staff else 'cliente'
+                # Obtenemos los roles de forma segura para evitar fallos si la migración M2M no se ha aplicado
+                try:
+                    roles_list = list(usuario.roles.all().order_by('nivel'))
+                    if roles_list:
+                        rol_principal = roles_list[0]
+                        if rol_principal.nivel == 1: data['role'] = 'admin'
+                        elif rol_principal.nivel == 2: data['role'] = 'vendedor'
+                        else: data['role'] = 'cliente'
+                    else:
+                        data['role'] = 'vendedor' if usuario.is_staff else 'cliente'
+                except Exception:
+                    # Fallback si el campo M2M 'roles' no existe todavía en la DB
+                    data['role'] = 'admin' if usuario.is_superuser else ('vendedor' if usuario.is_staff else 'cliente')
             
             # Asegurar que el frontend sepa si es superuser
             data['is_superuser'] = usuario.is_superuser
             
             return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
+            import traceback
             return Response({
                 'error': 'Error al procesar el perfil del usuario',
-                'detail': str(e)
+                'detail': str(e),
+                'traceback': traceback.format_exc() if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def patch(self, request):

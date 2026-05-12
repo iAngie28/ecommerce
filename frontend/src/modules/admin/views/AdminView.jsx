@@ -3,7 +3,7 @@ import { Shield, Activity, Users, FileText } from 'lucide-react';
 import AppView   from 'shared/widgets/AppView/AppView';
 import StatCard  from 'shared/widgets/StatCard/StatCard';
 import DataTable from 'shared/widgets/DataTable/DataTable';
-import { Badge, Alert } from 'shared/components';
+import { Badge, Alert, Input } from 'shared/components';
 import { useTenant } from 'core/hooks/useTenant';
 import api from 'core/services/api';
 
