@@ -55,10 +55,16 @@ export default function BackupsView() {
             key: 'fecha_display', 
             label: 'Versión', 
             render: (v, row) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Badge variant="primary" size="lg">{v}</Badge>
-                    <Button variant="ghost" size="xs" onClick={() => openExplorer(row)} title="Explorar contenido">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Badge variant="primary" size="lg" style={{ minWidth: '60px', textAlign: 'center' }}>{v}</Badge>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => { e.stopPropagation(); openExplorer(row); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-primary)', border: '1px solid #e0e7ff' }}
+                    >
                         <FileJson size={14} />
+                        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Explorar Catálogo</span>
                     </Button>
                 </div>
             )
