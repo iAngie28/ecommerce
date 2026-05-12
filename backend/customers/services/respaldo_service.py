@@ -105,10 +105,15 @@ class RespaldoService:
                             columns = [col[0] for col in cursor.description]
                             rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
                             
-                            # Limpieza de tipos no serializables
+                            # Limpieza profunda de tipos no serializables (Decimal, UUID, datetime)
+                            from decimal import Decimal
+                            from uuid import UUID
+                            
                             for row in rows:
                                 for k, v in row.items():
-                                    if hasattr(v, 'isoformat'): row[k] = v.isoformat()
+                                    if isinstance(v, Decimal): row[k] = str(v)
+                                    elif isinstance(v, UUID): row[k] = str(v)
+                                    elif hasattr(v, 'isoformat'): row[k] = v.isoformat()
                                     elif isinstance(v, bytes): row[k] = "<Binario>"
                                     elif v is None: row[k] = ""
                             
@@ -118,7 +123,7 @@ class RespaldoService:
                                 'count': len(rows)
                             }
                         except Exception:
-                            continue # Si una tabla falla, seguimos con las demás
+                            continue
                     
                     catalogo[schema] = schema_data
             return catalogo
