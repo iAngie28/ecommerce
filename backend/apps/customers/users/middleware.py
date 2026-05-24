@@ -16,21 +16,25 @@ class TenantHostMiddleware:
 
     def __call__(self, request):
         # request.get_host() devuelve 'nombre:puerto'
-        host = request.get_host().split(':')[0].lower().strip()
+        original_host = request.get_host()
+        parts = original_host.split(':')
+        host = parts[0].lower().strip()
+        port_suffix = f":{parts[1].strip()}" if len(parts) > 1 else ""
 
         # Guardamos el host original por si acaso
-        request.original_host = request.get_host()
+        request.original_host = original_host
 
         # Log para depuración: host y cabeceras relevantes
         try:
             logger.warning(f"TenantHostMiddleware - original_host={request.original_host} | computed_host={host} | HTTP_HOST_before={request.META.get('HTTP_HOST')}")
             # Print explícito para asegurar salida en consola de desarrollo
-            print(f"[TenantHostMiddleware] original_host={request.original_host} computed_host={host} HTTP_HOST_before={request.META.get('HTTP_HOST')}")
+            pass
         except Exception:
             pass
 
-        # Forzamos que Django vea el host sin puerto en la cabecera HTTP_HOST
-        # Solo para el procesamiento interno de este request.
-        request.META['HTTP_HOST'] = host
+        # Forzamos que Django vea el host limpio PERO con su puerto,
+        # para que DRF genere URLs absolutas correctas (ej: /media/...).
+        # django-tenants internamente ya quita el puerto para buscar el Tenant.
+        request.META['HTTP_HOST'] = f"{host}{port_suffix}"
 
         return self.get_response(request)

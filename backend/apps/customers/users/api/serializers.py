@@ -82,5 +82,5 @@ class UsuarioCrudSerializer(serializers.ModelSerializer):
     class Meta:
         from apps.customers.users.models.usuario import Usuario
         model = Usuario
-        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'tenant', 'roles', 'tenant_info', 'password']
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'tenant', 'roles', 'roles_detalles', 'tenant_info', 'password']
         extra_kwargs = {'password': {'write_only': True, 'required': False}}

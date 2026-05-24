@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from apps.customers.models import Client
@@ -47,9 +47,11 @@ class TiendaPublicViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DirectorioPagination
     
     # Filtros y búsqueda
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['categoria_tienda']  # Permite filtrado exacto por categoría
     search_fields = ['nombre_comercial', 'descripcion']  # Búsqueda por texto libre
+    ordering_fields = ['nombre_comercial', 'created_on']
+    ordering = ['nombre_comercial']  # Ordenamiento por defecto — evita UnorderedObjectListWarning
 
 
 class TiendaPerfilView(APIView):
