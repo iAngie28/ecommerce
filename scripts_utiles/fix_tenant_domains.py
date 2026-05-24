@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # FIX TENANT DOMAINS
 # ========================================================================
 # Sanea los dominios existentes en la BD, reemplazando caracteres
-# inválidos para DNS (guiones bajos) por 'x'.
+# invÃ¡lidos para DNS (guiones bajos) por 'x'.
 #
 # Ejemplo:   gerlex_tech777.157.173.102.129.nip.io
-#         →  gerlextech777.157.173.102.129.nip.io
+#         â†’  gerlextech777.157.173.102.129.nip.io
 #
 # Uso: python scripts_utiles/fix_tenant_domains.py
 # ========================================================================
@@ -24,11 +24,11 @@ import django
 django.setup()
 
 from django_tenants.utils import schema_context
-from customers.models import Domain
+from apps.customers.models import Domain
 
 
 def sanitize(name: str) -> str:
-    """Elimina caracteres inválidos para DNS reemplazándolos por 'x'."""
+    """Elimina caracteres invÃ¡lidos para DNS reemplazÃ¡ndolos por 'x'."""
     return name.replace('_', 'x')
 
 
@@ -52,14 +52,14 @@ def fix_domains(dry_run: bool = False):
         print(f"\n  Se encontraron {len(needs_fix)} dominio(s) con guion bajo:\n")
         for domain_obj, new_name in needs_fix:
             print(f"    {domain_obj.domain}")
-            print(f"  → {new_name}")
+            print(f"  â†’ {new_name}")
             print()
 
         if dry_run:
             print("  [i] Modo simulacion (dry-run). No se aplico ningun cambio.")
             return
 
-        confirm = input("  ¿Aplicar cambios? (s/n): ").strip().lower()
+        confirm = input("  Â¿Aplicar cambios? (s/n): ").strip().lower()
         if confirm != 's':
             print("  [!] Operacion cancelada.")
             return
@@ -69,7 +69,7 @@ def fix_domains(dry_run: bool = False):
             old_name = domain_obj.domain
             domain_obj.domain = new_name
             domain_obj.save()
-            print(f"  [OK] {old_name}  →  {new_name}")
+            print(f"  [OK] {old_name}  â†’  {new_name}")
             fixed += 1
 
         print(f"\n  [OK] {fixed} dominio(s) actualizado(s).")
@@ -83,3 +83,4 @@ def fix_domains(dry_run: bool = False):
 if __name__ == '__main__':
     dry = '--dry-run' in sys.argv or '-n' in sys.argv
     fix_domains(dry_run=dry)
+

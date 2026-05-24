@@ -4,6 +4,7 @@ import AppView from 'shared/widgets/AppView/AppView';
 import DataTable from 'shared/widgets/DataTable/DataTable';
 import { Button, Input, Badge, Modal } from 'shared/components';
 import api from 'core/services/api';
+import { isBaseDomain } from 'core/utils/domain';
 
 export default function UsersView() {
     const [users, setUsers] = useState([]);
@@ -31,7 +32,7 @@ export default function UsersView() {
         try {
             // Detectar si estamos en el dominio público
             const hostname = window.location.hostname;
-            const publicMode = hostname === 'localhost' || hostname === '127.0.0.1' || !hostname.includes('.');
+            const publicMode = isBaseDomain(hostname);
             setIsPublic(publicMode);
 
             const requests = [

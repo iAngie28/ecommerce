@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 from pathlib import Path
 
@@ -11,22 +11,22 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 import django
 django.setup()
 
-from customers.models import Bitacora
+from apps.customers.models import Bitacora
 from django.db import connection
 
 def verify_audit():
     print("\n" + "="*80)
-    print(f"{'VERIFICACIÓN DE BITÁCORA (ÚLTIMOS 10 REGISTROS)':^80}")
+    print(f"{'VERIFICACIÃ“N DE BITÃCORA (ÃšLTIMOS 10 REGISTROS)':^80}")
     print("="*80)
     
     # Obtener registros directamente via ORM (que sabe que es Shared Model)
     registros = Bitacora.objects.all().order_by('-fecha')[:10]
     
     if not registros.exists():
-        print("\n[!] No se encontraron registros en la bitácora.")
+        print("\n[!] No se encontraron registros en la bitÃ¡cora.")
         return
 
-    print(f"{'ID':<5} | {'USUARIO':<25} | {'MÓDULO':<15} | {'ACCIÓN':<10} | {'FECHA'}")
+    print(f"{'ID':<5} | {'USUARIO':<25} | {'MÃ“DULO':<15} | {'ACCIÃ“N':<10} | {'FECHA'}")
     print("-" * 80)
     
     for r in registros:
@@ -35,7 +35,8 @@ def verify_audit():
         print(f"{r.id:<5} | {user_display:<25} | {r.modulo:<15} | {r.accion:<10} | {fecha_str}")
 
     print("\n" + "="*80)
-    print("[OK] Verificación completada.")
+    print("[OK] VerificaciÃ³n completada.")
 
 if __name__ == "__main__":
     verify_audit()
+

@@ -1,13 +1,13 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # ========================================================================
-# ASISTENTE DE INSTALACIÓN RÁPIDA (Plug & Play)
+# ASISTENTE DE INSTALACIÃ“N RÃPIDA (Plug & Play)
 # ========================================================================
 # Configura el entorno completo del proyecto de forma interactiva.
 # Te pregunta el modo de despliegue (Nginx o IP directa) y ajusta
-# automáticamente todas las variables del .env relevantes.
+# automÃ¡ticamente todas las variables del .env relevantes.
 #
-# Lo que NO toca (configuración manual):
-#   - DATABASE_* (usuario, contraseña, host, nombre)
+# Lo que NO toca (configuraciÃ³n manual):
+#   - DATABASE_* (usuario, contraseÃ±a, host, nombre)
 #   - EMAIL_HOST_USER / EMAIL_HOST_PASSWORD
 #
 # Uso: python scripts_utiles/system_setup.py
@@ -29,7 +29,7 @@ ENV_PATH     = PROJECT_ROOT / '.env'
 
 ES_WINDOWS = platform.system() == 'Windows'
 
-# ── Colores ───────────────────────────────────────────────────────────────
+# â”€â”€ Colores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class C:
     GREEN   = '\033[92m'
     CYAN    = '\033[96m'
@@ -43,14 +43,14 @@ def ok(t):    print(f"{C.GREEN}[OK]{C.RESET}  {t}")
 def err(t):   print(f"{C.RED}[X]{C.RESET}   {t}")
 def info(t):  print(f"{C.BLUE}[i]{C.RESET}   {t}")
 def warn(t):  print(f"{C.YELLOW}[!]{C.RESET}  {t}")
-def step(n, t): print(f"\n{C.CYAN}{C.BOLD}── Paso {n}: {t}{C.RESET}")
+def step(n, t): print(f"\n{C.CYAN}{C.BOLD}â”€â”€ Paso {n}: {t}{C.RESET}")
 
 def header(t):
     print(f"\n{C.BOLD}{C.GREEN}{'='*62}{C.RESET}")
     print(f"{C.BOLD}{C.GREEN}  {t}{C.RESET}")
     print(f"{C.BOLD}{C.GREEN}{'='*62}{C.RESET}\n")
 
-# ── Helpers .env ──────────────────────────────────────────────────────────
+# â”€â”€ Helpers .env â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def load_env():
     """Carga el .env actual como diccionario {clave: (valor, linea_completa)}."""
@@ -67,7 +67,7 @@ def load_env():
 
 
 def write_env_key(key, value):
-    """Actualiza o añade una clave en el .env. Respeta comentarios y estructura."""
+    """Actualiza o aÃ±ade una clave en el .env. Respeta comentarios y estructura."""
     lines = []
     found = False
     if ENV_PATH.exists():
@@ -94,31 +94,31 @@ def get_local_ip():
     except Exception:
         return '127.0.0.1'
 
-# ── PASO 0: Modo de despliegue ────────────────────────────────────────────
+# â”€â”€ PASO 0: Modo de despliegue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def ask_deployment_mode():
     """
     Pregunta al usuario el modo de despliegue.
     Retorna (modo, ip, django_port, react_port)
     """
-    print(f"\n{C.BOLD}¿Cómo quieres desplegar el proyecto?{C.RESET}")
-    print(f"  {C.GREEN}1{C.RESET} - Nginx (Producción) — gunicorn + build estático + Nginx")
-    print(f"  {C.CYAN}2{C.RESET} - IP directa         — Django runserver/gunicorn + React start")
-    print(f"  {C.BLUE}3{C.RESET} - Localhost           — Solo esta PC, desarrollo puro")
+    print(f"\n{C.BOLD}Â¿CÃ³mo quieres desplegar el proyecto?{C.RESET}")
+    print(f"  {C.GREEN}1{C.RESET} - Nginx (ProducciÃ³n) â€” gunicorn + build estÃ¡tico + Nginx")
+    print(f"  {C.CYAN}2{C.RESET} - IP directa         â€” Django runserver/gunicorn + React start")
+    print(f"  {C.BLUE}3{C.RESET} - Localhost           â€” Solo esta PC, desarrollo puro")
     print()
 
     while True:
         choice = input(f"  {C.BOLD}? [1/2/3]: {C.RESET}").strip()
         if choice in ('1', '2', '3'):
             break
-        print("  Opción inválida, elige 1, 2 o 3.")
+        print("  OpciÃ³n invÃ¡lida, elige 1, 2 o 3.")
 
     env = load_env()
     django_port = env.get('DJANGO_PORT', '8001')
     react_port  = env.get('REACT_PORT',  '3000')
 
     if choice == '1':
-        # ── Nginx ────────────────────────────────────────────────────────
+        # â”€â”€ Nginx â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         detected = get_local_ip()
         info(f"IP detectada: {C.YELLOW}{detected}{C.RESET}")
         manual = input(f"  IP o dominio del VPS ({detected}): ").strip()
@@ -127,7 +127,7 @@ def ask_deployment_mode():
         return 'nginx', ip, django_port, react_port
 
     elif choice == '2':
-        # ── IP directa ───────────────────────────────────────────────────
+        # â”€â”€ IP directa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         detected = get_local_ip()
         info(f"IP detectada: {C.YELLOW}{detected}{C.RESET}")
         manual = input(f"  Confirma o escribe otra IP ({detected}): ").strip()
@@ -136,16 +136,16 @@ def ask_deployment_mode():
         return 'ip', ip, django_port, react_port
 
     else:
-        # ── Localhost ────────────────────────────────────────────────────
+        # â”€â”€ Localhost â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         return 'localhost', 'localhost', django_port, react_port
 
 
 def configure_env(modo, ip, django_port, react_port):
-    """Actualiza el .env con la configuración del modo elegido."""
+    """Actualiza el .env con la configuraciÃ³n del modo elegido."""
     step('0', 'Configurando variables de entorno (.env)')
 
     if not ENV_PATH.exists():
-        warn(".env no existe. Creando desde plantilla mínima...")
+        warn(".env no existe. Creando desde plantilla mÃ­nima...")
         _create_minimal_env()
 
     if modo == 'nginx':
@@ -156,7 +156,7 @@ def configure_env(modo, ip, django_port, react_port):
         write_env_key('REACT_APP_BASE_DOMAIN',         ip)
         write_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
         write_env_key('REACT_APP_API_URL',             '/api')           # Nginx hace el proxy
-        ok(f"Modo Nginx — dominio base: {ip}")
+        ok(f"Modo Nginx â€” dominio base: {ip}")
         ok(f"Sufijo tenants: .{ip}.nip.io")
 
     elif modo == 'ip':
@@ -167,7 +167,7 @@ def configure_env(modo, ip, django_port, react_port):
         write_env_key('REACT_APP_BASE_DOMAIN',         ip)
         write_env_key('REACT_APP_TENANT_DOMAIN_SUFFIX', f'.{ip}.nip.io')
         write_env_key('REACT_APP_API_URL',             f'http://{ip}:{django_port}/api')
-        ok(f"Modo IP directa — acceso en http://{ip}:{react_port}")
+        ok(f"Modo IP directa â€” acceso en http://{ip}:{react_port}")
         ok(f"Backend API en http://{ip}:{django_port}/api")
 
     else:  # localhost
@@ -182,7 +182,7 @@ def configure_env(modo, ip, django_port, react_port):
 
 
 def _create_minimal_env():
-    """Crea un .env mínimo de arranque si no existe."""
+    """Crea un .env mÃ­nimo de arranque si no existe."""
     sk = secrets.token_urlsafe(50)
     content = f"""ENVIRONMENT=development
 DEBUG=True
@@ -210,18 +210,18 @@ LOG_LEVEL=INFO
         f.write(content)
     ok(".env creado")
 
-# ── PASO 0b: Credenciales ─────────────────────────────────────────────────
+# â”€â”€ PASO 0b: Credenciales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def ask_credentials(ip):
     """
     Pregunta las credenciales de email y base de datos.
     Si el usuario no ingresa nada, se usan los defaults.
     """
-    step('0b', 'Configuración de credenciales (Enter = dejar como está / usar default)')
+    step('0b', 'ConfiguraciÃ³n de credenciales (Enter = dejar como estÃ¡ / usar default)')
 
     env = load_env()
 
-    print(f"\n  {C.BOLD}── Correo (Gmail){C.RESET}")
+    print(f"\n  {C.BOLD}â”€â”€ Correo (Gmail){C.RESET}")
     current_email = env.get('EMAIL_HOST_USER', '')
     hint = f"actual: {current_email}" if current_email else "ej: tu@gmail.com"
     email_val = input(f"  Email [{hint}]: ").strip()
@@ -231,7 +231,7 @@ def ask_credentials(ip):
     elif current_email:
         ok(f"Email sin cambios: {current_email}")
     else:
-        warn("Email no configurado (recuperar contraseña no funcionará)")
+        warn("Email no configurado (recuperar contraseÃ±a no funcionarÃ¡)")
 
     current_pass = env.get('EMAIL_HOST_PASSWORD', '')
     hint_pass = "configurada" if current_pass else "sin configurar"
@@ -244,7 +244,7 @@ def ask_credentials(ip):
     else:
         warn("App Password no configurada")
 
-    print(f"\n  {C.BOLD}── Base de Datos (PostgreSQL){C.RESET}")
+    print(f"\n  {C.BOLD}â”€â”€ Base de Datos (PostgreSQL){C.RESET}")
 
     # Nombre de la BD
     current_db = env.get('DATABASE_NAME', 'mi_saas_db')
@@ -260,7 +260,7 @@ def ask_credentials(ip):
     write_env_key('DATABASE_HOST', db_host)
     ok(f"Host BD: {db_host}")
 
-    # Puerto — siempre 5432 por default
+    # Puerto â€” siempre 5432 por default
     write_env_key('DATABASE_PORT', '5432')
     ok("Puerto BD: 5432 (default)")
 
@@ -271,20 +271,20 @@ def ask_credentials(ip):
     write_env_key('DATABASE_USER', db_user)
     ok(f"Usuario BD: {db_user}")
 
-    # Contraseña
+    # ContraseÃ±a
     current_pw = env.get('DATABASE_PASSWORD', '')
-    hint_pw = "configurada" if current_pw else "vacía (postgres sin contraseña)"
-    db_pw = input(f"  Contraseña de BD [{hint_pw}]: ").strip()
+    hint_pw = "configurada" if current_pw else "vacÃ­a (postgres sin contraseÃ±a)"
+    db_pw = input(f"  ContraseÃ±a de BD [{hint_pw}]: ").strip()
     if db_pw:
         write_env_key('DATABASE_PASSWORD', db_pw)
-        ok("Contraseña BD guardada")
+        ok("ContraseÃ±a BD guardada")
     elif current_pw:
-        ok("Contraseña BD sin cambios")
+        ok("ContraseÃ±a BD sin cambios")
     else:
-        warn("Contraseña BD vacía — asegúrate de que postgres lo permita")
+        warn("ContraseÃ±a BD vacÃ­a â€” asegÃºrate de que postgres lo permita")
 
 
-# ── PASO 1: Backend ───────────────────────────────────────────────────────
+# â”€â”€ PASO 1: Backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def setup_backend():
     step('1', 'Configurando Backend (Django + venv)')
@@ -310,9 +310,9 @@ def setup_backend():
         except subprocess.CalledProcessError:
             err("Error instalando dependencias del backend")
     else:
-        warn("requirements.txt no encontrado — omitiendo pip install")
+        warn("requirements.txt no encontrado â€” omitiendo pip install")
 
-# ── PASO 2: Frontend ──────────────────────────────────────────────────────
+# â”€â”€ PASO 2: Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def setup_frontend(modo):
     step('2', 'Configurando Frontend (React / Node)')
@@ -325,7 +325,7 @@ def setup_frontend(modo):
 
     node_modules = FRONTEND_DIR / 'node_modules'
     if node_modules.exists():
-        warn("node_modules ya existe — usando existente (usa Mantenimiento → Limpieza si tienes problemas)")
+        warn("node_modules ya existe â€” usando existente (usa Mantenimiento â†’ Limpieza si tienes problemas)")
     else:
         info("Ejecutando npm install...")
         try:
@@ -337,7 +337,7 @@ def setup_frontend(modo):
             return
 
     if modo == 'nginx':
-        info("Generando build de producción (npm run build)...")
+        info("Generando build de producciÃ³n (npm run build)...")
         try:
             subprocess.run([npm, 'run', 'build'], cwd=str(FRONTEND_DIR),
                            check=True, shell=ES_WINDOWS)
@@ -345,7 +345,7 @@ def setup_frontend(modo):
         except subprocess.CalledProcessError:
             err("Error en npm run build")
 
-# ── PASO 3: Migraciones y base de datos ──────────────────────────────────
+# â”€â”€ PASO 3: Migraciones y base de datos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def run_migrations():
     step('3', 'Base de Datos: Reset + Migraciones')
@@ -354,7 +354,7 @@ def run_migrations():
     python_exe = str(venv_path / ('Scripts/python.exe' if ES_WINDOWS else 'bin/python'))
 
     if not Path(python_exe).exists():
-        err("Python del venv no encontrado — omitiendo migraciones")
+        err("Python del venv no encontrado â€” omitiendo migraciones")
         return
 
     env = load_env()
@@ -371,9 +371,9 @@ def run_migrations():
 
     psql = shutil.which('psql') or 'psql'
 
-    # ── 3a. Drop + Create BD ──────────────────────────────────────────────
-    warn(f"Se eliminará y recreará la BD '{db_name}' en {db_host}. Todos los datos se perderán.")
-    confirm = input(f"  {C.BOLD}¿Continuar? (s/n): {C.RESET}").strip().lower()
+    # â”€â”€ 3a. Drop + Create BD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    warn(f"Se eliminarÃ¡ y recrearÃ¡ la BD '{db_name}' en {db_host}. Todos los datos se perderÃ¡n.")
+    confirm = input(f"  {C.BOLD}Â¿Continuar? (s/n): {C.RESET}").strip().lower()
     if confirm != 's':
         warn("Reset de BD cancelado. Saltando a migraciones sin reset.")
     else:
@@ -394,37 +394,37 @@ def run_migrations():
         except Exception as e:
             warn(f"Error con psql ({e}). Intentando continuar con migraciones de todas formas...")
 
-    # ── 3b. makemigrations ────────────────────────────────────────────────
+    # â”€â”€ 3b. makemigrations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         info("Generando migraciones (makemigrations)...")
         subprocess.run([python_exe, 'manage.py', 'makemigrations'],
                        cwd=str(BACKEND_DIR), check=True)
         ok("makemigrations completado")
     except subprocess.CalledProcessError as e:
-        err(f"makemigrations falló: {e}")
+        err(f"makemigrations fallÃ³: {e}")
         return
 
-    # ── 3c. migrate (shared = public schema) ─────────────────────────────
+    # â”€â”€ 3c. migrate (shared = public schema) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
-        info("Aplicando migraciones al schema público (migrate_schemas --shared)...")
+        info("Aplicando migraciones al schema pÃºblico (migrate_schemas --shared)...")
         subprocess.run(
             [python_exe, 'manage.py', 'migrate_schemas', '--shared'],
             cwd=str(BACKEND_DIR), check=True
         )
-        ok("Migraciones aplicadas al schema público")
+        ok("Migraciones aplicadas al schema pÃºblico")
     except subprocess.CalledProcessError:
-        # Fallback: migrate estándar
-        warn("migrate_schemas no disponible, usando migrate estándar...")
+        # Fallback: migrate estÃ¡ndar
+        warn("migrate_schemas no disponible, usando migrate estÃ¡ndar...")
         try:
             subprocess.run([python_exe, 'manage.py', 'migrate'],
                            cwd=str(BACKEND_DIR), check=True)
             ok("migrate completado")
         except subprocess.CalledProcessError as e:
-            err(f"migrate falló: {e}")
+            err(f"migrate fallÃ³: {e}")
             return
 
-    # ── 3d. Seeders opcionales ────────────────────────────────────────────
-    seed = input(f"\n  {C.BOLD}¿Quieres poblar la BD con datos de prueba? (seeders) (s/n): {C.RESET}").strip().lower()
+    # â”€â”€ 3d. Seeders opcionales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    seed = input(f"\n  {C.BOLD}Â¿Quieres poblar la BD con datos de prueba? (seeders) (s/n): {C.RESET}").strip().lower()
     if seed == 's':
         seed_script = BACKEND_DIR.parent / 'scripts_utiles' / 'db_seed.py'
         if not seed_script.exists():
@@ -441,23 +441,23 @@ def run_migrations():
     else:
         warn("Seeders omitidos")
 
-# ── Main ──────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def run_setup():
-    header("ASISTENTE DE INSTALACIÓN RÁPIDA")
+    header("ASISTENTE DE INSTALACIÃ“N RÃPIDA")
 
-    print(f"{C.YELLOW}Este asistente configura automáticamente:{C.RESET}")
-    print("  ✓ Variables de entorno (.env) según el modo elegido")
-    print("  ✓ Entorno virtual Python (venv) + dependencias")
-    print("  ✓ Dependencias Node.js")
-    print("  ✓ Migraciones de base de datos")
+    print(f"{C.YELLOW}Este asistente configura automÃ¡ticamente:{C.RESET}")
+    print("  âœ“ Variables de entorno (.env) segÃºn el modo elegido")
+    print("  âœ“ Entorno virtual Python (venv) + dependencias")
+    print("  âœ“ Dependencias Node.js")
+    print("  âœ“ Migraciones de base de datos")
     print()
     print(f"{C.YELLOW}Lo que debes configurar MANUALMENTE en .env:{C.RESET}")
-    print("  • DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME")
-    print("  • EMAIL_HOST_USER, EMAIL_HOST_PASSWORD")
+    print("  â€¢ DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME")
+    print("  â€¢ EMAIL_HOST_USER, EMAIL_HOST_PASSWORD")
     print()
 
-    if input(f"  {C.BOLD}¿Continuar? (s/n): {C.RESET}").strip().lower() != 's':
+    if input(f"  {C.BOLD}Â¿Continuar? (s/n): {C.RESET}").strip().lower() != 's':
         print("Cancelado.")
         return
 
@@ -475,31 +475,32 @@ def run_setup():
     setup_frontend(modo)
 
     # Paso 3: migraciones
-    run_mig = input(f"\n  {C.BOLD}¿Aplicar migraciones ahora? (requiere BD activa) (s/n): {C.RESET}").strip().lower()
+    run_mig = input(f"\n  {C.BOLD}Â¿Aplicar migraciones ahora? (requiere BD activa) (s/n): {C.RESET}").strip().lower()
     if run_mig == 's':
         run_migrations()
     else:
-        warn("Migraciones omitidas. Puedes correrlas luego desde el menú → Gestión BD")
+        warn("Migraciones omitidas. Puedes correrlas luego desde el menÃº â†’ GestiÃ³n BD")
 
     # Resumen
-    header("INSTALACIÓN COMPLETADA")
+    header("INSTALACIÃ“N COMPLETADA")
     print(f"  Modo:    {C.BOLD}{modo.upper()}{C.RESET}")
     if modo != 'localhost':
         print(f"  IP/Host: {C.YELLOW}{ip}{C.RESET}")
     print()
-    print(f"{C.BOLD}Próximos pasos:{C.RESET}")
+    print(f"{C.BOLD}PrÃ³ximos pasos:{C.RESET}")
     if modo == 'nginx':
         print("  1. Configura DATABASE_* y EMAIL_* en .env")
-        print("  2. Ve al menú → Servicios → Con Nginx para crear los servicios systemd")
+        print("  2. Ve al menÃº â†’ Servicios â†’ Con Nginx para crear los servicios systemd")
     elif modo == 'ip':
         print("  1. Configura DATABASE_* y EMAIL_* en .env")
-        print(f"  2. Desde el menú → Opción 1 para Backend | Opción 2 para Frontend")
+        print(f"  2. Desde el menÃº â†’ OpciÃ³n 1 para Backend | OpciÃ³n 2 para Frontend")
         print(f"  3. Accede en http://{ip}:{react_port}")
     else:
-        print("  1. Ve al menú → Opción 3 para iniciar todo")
+        print("  1. Ve al menÃº â†’ OpciÃ³n 3 para iniciar todo")
         print(f"  2. Accede en http://localhost:{react_port}")
     print()
 
 
 if __name__ == '__main__':
     run_setup()
+

@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # ========================================================================
 # RUN SERVICES - Arranque de Backend y Frontend
 # ========================================================================
 # Gestiona el inicio del servidor Django y el servidor React.
 # Soporta 3 modos: localhost, IP directa (red/VPS sin Nginx).
-# Este script es llamado por el launcher.py pero también puede
+# Este script es llamado por el launcher.py pero tambiÃ©n puede
 # ejecutarse directamente:
 #
 #   python scripts_utiles/run_services.py backend
@@ -20,17 +20,17 @@ import time
 import platform
 from pathlib import Path
 
-# ── Rutas ────────────────────────────────────────────────────────────────
+# â”€â”€ Rutas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 PROJECT_ROOT = Path(__file__).parent.parent
 BACKEND_DIR  = PROJECT_ROOT / 'backend'
 FRONTEND_DIR = PROJECT_ROOT / 'frontend'
 
-# ── SO ───────────────────────────────────────────────────────────────────
+# â”€â”€ SO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 SISTEMA = platform.system()
 ES_WINDOWS = SISTEMA == 'Windows'
 ES_LINUX   = SISTEMA == 'Linux'
 
-# ── Colores ──────────────────────────────────────────────────────────────
+# â”€â”€ Colores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class C:
     GREEN   = '\033[92m'
     CYAN    = '\033[96m'
@@ -46,10 +46,10 @@ def err(t):  print(f"{C.RED}[X]{C.RESET} {t}")
 def info(t): print(f"{C.BLUE}[i]{C.RESET} {t}")
 def warn(t): print(f"{C.YELLOW}[!]{C.RESET} {t}")
 
-# ── Helpers ──────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def load_env():
-    """Carga variables del .env de la raíz de forma manual."""
+    """Carga variables del .env de la raÃ­z de forma manual."""
     env_vars = {}
     env_path = PROJECT_ROOT / '.env'
     if env_path.exists():
@@ -64,7 +64,7 @@ def load_env():
 
 
 def update_env_key(key, value):
-    """Actualiza o añade una clave en el .env principal."""
+    """Actualiza o aÃ±ade una clave en el .env principal."""
     env_path = PROJECT_ROOT / '.env'
     lines = []
     found = False
@@ -83,7 +83,7 @@ def update_env_key(key, value):
 
 
 def get_local_ip():
-    """Detecta la IP de red de la máquina actual."""
+    """Detecta la IP de red de la mÃ¡quina actual."""
     import socket
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -127,16 +127,16 @@ def ensure_venv():
 
 def ask_run_mode():
     """
-    Pregunta el modo de ejecución al usuario.
+    Pregunta el modo de ejecuciÃ³n al usuario.
     Retorna (modo, ip): modo = 'localhost' | 'ip'
     """
     cfg = load_env()
     django_port = cfg.get('DJANGO_PORT', '8001')
 
     print()
-    print(f"  {C.BOLD}MODO DE EJECUCIÓN{C.RESET}")
+    print(f"  {C.BOLD}MODO DE EJECUCIÃ“N{C.RESET}")
     print(f"  {C.GREEN}a{C.RESET} - Localhost         (solo esta PC, desarrollo)")
-    print(f"  {C.CYAN}b{C.RESET} - IP de la máquina  (red / VPS sin Nginx)")
+    print(f"  {C.CYAN}b{C.RESET} - IP de la mÃ¡quina  (red / VPS sin Nginx)")
     print()
     choice = input(f"  {C.BOLD}? [a/b]: {C.RESET}").strip().lower()
 
@@ -156,10 +156,10 @@ def ask_run_mode():
         return 'localhost', 'localhost'
 
 
-# ── Arranque de servicios ─────────────────────────────────────────────────
+# â”€â”€ Arranque de servicios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def start_backend():
-    """Inicia Django con selección de modo."""
+    """Inicia Django con selecciÃ³n de modo."""
     cfg = load_env()
     port = cfg.get('DJANGO_PORT', '8001')
 
@@ -202,7 +202,7 @@ def start_backend():
 
 
 def start_frontend():
-    """Inicia React con selección de modo."""
+    """Inicia React con selecciÃ³n de modo."""
     cfg = load_env()
     port = cfg.get('REACT_PORT', '3000')
 
@@ -263,7 +263,7 @@ def start_all():
     npm = find_npm() or 'npm'
 
     if not venv_python.exists():
-        err("Entorno virtual no encontrado. Ejecuta opción 1 primero.")
+        err("Entorno virtual no encontrado. Ejecuta opciÃ³n 1 primero.")
         return
 
     modo, ip = ask_run_mode()
@@ -277,8 +277,8 @@ def start_all():
     
     host_label = ip if modo == 'ip' else 'localhost'
 
-    info(f"Backend  → http://{host_label}:{django_port}")
-    info(f"Frontend → http://{host_label}:{react_port}")
+    info(f"Backend  â†’ http://{host_label}:{django_port}")
+    info(f"Frontend â†’ http://{host_label}:{react_port}")
     warn("CTRL+C para detener ambos")
     print(f"{C.GRAY}{'-'*70}{C.RESET}")
 
@@ -332,7 +332,7 @@ def start_all():
         ok("Servicios detenidos")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────
+# â”€â”€ Entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else None
@@ -348,3 +348,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

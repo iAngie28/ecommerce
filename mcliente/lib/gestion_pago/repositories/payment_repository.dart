@@ -9,17 +9,16 @@ class PaymentRepository {
   final ApiClient _apiClient = ApiClient();
   final SecureStorageService _storage = SecureStorageService();
 
-  Future<String> _getPagoUrl() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty) {
-      throw Exception('No hay tenant configurado.');
-    }
-    return '${ApiConstants.tenantBaseUrl(schemaName)}/pagos/';
+  Future<String?> _buildUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}/pagos/';
   }
 
   /// Crea un PaymentIntent en el backend y devuelve el client_secret
   Future<Map<String, dynamic>> createPaymentIntent(int pedidoId) async {
-    final baseUrl = await _getPagoUrl();
+    final baseUrl = await _buildUrl();
+    if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = '${baseUrl}create-payment-intent/';
     
     final response = await _apiClient.post(
@@ -75,8 +74,9 @@ class PaymentRepository {
   }
 
   Future<void> confirmPaymentSuccess(int pedidoId) async {
-    final baseUrl = await _getPagoUrl();
-    final url = '${baseUrl}confirm-success/';
+    final baseUrl = await _buildUrl();
+    if (baseUrl == null) throw Exception('No hay tenant configurado.');
+    final url = '${baseUrl}confirm-payment/';
     final schemaName = await _storage.getSchemaName();
     
     await _apiClient.post(

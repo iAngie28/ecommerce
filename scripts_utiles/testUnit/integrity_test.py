@@ -1,6 +1,6 @@
-import sys
+﻿import sys
 from django.db import transaction, IntegrityError
-from customers.models import Client, Usuario
+from apps.customers.models import Client, Usuario
 
 def run_integrity_check():
     """Verificar la integridad de las tablas (Restricciones UNIQUE, etc)"""
@@ -19,10 +19,10 @@ def run_integrity_check():
                     Usuario.objects.create_user(email='unico@test.com', password='456', first_name='Pedro', tenant=tenant)
                 
 
-                print("  [ERROR] La base de datos PERMITIÓ guardar un correo duplicado. Revisa tus modelos.")
+                print("  [ERROR] La base de datos PERMITIÃ“ guardar un correo duplicado. Revisa tus modelos.")
                 sys.exit(1)
             except IntegrityError:
-                print("  [OK] La base de datos BLOQUEÓ el correo duplicado correctamente.")
+                print("  [OK] La base de datos BLOQUEÃ“ el correo duplicado correctamente.")
             
             # Limpiamos la BD
             raise Exception("ROLLBACK_INTENCIONAL")
@@ -30,5 +30,6 @@ def run_integrity_check():
         if str(e) == "ROLLBACK_INTENCIONAL":
             pass
         else:
-            print(f"  [ERROR] Falló la prueba de integridad: {e}")
+            print(f"  [ERROR] FallÃ³ la prueba de integridad: {e}")
             sys.exit(1)
+

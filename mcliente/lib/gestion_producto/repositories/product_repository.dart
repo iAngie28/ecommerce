@@ -4,20 +4,26 @@ import '../../core/constants/api_constants.dart';
 import '../../core/storage/secure_storage.dart';
 import '../models/product_model.dart';
 
+
 class ProductRepository {
   final ApiClient _apiClient = ApiClient();
   final SecureStorageService _storage = SecureStorageService();
 
-  Future<String> _getProductsUrl() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty) {
-      throw Exception('No hay tenant configurado.');
-    }
-    return '${ApiConstants.tenantBaseUrl(schemaName)}${ApiConstants.productos}';
+  Future<String?> _buildUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}${ApiConstants.productos}';
+  }
+
+  Future<String?> _buildCategoriesUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}${ApiConstants.categorias}';
   }
 
   Future<List<ProductModel>> fetchProducts({int? categoryId}) async {
-    final baseUrl = await _getProductsUrl();
+    final baseUrl = await _buildUrl();
+    if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = categoryId != null ? '$baseUrl?categoria=$categoryId' : baseUrl;
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
@@ -31,10 +37,8 @@ class ProductRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchCategories() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null) return [];
-    
-    final url = '${ApiConstants.tenantBaseUrl(schemaName)}${ApiConstants.categorias}';
+    final url = await _buildCategoriesUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
@@ -47,7 +51,8 @@ class ProductRepository {
   }
 
   Future<List<ProductModel>> fetchRecommendations(int productId) async {
-    final baseUrl = await _getProductsUrl();
+    final baseUrl = await _buildUrl();
+    if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = '$baseUrl$productId/recomendaciones/';
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 

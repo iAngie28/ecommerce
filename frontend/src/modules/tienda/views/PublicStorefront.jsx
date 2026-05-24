@@ -14,7 +14,7 @@ import { productosApi, categoriasApi } from '../../productos_catalogo/services/p
 import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
 import api from 'core/services/api';
-import { getBaseDomain } from 'core/utils/domain';
+import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
 
 const PublicStorefront = () => {
@@ -117,7 +117,11 @@ const PublicStorefront = () => {
             clearCart();
             // Confirmar en el backend por si el webhook se retrasa
             if (pid) {
-                const tenant = query.get('tenant') || window.location.hostname.split('.')[0];
+                let tenant = query.get('tenant');
+                if (!tenant) {
+                    const host = window.location.hostname;
+                    tenant = isBaseDomain(host) ? 'public' : host.split('.')[0];
+                }
                 api.post('/pagos/confirm-success/', {
                     pedido_id: pid,
                     tenant: tenant
@@ -150,7 +154,11 @@ const PublicStorefront = () => {
             // La URL de retorno es la misma página del catálogo (donde el usuario ya está)
             // Stripe agregará el status al regresar para que mostremos confirmación
             const currentUrl = window.location.href.split('?')[0]; // URL limpia sin params anteriores
-            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}`;
+            
+            const host = window.location.hostname;
+            const tenantStr = isBaseDomain(host) ? 'public' : host.split('.')[0];
+
+            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}&tenant=${tenantStr}`;
 
             const stripeRes = await api.post('/pagos/create-checkout-session/', {
                 pedido_id: pedidoId,

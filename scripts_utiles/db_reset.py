@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # SCRIPT DE RESET DE BASE DE DATOS
 # ========================================================================
 # Gestiona reset y limpieza de BD con opciones
-# Uso: python scripts_utiles/db_reset.py [opción]
+# Uso: python scripts_utiles/db_reset.py [opciÃ³n]
 
 import os
 import sys
@@ -14,21 +14,21 @@ PROJECT_ROOT = Path(__file__).parent.parent
 BACKEND_DIR = PROJECT_ROOT / 'backend'
 
 def confirm_destructive():
-    """Pide confirmación para operación destructiva"""
+    """Pide confirmaciÃ³n para operaciÃ³n destructiva"""
     print("\n" + "="*60)
-    print("⚠️  OPERACIÓN DESTRUCTIVA - Se eliminará la base de datos")
+    print("âš ï¸  OPERACIÃ“N DESTRUCTIVA - Se eliminarÃ¡ la base de datos")
     print("="*60)
-    print("\nEsto eliminará:")
-    print("  ✗ Todos los datos de la BD")
-    print("  ✗ Todos los tenants")
-    print("  ✗ Todos los usuarios")
-    print("  ✗ Todas las tablas")
+    print("\nEsto eliminarÃ¡:")
+    print("  âœ— Todos los datos de la BD")
+    print("  âœ— Todos los tenants")
+    print("  âœ— Todos los usuarios")
+    print("  âœ— Todas las tablas")
     print("\n")
     
-    confirm = input("Escribe 'ELIMINAR' en mayúsculas para confirmar: ").strip()
+    confirm = input("Escribe 'ELIMINAR' en mayÃºsculas para confirmar: ").strip()
     
     if confirm != "ELIMINAR":
-        print("[CANCELADO] Operación abortada")
+        print("[CANCELADO] OperaciÃ³n abortada")
         return False
     
     return True
@@ -65,13 +65,13 @@ def reset_all():
             except Exception:
                 pass
     except Exception as e:
-        print(f"[ERROR] Falló el drop schemas: {e}")
+        print(f"[ERROR] FallÃ³ el drop schemas: {e}")
         return False
         
     print("[3/4] Creando y aplicando migraciones...")
     try:
         # Borrar archivos de migraciones si existen (excepto __init__.py)
-        for app in ['customers', 'app_negocio']:
+        for app in ['customers', 'negocio']:
             mig_dir = BACKEND_DIR / app / 'migrations'
             if mig_dir.exists():
                 for f in mig_dir.glob('0*.py'):
@@ -88,9 +88,9 @@ def reset_all():
     from django.conf import settings
     
     try:
-        from customers.models import Usuario
+        from apps.customers.models import Usuario
         email = input("  Email del admin: ").strip()
-        password = input("  Contraseña: ").strip()
+        password = input("  ContraseÃ±a: ").strip()
         
         Usuario.objects.create_superuser(
             email=email,
@@ -106,7 +106,7 @@ def reset_all():
 
 def reset_data_only():
     """Reset solo de datos (mantiene estructura)"""
-    print("\n[+] Limpiando solo datos (tablas vacías)...")
+    print("\n[+] Limpiando solo datos (tablas vacÃ­as)...")
     os.chdir(BACKEND_DIR)
     
     print("[1/2] Truncando tablas...")
@@ -142,11 +142,11 @@ def reset_tenants():
     os.chdir(BACKEND_DIR)
     
     try:
-        from customers.models import Client
+        from apps.customers.models import Client
         count = Client.objects.count()
         
-        print(f"[?] Se eliminarán {count} tenants")
-        confirm = input("¿Confirmar? (yes/no): ").strip()
+        print(f"[?] Se eliminarÃ¡n {count} tenants")
+        confirm = input("Â¿Confirmar? (yes/no): ").strip()
         
         if confirm.lower() == 'yes':
             Client.objects.all().delete()
@@ -160,16 +160,16 @@ def reset_tenants():
     return True
 
 def reset_users():
-    """Reset solo de usuarios (mantiene todo lo demás)"""
+    """Reset solo de usuarios (mantiene todo lo demÃ¡s)"""
     print("\n[+] Eliminando solo USUARIOS...")
     os.chdir(BACKEND_DIR)
     
     try:
-        from customers.models import Usuario
+        from apps.customers.models import Usuario
         count = Usuario.objects.count()
         
-        print(f"[?] Se eliminarán {count} usuarios")
-        confirm = input("¿Confirmar? (yes/no): ").strip()
+        print(f"[?] Se eliminarÃ¡n {count} usuarios")
+        confirm = input("Â¿Confirmar? (yes/no): ").strip()
         
         if confirm.lower() == 'yes':
             # Mantener al menos un admin
@@ -218,3 +218,4 @@ if __name__ == '__main__':
     django.setup()
     
     main()
+

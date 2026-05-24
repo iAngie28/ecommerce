@@ -12,9 +12,10 @@ export const getBaseDomain = (hostname) => {
     return process.env.REACT_APP_DOMAIN_MAIN;
   }
 
-  // 2. Manejo de localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
-    return 'localhost';
+  // 2. Manejo de IPs y localhost
+  const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
+  if (isIp || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
+    return hostname.endsWith('.localhost') ? 'localhost' : hostname;
   }
 
   // 3. Lógica para nip.io (muy común en desarrollo/VPS)
@@ -46,4 +47,43 @@ export const getApiUrl = (hostname, port = '8001') => {
   // IMPORTANTE: El API siempre se consulta al hostname actual para que el 
   // middleware de Django detecte el Tenant correctamente.
   return `${protocol}//${hostname}:${apiPort}/api`;
+};
+
+/**
+ * Determina si el hostname actual es el dominio principal (esquema public)
+ */
+export const isBaseDomain = (hostname) => {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+        return true;
+    }
+    if (hostname.endsWith('.localhost')) {
+        return false;
+    }
+    return hostname === getBaseDomain(hostname);
+};
+
+/**
+ * Obtiene la URL completa de una tienda (tenant) basándose en su subdominio o schema_name.
+ * Soporta nip.io para IPs, subdominios para producción y localhost.
+ */
+export const getTenantUrl = (subdomainStr, currentProtocol = null, currentPort = null) => {
+  const domainMain = process.env.REACT_APP_DOMAIN_MAIN || window.location.hostname;
+  const protocol = currentProtocol || window.location.protocol;
+  const port = currentPort || window.location.port;
+  const portSuffix = port ? `:${port}` : '';
+
+  const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(domainMain);
+
+  let suffix = '';
+  if (domainMain === 'localhost' || domainMain === '127.0.0.1') {
+      suffix = '.localhost';
+  } else if (isIp || domainMain.includes('nip.io')) {
+      const ip = isIp ? domainMain : getBaseDomain(domainMain);
+      suffix = `.${ip}.nip.io`;
+  } else {
+      // Producción normal: tienda1.miqhatu.com
+      suffix = `.${getBaseDomain(domainMain)}`;
+  }
+
+  return `${protocol}//${subdomainStr}${suffix}${portSuffix}`;
 };

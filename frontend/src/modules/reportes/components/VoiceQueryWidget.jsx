@@ -133,6 +133,7 @@ const VoiceQueryWidget = () => {
     const sendAudio = async (blob) => {
         setLoading(true);
         setResult(null);
+        setError(null);
         const formData = new FormData();
         formData.append('audio', blob, 'query.webm');
 
@@ -140,13 +141,39 @@ const VoiceQueryWidget = () => {
             const response = await api.post('vquery/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            setResult(response.data);
-            setError(null);
+            
+            if (response.data.task_id) {
+                pollTaskStatus(response.data.task_id);
+            } else {
+                setResult(response.data);
+                setLoading(false);
+            }
         } catch (err) {
             console.error('Error sending audio:', err);
             const msg = err.response?.data?.error || 'Error al procesar la consulta. Intenta ser más claro o verifica tu conexión.';
             setError(msg);
-        } finally {
+            setLoading(false);
+        }
+    };
+
+    const pollTaskStatus = async (taskId) => {
+        try {
+            const response = await api.get(`vquery/status/${taskId}/`);
+            const data = response.data;
+
+            if (data.status === 'SUCCESS') {
+                setResult(data);
+                setLoading(false);
+            } else if (data.status === 'FAILURE') {
+                setError(data.error || 'La tarea falló de forma inesperada.');
+                setLoading(false);
+            } else {
+                // PENDING or PROCESSING, check again in 2 seconds
+                setTimeout(() => pollTaskStatus(taskId), 2000);
+            }
+        } catch (err) {
+            console.error('Error polling task status:', err);
+            setError('Error al consultar el estado de la tarea.');
             setLoading(false);
         }
     };

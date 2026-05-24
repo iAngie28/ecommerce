@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'core/services/push_notification_service.dart';
 
 // 1. Importamos tu tema global
 import 'core/theme/app_theme.dart';
@@ -16,8 +19,18 @@ import 'gestion_cliente/screens/clientes_screen.dart';
 import 'gestion_reporte/screens/reportes_screen.dart';
 import 'gestion_producto/screens/inventario_screen.dart';
 import 'gestion_producto/screens/categorias_screen.dart';
+import 'gestion_usuario/screens/notifications_screen.dart';
 
-void main() {
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await PushNotificationService.initializeApp();
+
   runApp(const MyApp());
 }
 
@@ -33,6 +46,7 @@ class MyApp extends StatelessWidget {
       
       // Quitamos la etiqueta molesta de "DEBUG" arriba a la derecha
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       
       // ── LA LÓGICA DE RUTAS ──
       
@@ -52,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/reportes': (context) => const ReportesScreen(),
         '/inventario': (context) => const InventarioScreen(),
         '/configuracion': (context) => const ConfiguracionScreen(),
+        '/notificaciones': (context) => const NotificationsScreen(),
       },
     );
   }

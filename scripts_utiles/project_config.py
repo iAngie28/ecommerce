@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
-# SCRIPT DE CONFIGURACIÓN
+# SCRIPT DE CONFIGURACIÃ“N
 # ========================================================================
-# Gestiona configuración del ambiente
+# Gestiona configuraciÃ³n del ambiente
 # Uso: python scripts_utiles/config.py [comando]
 
 import os
@@ -19,11 +19,11 @@ def load_env():
     load_dotenv(env_file)
 
 def show_config():
-    """Muestra configuración actual"""
+    """Muestra configuraciÃ³n actual"""
     load_env()
     
     print("\n" + "="*60)
-    print("CONFIGURACIÓN ACTUAL")
+    print("CONFIGURACIÃ“N ACTUAL")
     print("="*60)
     
     vars_to_show = [
@@ -41,7 +41,7 @@ def show_config():
     
     for var in vars_to_show:
         value = os.getenv(var, '(no definido)')
-        # Ocultar contraseñas
+        # Ocultar contraseÃ±as
         if 'PASSWORD' in var:
             value = '***' if value else '(no definido)'
         print(f"  {var:<25} = {value}")
@@ -64,16 +64,16 @@ def setup_development():
     print(f"[i] .env actualizado: {env_file}")
 
 def setup_production():
-    """Configura para ambiente de producción"""
+    """Configura para ambiente de producciÃ³n"""
     env_file = PROJECT_ROOT / '.env'
     
-    print("\n[+] Configurando para PRODUCCIÓN...")
+    print("\n[+] Configurando para PRODUCCIÃ“N...")
     
     set_key(env_file, 'ENVIRONMENT', 'production')
     set_key(env_file, 'DEBUG', 'False')
     set_key(env_file, 'CORS_ALLOW_ALL_ORIGINS', 'False')
     
-    print("[!] Ingresa datos de producción:")
+    print("[!] Ingresa datos de producciÃ³n:")
     domain = input("  Dominio principal: ").strip()
     allowed_hosts = input("  Dominios adicionales (separados por coma): ").strip()
     
@@ -81,11 +81,11 @@ def setup_production():
     if allowed_hosts:
         set_key(env_file, 'DOMAIN_ALLOWED_HOSTS', allowed_hosts)
     
-    print("[OK] Ambiente configurado para PRODUCCIÓN")
-    print(f"[⚠] Recuerda cambiar SECRET_KEY en .env")
+    print("[OK] Ambiente configurado para PRODUCCIÃ“N")
+    print(f"[âš ] Recuerda cambiar SECRET_KEY en .env")
 
 def check_env():
-    """Verifica que el .env existe y es válido"""
+    """Verifica que el .env existe y es vÃ¡lido"""
     env_file = PROJECT_ROOT / '.env'
     
     if not env_file.exists():
@@ -123,15 +123,16 @@ def main():
             show_config()
     elif cmd == 'check':
         if check_env():
-            print("[OK] Configuración inicial verificada")
+            print("[OK] ConfiguraciÃ³n inicial verificada")
     else:
         print(f"[ERROR] Comando desconocido: {cmd}")
         print("\nComandos disponibles:")
-        print("  show   - Mostrar configuración actual")
+        print("  show   - Mostrar configuraciÃ³n actual")
         print("  check  - Verificar .env existe")
         print("  dev    - Configurar para DESARROLLO")
-        print("  prod   - Configurar para PRODUCCIÓN")
+        print("  prod   - Configurar para PRODUCCIÃ“N")
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
+

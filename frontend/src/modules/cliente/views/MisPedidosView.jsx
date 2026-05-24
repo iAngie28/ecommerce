@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, Calendar, ChevronRight } from 'lucide-react';
 import AppView from 'shared/widgets/AppView/AppView';
 import api from 'core/services/api';
-import { getBaseDomain } from 'core/utils/domain';
+import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
 import { Spinner } from 'shared/components';
 import styles from './ClientePortal.module.css';
 
@@ -17,7 +17,11 @@ const MisPedidosView = () => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('status') === 'success') {
             const pedidoId = params.get('pedido_id');
-            const tenant = params.get('tenant');
+            let tenant = params.get('tenant');
+            if (!tenant) {
+                const host = window.location.hostname;
+                tenant = isBaseDomain(host) ? 'public' : host.split('.')[0];
+            }
             if (pedidoId) {
                 api.post('/pagos/confirm-success/', { pedido_id: pedidoId, tenant: tenant })
                     .then(() => {
@@ -29,7 +33,7 @@ const MisPedidosView = () => {
         }
 
         const hostname = window.location.hostname;
-        const isBase = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '192.168.100.244';
+        const isBase = isBaseDomain(hostname);
         setIsGlobal(isBase);
 
         const fetchPedidos = async () => {
@@ -66,7 +70,7 @@ const MisPedidosView = () => {
                 ) : (
                     <div className={styles.orderList}>
                         {pedidos.map(pedido => (
-                            <div key={pedido.id} className={styles.orderItem}>
+                            <div key={`${pedido.schema_name || 'tenant'}_${pedido.id}`} className={styles.orderItem}>
                                 <div className={styles.orderIcon}>
                                     <Package size={20} />
                                 </div>

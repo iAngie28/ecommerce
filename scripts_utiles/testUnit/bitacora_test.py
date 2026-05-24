@@ -1,12 +1,12 @@
-import sys
+﻿import sys
 from django.db import transaction
-from customers.models import Bitacora, Usuario, Client
-from customers.services.bitacora_service import BitacoraService
+from apps.customers.models import Bitacora, Usuario, Client
+from apps.customers.audit.services.bitacora_service import BitacoraService
 
 def run_bitacora_test():
-    """Prueba Profesional del Sistema de Auditoría (Bitácora)"""
+    """Prueba Profesional del Sistema de AuditorÃ­a (BitÃ¡cora)"""
     print("\n" + "="*70)
-    print(f"{'TEST: AUDITORÍA Y SEGURIDAD (BITÁCORA)':^70}")
+    print(f"{'TEST: AUDITORÃA Y SEGURIDAD (BITÃCORA)':^70}")
     print("="*70)
     
     try:
@@ -26,7 +26,7 @@ def run_bitacora_test():
             print(f"    [OK] Escenario listo para: {user_admin.email}")
 
 
-            print("\n[2] Ejecutando acción de negocio con datos sensibles...")
+            print("\n[2] Ejecutando acciÃ³n de negocio con datos sensibles...")
             metadatos_producto = {
                 'id_producto': 77,
                 'nombre': 'IPhone 15 Pro',
@@ -40,14 +40,14 @@ def run_bitacora_test():
                 accion="CREAR",
                 metadatos=metadatos_producto
             )
-            print("    [OK] Acción registrada vía BitacoraService.")
+            print("    [OK] AcciÃ³n registrada vÃ­a BitacoraService.")
 
 
-            print("\n[3] Verificando integridad del registro de auditoría...")
+            print("\n[3] Verificando integridad del registro de auditorÃ­a...")
             registro = Bitacora.objects.filter(idUsuario=user_admin, modulo="Productos").first()
             
             if not registro:
-                print("    [ERROR] No se encontró el registro en la base de datos.")
+                print("    [ERROR] No se encontrÃ³ el registro en la base de datos.")
                 sys.exit(1)
 
 
@@ -57,7 +57,7 @@ def run_bitacora_test():
             if registro.metadatos.get('password_admin') == "********":
                 print("    [OK] SEGURIDAD: Los datos sensibles han sido correctamente enmascarados.")
             else:
-                print(f"    [ERROR] SEGURIDAD: Falló el filtro de datos sensibles. Valor: {registro.metadatos.get('password_admin')}")
+                print(f"    [ERROR] SEGURIDAD: FallÃ³ el filtro de datos sensibles. Valor: {registro.metadatos.get('password_admin')}")
                 sys.exit(1)
             ip = registro.metadatos.get('ip')
             origen = registro.metadatos.get('browser')
@@ -68,7 +68,7 @@ def run_bitacora_test():
                 sys.exit(1)
 
             print("\n" + "="*70)
-            print(f"{'RESULTADO FINAL: TEST DE AUDITORÍA SUPERADO':^70}")
+            print(f"{'RESULTADO FINAL: TEST DE AUDITORÃA SUPERADO':^70}")
             print("="*70)
             raise Exception("ROLLBACK_FORZADO_DE_PRUEBA")
 
@@ -76,5 +76,6 @@ def run_bitacora_test():
         if str(e) == "ROLLBACK_FORZADO_DE_PRUEBA":
             pass
         else:
-            print(f"\n[ERROR CRÍTICO] La prueba de bitácora ha fallado: {e}")
+            print(f"\n[ERROR CRÃTICO] La prueba de bitÃ¡cora ha fallado: {e}")
             sys.exit(1)
+

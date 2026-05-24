@@ -1,16 +1,16 @@
-import os
+﻿import os
 import django
 import random
 import socket
 from django.utils.crypto import get_random_string
 
-# 1. Configuración de Django
+# 1. ConfiguraciÃ³n de Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from django_tenants.utils import schema_context
-from app_negocio.models import Categoria, Producto, Pedido, Factura
-from customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
+from apps.negocio.models import Categoria, Producto, Pedido, Factura
+from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
 
 def obtener_ip_dominio():
     """Detecta la IP local para usar con nip.io o lee del .env"""
@@ -48,27 +48,27 @@ def crear_tienda_si_no_existe(schema, nombre, categoria, base_domain, plan):
     return tenant
 
 def ejecutar():
-    print("--- 🚀 Iniciando Sincronización de Datos Procedural ---")
+    print("--- ðŸš€ Iniciando SincronizaciÃ³n de Datos Procedural ---")
     base_domain = obtener_ip_dominio()
-    print(f"📍 Dominio Base detectado: {base_domain}")
+    print(f"ðŸ“ Dominio Base detectado: {base_domain}")
 
     # Asegurar Plan y Roles
     plan, _ = Plan.objects.get_or_create(nombre='Profesional', defaults={'precio': 99.0, 'limite_productos': 100})
     rol_admin, _ = Rol.objects.get_or_create(nombre='Administrador')
 
-    # Configuración de Tiendas a crear/poblar
+    # ConfiguraciÃ³n de Tiendas a crear/poblar
     config_tiendas = [
-        {'schema': 'tecno', 'nombre': 'Tecno Smart', 'cat': 'Electrónica'},
+        {'schema': 'tecno', 'nombre': 'Tecno Smart', 'cat': 'ElectrÃ³nica'},
         {'schema': 'moda', 'nombre': 'Moda Express', 'cat': 'Ropa'},
         {'schema': 'hogar', 'nombre': 'Hogar & Deco', 'cat': 'Hogar'}
     ]
 
     # Datos Maestros Procedurales
     datos_productos = {
-        'Electrónica': [
+        'ElectrÃ³nica': [
             ("Laptop Pro 14", 8500, "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500"),
             ("Smartphone Z", 4200, "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500"),
-            ("Audífonos BT", 800, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500")
+            ("AudÃ­fonos BT", 800, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500")
         ],
         'Ropa': [
             ("Chaqueta Jean", 350, "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500"),
@@ -76,8 +76,8 @@ def ejecutar():
             ("Gorra Classic", 120, "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500")
         ],
         'Hogar': [
-            ("Silla Ergonómica", 1200, "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500"),
-            ("Lámpara Minimal", 250, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500"),
+            ("Silla ErgonÃ³mica", 1200, "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500"),
+            ("LÃ¡mpara Minimal", 250, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500"),
             ("Mesa de Centro", 800, "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=500")
         ]
     }
@@ -89,7 +89,7 @@ def ejecutar():
     ]
 
     for conf in config_tiendas:
-        print(f"\n📦 Procesando Tienda: {conf['nombre']} ({conf['schema']})")
+        print(f"\nðŸ“¦ Procesando Tienda: {conf['nombre']} ({conf['schema']})")
         tenant = crear_tienda_si_no_existe(conf['schema'], conf['nombre'], conf['cat'], base_domain, plan)
 
         with schema_context(tenant.schema_name):
@@ -97,7 +97,7 @@ def ejecutar():
             Producto.objects.all().delete()
             Categoria.objects.all().delete()
 
-            # 2. Categoría Principal
+            # 2. CategorÃ­a Principal
             cat_obj, _ = Categoria.objects.get_or_create(nombre=conf['cat'])
 
             # 3. Productos Procedurales
@@ -136,7 +136,7 @@ def ejecutar():
                         nro_factura=f"FAC-{random.randint(1000, 9999)}"
                     )
 
-    print("\n✅ Sincronización finalizada. Datos maestros creados.")
+    print("\nâœ… SincronizaciÃ³n finalizada. Datos maestros creados.")
 
 if __name__ == "__main__":
     ejecutar()

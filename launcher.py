@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # ========================================================================
 # LANZADOR UNIVERSAL - WINDOWS / LINUX / MAC
 # ========================================================================
 # Menu interactivo multiplataforma.
-# Toda la lógica de negocio vive en scripts_utiles/*.py
-# Este archivo es SOLO navegación de menú.
+# Toda la lÃ³gica de negocio vive en scripts_utiles/*.py
+# Este archivo es SOLO navegaciÃ³n de menÃº.
 #
 # Uso: python launcher.py
 # ========================================================================
@@ -17,19 +17,19 @@ import platform
 import shutil
 from pathlib import Path
 
-# ── SO ───────────────────────────────────────────────────────────────────
+# â”€â”€ SO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 SISTEMA_OPERATIVO = platform.system()
 ES_WINDOWS = SISTEMA_OPERATIVO == 'Windows'
 ES_LINUX   = SISTEMA_OPERATIVO == 'Linux'
 ES_MAC     = SISTEMA_OPERATIVO == 'Darwin'
 
-# ── Rutas ─────────────────────────────────────────────────────────────────
+# â”€â”€ Rutas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 PROJECT_ROOT = Path(__file__).parent
 BACKEND_DIR  = PROJECT_ROOT / 'backend'
 FRONTEND_DIR = PROJECT_ROOT / 'frontend'
 SCRIPTS_DIR  = PROJECT_ROOT / 'scripts_utiles'
 
-# ── Colores ANSI ──────────────────────────────────────────────────────────
+# â”€â”€ Colores ANSI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class Colors:
     RED     = '\033[91m'
     GREEN   = '\033[92m'
@@ -46,7 +46,7 @@ class Colors:
     INFO    = '[i]'
     WARN    = '[!]'
 
-# ── Cargar .env ───────────────────────────────────────────────────────────
+# â”€â”€ Cargar .env â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def load_env_manual():
     env_vars = {}
     env_path = PROJECT_ROOT / '.env'
@@ -64,7 +64,7 @@ ENV_CONFIG   = load_env_manual()
 DJANGO_PORT  = ENV_CONFIG.get('DJANGO_PORT', '8001')
 REACT_PORT   = ENV_CONFIG.get('REACT_PORT',  '3000')
 
-# ── Presentación ──────────────────────────────────────────────────────────
+# â”€â”€ PresentaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def clear_screen():
     os.system('cls' if ES_WINDOWS else 'clear')
 
@@ -106,7 +106,7 @@ def loading_animation(duration=2, text="Cargando"):
 def pause():
     input(f"\n{Colors.BOLD}Presiona ENTER para continuar...{Colors.RESET}")
 
-# ── Ejecutor de scripts ───────────────────────────────────────────────────
+# â”€â”€ Ejecutor de scripts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def run_script(script_name, *args, use_venv=True):
     """Ejecuta un script en scripts_utiles/ con el Python del venv."""
     script_path = SCRIPTS_DIR / script_name
@@ -140,7 +140,7 @@ def run_script(script_name, *args, use_venv=True):
     finally:
         os.chdir(old_cwd)
 
-# ── Menú Flutter/Móvil ──────────────────────────────────────────────────
+# â”€â”€ MenÃº Flutter/MÃ³vil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _get_flutter_dart_defines():
     """Construye los flags --dart-define a partir del .env."""
     ip   = ENV_CONFIG.get('DOMAIN_MAIN', 'localhost')
@@ -170,7 +170,7 @@ def show_flutter_menu():
         clear_screen()
         ip   = ENV_CONFIG.get('DOMAIN_MAIN', '?')
         port = ENV_CONFIG.get('DJANGO_PORT', '8001')
-        print_header("APPS MÓVILES (Flutter)")
+        print_header("APPS MÃ“VILES (Flutter)")
         print_info(f"API configurada: {Colors.YELLOW}http://{ip}:{port}/api{Colors.RESET}")
         print_info(f"Sufijo tenants:  {Colors.YELLOW}.<ip>.nip.io{Colors.RESET}")
         print()
@@ -185,7 +185,7 @@ def show_flutter_menu():
         print_option(f"{Colors.CYAN}5{Colors.RESET} - flutter build apk  (release)")
         print_option(f"{Colors.CYAN}6{Colors.RESET} - flutter build apk --debug")
 
-        print_section("Configuración")
+        print_section("ConfiguraciÃ³n")
         print_option(f"{Colors.YELLOW}C{Colors.RESET} - Cambiar IP/Puerto de la API (edita .env)")
 
         print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver")
@@ -216,7 +216,7 @@ def show_flutter_menu():
         elif choice == 'c':
             new_ip = input(f"  Nueva IP/dominio del servidor [{ip}]: ").strip()
             if new_ip:
-                # Re-usar la función de escritura del launcher
+                # Re-usar la funciÃ³n de escritura del launcher
                 env_path = PROJECT_ROOT / '.env'
                 lines = []
                 found = False
@@ -239,45 +239,45 @@ def show_flutter_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida")
+            print_error("OpciÃ³n invÃ¡lida")
             time.sleep(1)
 
-# ── Menú Principal ────────────────────────────────────────────────────────
+# â”€â”€ MenÃº Principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_main_menu():
     while True:
         clear_screen()
         print_header("LANZADOR DE PROYECTO")
         print_section(f"Sistema Operativo: {SISTEMA_OPERATIVO}")
 
-        print_section("EJECUCIÓN")
+        print_section("EJECUCIÃ“N")
         print_option(f"{Colors.GREEN}1{Colors.RESET} - Iniciar Backend (Django)")
         print_option(f"{Colors.GREEN}2{Colors.RESET} - Iniciar Frontend (React)")
         print_option(f"{Colors.BOLD}{Colors.GREEN}3{Colors.RESET} - {Colors.BOLD}INICIAR TODO (Backend + Frontend){Colors.RESET}")
         print_option(f"{Colors.BOLD}{Colors.YELLOW}M{Colors.RESET} - {Colors.BOLD}SINCRONIZAR BASE DE DATOS (Migrations){Colors.RESET}")
 
-        print_section("APPS MÓVILES (Flutter)")
+        print_section("APPS MÃ“VILES (Flutter)")
         ip = ENV_CONFIG.get('DOMAIN_MAIN', '?')
         port = ENV_CONFIG.get('DJANGO_PORT', '8001')
-        print_option(f"{Colors.BOLD}{Colors.CYAN}F{Colors.RESET} - {Colors.BOLD}Apps Móviles (movil / mcliente){Colors.RESET}  {Colors.GRAY}→ API: {ip}:{port}{Colors.RESET}")
+        print_option(f"{Colors.BOLD}{Colors.CYAN}F{Colors.RESET} - {Colors.BOLD}Apps MÃ³viles (movil / mcliente){Colors.RESET}  {Colors.GRAY}â†’ API: {ip}:{port}{Colors.RESET}")
 
         print_section("DATOS Y USUARIOS")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Gestión de Base de Datos y Usuarios")
-        print_option(f"{Colors.CYAN}5{Colors.RESET} - Gestión de Usuarios (Acceso Rápido)")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - GestiÃ³n de Base de Datos y Usuarios")
+        print_option(f"{Colors.CYAN}5{Colors.RESET} - GestiÃ³n de Usuarios (Acceso RÃ¡pido)")
 
-        print_section("CONFIGURACIÓN Y SISTEMA")
-        print_option(f"{Colors.YELLOW}I{Colors.RESET} - Instalación Rápida (Plug & Play)")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Configuración de Entorno (.env)")
+        print_section("CONFIGURACIÃ“N Y SISTEMA")
+        print_option(f"{Colors.YELLOW}I{Colors.RESET} - InstalaciÃ³n RÃ¡pida (Plug & Play)")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - ConfiguraciÃ³n de Entorno (.env)")
         print_option(f"{Colors.CYAN}7{Colors.RESET} - Servicios del Sistema (Nginx / IP directa)")
         print_option(f"{Colors.CYAN}8{Colors.RESET} - Mantenimiento del Sistema")
 
         print_section("DESARROLLO")
         print_option(f"{Colors.BLUE}9{Colors.RESET}  - Consola de Pruebas (Django Shell)")
         print_option(f"{Colors.BLUE}10{Colors.RESET} - Todos los Scripts (Avanzado)")
-        print_option(f"{Colors.BLUE}11{Colors.RESET} - Información del Sistema")
+        print_option(f"{Colors.BLUE}11{Colors.RESET} - InformaciÃ³n del Sistema")
         print_option(f"{Colors.BLUE}12{Colors.RESET} - Ayuda General")
 
         print_section("PRUEBAS Y CALIDAD")
-        print_option(f"{Colors.MAGENTA}P{Colors.RESET} - Menú de Pruebas Unitarias")
+        print_option(f"{Colors.MAGENTA}P{Colors.RESET} - MenÃº de Pruebas Unitarias")
 
         print_option(f"\n{Colors.RED}0{Colors.RESET} - Salir")
         print()
@@ -320,35 +320,35 @@ def show_main_menu():
         elif choice == 'f':
             show_flutter_menu()
         elif choice == '0':
-            print_info("¡Adiós!")
+            print_info("Â¡AdiÃ³s!")
             sys.exit(0)
         else:
-            print_error("Opción inválida")
+            print_error("OpciÃ³n invÃ¡lida")
             time.sleep(1)
 
-# ── Menú de Datos ─────────────────────────────────────────────────────────
+# â”€â”€ MenÃº de Datos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_data_menu():
     while True:
         clear_screen()
-        print_header("GESTIÓN DE BASE DE DATOS Y DATOS")
+        print_header("GESTIÃ“N DE BASE DE DATOS Y DATOS")
 
-        print_section("1. Configuración")
-        print_option(f"{Colors.CYAN}1{Colors.RESET} - Configurar Conexión (db_config.py)")
-        print_option(f"{Colors.CYAN}2{Colors.RESET} - Probar Conexión")
+        print_section("1. ConfiguraciÃ³n")
+        print_option(f"{Colors.CYAN}1{Colors.RESET} - Configurar ConexiÃ³n (db_config.py)")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - Probar ConexiÃ³n")
 
         print_section("2. Estructura y Migraciones")
-        print_option(f"{Colors.BLUE}3{Colors.RESET} - Sincronización Total (makemigrations + migrate)")
+        print_option(f"{Colors.BLUE}3{Colors.RESET} - SincronizaciÃ³n Total (makemigrations + migrate)")
         print_option(f"{Colors.BLUE}4{Colors.RESET} - Ver historial de Migraciones")
 
         print_section("3. Contenido")
-        print_option(f"{Colors.YELLOW}5{Colors.RESET} - Gestión de Usuarios (CRUD Completo)")
+        print_option(f"{Colors.YELLOW}5{Colors.RESET} - GestiÃ³n de Usuarios (CRUD Completo)")
         print_option(f"{Colors.YELLOW}6{Colors.RESET} - Ejecutar Seeders (Poblar con datos de prueba)")
 
-        print_section("4. Reparación y Emergencia")
+        print_section("4. ReparaciÃ³n y Emergencia")
         print_option(f"{Colors.RED}F{Colors.RESET} - Reparar Migraciones (Error: Columna ya existe)")
 
-        print_section("4. Auditoría")
-        print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Ver Auditoría Reciente (Bitácora)")
+        print_section("4. AuditorÃ­a")
+        print_option(f"{Colors.MAGENTA}7{Colors.RESET} - Ver AuditorÃ­a Reciente (BitÃ¡cora)")
 
         print_section("5. Limpieza (CUIDADO)")
         print_option(f"{Colors.RED}8{Colors.RESET} - Resetear BD Completa")
@@ -376,7 +376,7 @@ def show_data_menu():
         elif choice == '7':
             run_script('testUnit/verify_audit.py'); pause()
         elif choice == '8':
-            if input(f"{Colors.RED}¿SEGURO? Borra todo. (s/n): {Colors.RESET}").lower() == 's':
+            if input(f"{Colors.RED}Â¿SEGURO? Borra todo. (s/n): {Colors.RESET}").lower() == 's':
                 run_script('db_reset.py', 'all')
             pause()
         elif choice == '9':
@@ -387,15 +387,15 @@ def show_data_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Menú de Usuarios ──────────────────────────────────────────────────────
+# â”€â”€ MenÃº de Usuarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_users_menu():
     while True:
         clear_screen()
-        print_header("GESTIÓN DE USUARIOS")
+        print_header("GESTIÃ“N DE USUARIOS")
 
-        print_section("Operaciones Básicas (CRUD)")
+        print_section("Operaciones BÃ¡sicas (CRUD)")
         print_option(f"{Colors.YELLOW}1{Colors.RESET} - Crear nuevo usuario")
         print_option(f"{Colors.YELLOW}2{Colors.RESET} - Listar usuarios")
         print_option(f"{Colors.YELLOW}3{Colors.RESET} - Editar usuario")
@@ -427,13 +427,13 @@ def show_users_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Menú de Configuración ─────────────────────────────────────────────────
+# â”€â”€ MenÃº de ConfiguraciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_config_menu():
     while True:
         clear_screen()
-        print_header("CONFIGURACIÓN")
+        print_header("CONFIGURACIÃ“N")
 
         print_section("Entorno")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Ver .env")
@@ -442,7 +442,7 @@ def show_config_menu():
 
         print_section("Proyecto")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Info del proyecto")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Configuración avanzada (project_config.py)")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - ConfiguraciÃ³n avanzada (project_config.py)")
         print_option(f"{Colors.CYAN}5{Colors.RESET} - Configurar Dominio SaaS")
 
         print_option(f"\n{Colors.RED}b{Colors.RESET} - Volver")
@@ -463,7 +463,7 @@ def show_config_menu():
         elif choice == 'r':
             _reset_env(); pause()
         elif choice == '3':
-            print_section("Información del Proyecto")
+            print_section("InformaciÃ³n del Proyecto")
             print(f"  Ruta:     {PROJECT_ROOT}")
             print(f"  Backend:  {BACKEND_DIR}")
             print(f"  Frontend: {FRONTEND_DIR}")
@@ -476,7 +476,7 @@ def show_config_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
 def _open_file(path):
     if ES_WINDOWS:
@@ -490,7 +490,7 @@ def _open_file(path):
 def _reset_env():
     env_file = PROJECT_ROOT / '.env'
     template = PROJECT_ROOT / '.env.example'
-    if input(f"{Colors.YELLOW}¿Restablecer .env? Se perderán cambios. (s/n): {Colors.RESET}").lower() == 's':
+    if input(f"{Colors.YELLOW}Â¿Restablecer .env? Se perderÃ¡n cambios. (s/n): {Colors.RESET}").lower() == 's':
         if template.exists():
             shutil.copy(template, env_file)
             print_success(".env restablecido desde plantilla")
@@ -543,14 +543,14 @@ def _write_env_key(key, value):
     with open(env_path, 'w', encoding='utf-8') as f:
         f.writelines(lines)
 
-# ── Menú de Servicios (Nginx / IP) ────────────────────────────────────────
+# â”€â”€ MenÃº de Servicios (Nginx / IP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_services_menu():
     while True:
         clear_screen()
         print_header("SERVICIOS DEL SISTEMA")
 
         print_section("Crear paquete completo de servicios")
-        print_option(f"  {Colors.GREEN}1{Colors.RESET} - {Colors.BOLD}Con Nginx{Colors.RESET} (Producción: gunicorn + build + Nginx)")
+        print_option(f"  {Colors.GREEN}1{Colors.RESET} - {Colors.BOLD}Con Nginx{Colors.RESET} (ProducciÃ³n: gunicorn + build + Nginx)")
         print_option(f"  {Colors.CYAN}2{Colors.RESET} - {Colors.BOLD}IP directa{Colors.RESET} (Sin Nginx: puertos directos)")
 
         print_section("Mantenimiento")
@@ -585,23 +585,23 @@ def show_services_menu():
         elif choice == '7':
             run_script('query_domains.py'); pause()
         elif choice == 'd':
-            if input(f"{Colors.RED}  ¿Eliminar TODOS los servicios? (s/n): {Colors.RESET}").lower() == 's':
+            if input(f"{Colors.RED}  Â¿Eliminar TODOS los servicios? (s/n): {Colors.RESET}").lower() == 's':
                 run_script('nginx_config.py', 'delete-all')
             pause()
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Menú de Mantenimiento ─────────────────────────────────────────────────
+# â”€â”€ MenÃº de Mantenimiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_system_menu():
     while True:
         clear_screen()
-        print_header("GESTIÓN DE SISTEMA Y MANTENIMIENTO")
+        print_header("GESTIÃ“N DE SISTEMA Y MANTENIMIENTO")
 
-        print_section("Actualización")
+        print_section("ActualizaciÃ³n")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - Actualizar Django (pip install)")
-        print_option(f"{Colors.CYAN}2{Colors.RESET} - Reinstalación limpia de Frontend (npm install)")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - ReinstalaciÃ³n limpia de Frontend (npm install)")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - Actualizar Sistema Operativo (apt)")
 
         print_section("Seguridad y VPS")
@@ -634,9 +634,9 @@ def show_system_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Menú VPS ──────────────────────────────────────────────────────────────
+# â”€â”€ MenÃº VPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_vps_menu():
     while True:
         clear_screen()
@@ -644,8 +644,8 @@ def show_vps_menu():
 
         print_section("Resiliencia y Monitoreo")
         print_option(f"{Colors.GREEN}1{Colors.RESET} - Estado y Auto-Healing")
-        print_option(f"{Colors.CYAN}2{Colors.RESET} - Auditoría de Firewall (UFW)")
-        print_option(f"{Colors.CYAN}3{Colors.RESET} - Prueba de Renovación SSL")
+        print_option(f"{Colors.CYAN}2{Colors.RESET} - AuditorÃ­a de Firewall (UFW)")
+        print_option(f"{Colors.CYAN}3{Colors.RESET} - Prueba de RenovaciÃ³n SSL")
 
         print_section("Respaldos")
         print_option(f"{Colors.YELLOW}S{Colors.RESET} - Crear SNAPSHOT")
@@ -679,7 +679,7 @@ def show_vps_menu():
             _deep_clean_frontend(); pause()
         elif choice == '5':
             user = input("Nombre de usuario: ")
-            pw   = input("Contraseña: ")
+            pw   = input("ContraseÃ±a: ")
             run_script('vps.py', 'user', 'CREATE', user, pw); pause()
         elif choice == '8':
             print_info("Sincronizando reloj con America/La_Paz...")
@@ -690,12 +690,12 @@ def show_vps_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
 def _deep_clean_frontend():
     print_header("LIMPIEZA PROFUNDA FRONTEND")
-    print_warning("Detendrá el frontend, borrará 'build' y lo reconstruirá.")
-    if input("¿Continuar? (s/n): ").lower() != 's':
+    print_warning("DetendrÃ¡ el frontend, borrarÃ¡ 'build' y lo reconstruirÃ¡.")
+    if input("Â¿Continuar? (s/n): ").lower() != 's':
         return
     subprocess.run(['sudo', 'systemctl', 'stop', 'frontend_saas'], check=False)
     subprocess.run(['sudo', 'fuser', '-k', '3000/tcp'], capture_output=True)
@@ -711,11 +711,11 @@ def _deep_clean_frontend():
     subprocess.run(['sudo', 'systemctl', 'start', 'frontend_saas'], check=False)
     print_success("Servicio Frontend reiniciado")
 
-# ── Menú Scripts ──────────────────────────────────────────────────────────
+# â”€â”€ MenÃº Scripts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_scripts_menu():
     while True:
         clear_screen()
-        print_header("SCRIPTS ÚTILES")
+        print_header("SCRIPTS ÃšTILES")
         print_option(f"{Colors.CYAN}1{Colors.RESET} - db_reset.py")
         print_option(f"{Colors.CYAN}2{Colors.RESET} - db_seed.py")
         print_option(f"{Colors.CYAN}3{Colors.RESET} - manage_users.py")
@@ -731,25 +731,25 @@ def show_scripts_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Menú Pruebas ──────────────────────────────────────────────────────────
+# â”€â”€ MenÃº Pruebas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_tests_menu():
     while True:
         clear_screen()
-        print_header("MENÚ DE PRUEBAS UNITARIAS")
+        print_header("MENÃš DE PRUEBAS UNITARIAS")
 
-        print_section("1. Pruebas Estándar (Django)")
+        print_section("1. Pruebas EstÃ¡ndar (Django)")
         print_option(f"{Colors.MAGENTA}1{Colors.RESET} - Ejecutar Todos los Tests")
-        print_option(f"{Colors.MAGENTA}2{Colors.RESET} - Tests Módulo Usuarios")
-        print_option(f"{Colors.MAGENTA}3{Colors.RESET} - Tests Módulo Negocio")
+        print_option(f"{Colors.MAGENTA}2{Colors.RESET} - Tests MÃ³dulo Usuarios")
+        print_option(f"{Colors.MAGENTA}3{Colors.RESET} - Tests MÃ³dulo Negocio")
 
         print_section("2. Escenarios de Integridad")
-        print_option(f"{Colors.CYAN}4{Colors.RESET} - Chequeo de Conexión y Esquemas")
+        print_option(f"{Colors.CYAN}4{Colors.RESET} - Chequeo de ConexiÃ³n y Esquemas")
         print_option(f"{Colors.CYAN}5{Colors.RESET} - Prueba de Integridad de Datos")
-        print_option(f"{Colors.CYAN}6{Colors.RESET} - Prueba de Auditoría")
+        print_option(f"{Colors.CYAN}6{Colors.RESET} - Prueba de AuditorÃ­a")
         print_option(f"{Colors.CYAN}7{Colors.RESET} - Ejecutar Pack Completo (Sprint 1)")
-        print_option(f"{Colors.CYAN}8{Colors.RESET} - Ver Bitácora / Auditoría")
+        print_option(f"{Colors.CYAN}8{Colors.RESET} - Ver BitÃ¡cora / AuditorÃ­a")
 
         print_section("3. Mantenimiento")
         print_option(f"{Colors.YELLOW}9{Colors.RESET}  - Verificar Migraciones Pendientes")
@@ -763,7 +763,7 @@ def show_tests_menu():
         test_cmds = {
             '1': ['test.py', 'django'],
             '2': ['test.py', 'django', 'customers'],
-            '3': ['test.py', 'django', 'app_negocio'],
+            '3': ['test.py', 'django', 'negocio'],
             '5': ['test.py', 'integrity'],
             '6': ['test.py', 'bitacora'],
             '7': ['test.py', 'sprint1'],
@@ -780,12 +780,12 @@ def show_tests_menu():
         elif choice == 'b':
             break
         else:
-            print_error("Opción inválida"); time.sleep(1)
+            print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# ── Info del Sistema ──────────────────────────────────────────────────────
+# â”€â”€ Info del Sistema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_system_info():
     clear_screen()
-    print_header("INFORMACIÓN DEL SISTEMA")
+    print_header("INFORMACIÃ“N DEL SISTEMA")
 
     print(f"\n{Colors.BOLD}Sistema Operativo:{Colors.RESET}")
     print(f"  {SISTEMA_OPERATIVO} {platform.release()}")
@@ -814,21 +814,21 @@ def show_system_info():
 
     pause()
 
-# ── Ayuda ─────────────────────────────────────────────────────────────────
+# â”€â”€ Ayuda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def show_help():
     clear_screen()
     print_header("AYUDA")
     print(f"{Colors.BOLD}Estructura del proyecto:{Colors.RESET}")
-    print("  launcher.py          → Este menú interactivo")
-    print("  scripts_utiles/      → Toda la lógica de negocio:")
-    print("    run_services.py    → Arrancar backend/frontend")
-    print("    nginx_config.py    → Servicios systemd + Nginx")
-    print("    db_seed.py         → Poblar la base de datos")
-    print("    db_reset.py        → Resetear la base de datos")
-    print("    manage_users.py    → CRUD de usuarios")
-    print("    fix_tenant_domains.py → Sanear dominios inválidos")
-    print("    system_manager.py  → Actualización y salud del sistema")
-    print("    vps.py             → Control avanzado del VPS")
+    print("  launcher.py          â†’ Este menÃº interactivo")
+    print("  scripts_utiles/      â†’ Toda la lÃ³gica de negocio:")
+    print("    run_services.py    â†’ Arrancar backend/frontend")
+    print("    nginx_config.py    â†’ Servicios systemd + Nginx")
+    print("    db_seed.py         â†’ Poblar la base de datos")
+    print("    db_reset.py        â†’ Resetear la base de datos")
+    print("    manage_users.py    â†’ CRUD de usuarios")
+    print("    fix_tenant_domains.py â†’ Sanear dominios invÃ¡lidos")
+    print("    system_manager.py  â†’ ActualizaciÃ³n y salud del sistema")
+    print("    vps.py             â†’ Control avanzado del VPS")
 
     print(f"\n{Colors.BOLD}Requisitos:{Colors.RESET}")
     print("  - Python 3.8+")
@@ -836,7 +836,7 @@ def show_help():
     print("  - PostgreSQL 12+")
     pause()
 
-# ── Main ──────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def main():
     show_main_menu()
 
@@ -849,3 +849,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"{Colors.RED}Error: {e}{Colors.RESET}")
         sys.exit(1)
+

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import subprocess
 import platform
@@ -29,7 +29,7 @@ def is_root():
 def check_firewall():
     """Verifica estado del firewall UFW y puertos SaaS"""
     print("\n" + "="*50)
-    print("AUDITORÍA DE SEGURIDAD (FW)")
+    print("AUDITORÃA DE SEGURIDAD (FW)")
     print("="*50)
     
     if not is_linux():
@@ -47,7 +47,7 @@ def check_firewall():
             else:
                 print(f"  [AVISO] Puerto {p} no detectado en UFW")
     except:
-        print("[!] UFW no está instalado o activo")
+        print("[!] UFW no estÃ¡ instalado o activo")
     print("="*50 + "\n")
 
 def system_clean():
@@ -64,17 +64,17 @@ def system_clean():
     # Limpiar archivos .pyc y __pycache__
     try:
         subprocess.run(f"find {PROJECT_ROOT} -type d -name '__pycache__' -exec rm -rf {{}} +", shell=True)
-        print("[OK] Caché de Python (__pycache__) eliminada")
+        print("[OK] CachÃ© de Python (__pycache__) eliminada")
     except: pass
     
     print("[Exito] Limpieza de sistema completada")
 
 # ========================================================================
-# AUTO-HEALING (AUTO-REPARACIÓN)
+# AUTO-HEALING (AUTO-REPARACIÃ“N)
 # ========================================================================
 
 def auto_heal():
-    """Escanea servicios y reinicia si están muertos"""
+    """Escanea servicios y reinicia si estÃ¡n muertos"""
     print("[+] Ejecutando escaneo de Auto-Healing...")
     services = ['nginx', 'postgresql', 'django_saas', 'frontend_saas']
     
@@ -86,12 +86,12 @@ def auto_heal():
     for svc in services:
         result = subprocess.run(f"systemctl is-active {svc}", shell=True, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"[AVISO] {svc} está CAÍDO. Intentando reanimación...")
+            print(f"[AVISO] {svc} estÃ¡ CAÃDO. Intentando reanimaciÃ³n...")
             subprocess.run(f"systemctl restart {svc}", shell=True)
             healed += 1
     
     if healed == 0:
-        print("[OK] Todos los servicios están saludables")
+        print("[OK] Todos los servicios estÃ¡n saludables")
     else:
         print(f"[Hecho] Se han reanimado {healed} servicios")
 
@@ -129,7 +129,7 @@ sys.path.append(str(Path(__file__).parent.parent / 'backend'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from customers.models import RespaldoSistema
+from apps.customers.models import RespaldoSistema
 from django.conf import settings
 import subprocess
 
@@ -156,7 +156,7 @@ def run():
             MAGIC = b"MQHT-V1-BIN"
             
             if not blob.startswith(MAGIC):
-                print("Error: Formato de snapshot inválido")
+                print("Error: Formato de snapshot invÃ¡lido")
                 return
             
             # Extraer checksum y datos
@@ -166,7 +166,7 @@ def run():
             
             # Verificar integridad
             if hashlib.sha256(compressed).hexdigest() != checksum:
-                print("Error: El snapshot está corrupto (checksum mismatch)")
+                print("Error: El snapshot estÃ¡ corrupto (checksum mismatch)")
                 return
             
             sql_data = zlib.decompress(compressed)
@@ -183,7 +183,7 @@ def run():
             print("\\n[EXITO] Sistema restaurado al estado del snapshot.")
             
         except Exception as e:
-            print(f"Error en restauración: {e}")
+            print(f"Error en restauraciÃ³n: {e}")
             
     else:
         nombre = target
@@ -233,7 +233,7 @@ def restore_internal():
     
     script_helper = PROJECT_ROOT / 'scripts_utiles' / 'internal_backup_helper.py'
     
-    # Añadir lógica de restore al helper (proyectado)
+    # AÃ±adir lÃ³gica de restore al helper (proyectado)
     print("[!] Listando snapshots disponibles en la base de datos...")
     # Por ahora ejecutamos el script con flag restore
     subprocess.run([python_exe, str(script_helper), "LIST_AND_RESTORE"])
@@ -265,7 +265,7 @@ def check_services():
     for svc in services:
         if is_linux():
             res = subprocess.run(f"systemctl is-active {svc}", shell=True, capture_output=True, text=True)
-            status = "✓ ACTIVO" if res.returncode == 0 else "✗ INACTIVO"
+            status = "âœ“ ACTIVO" if res.returncode == 0 else "âœ— INACTIVO"
         else:
             status = "? (Windows)"
         print(f"  {svc:<20} {status}")
@@ -274,17 +274,17 @@ def check_services():
 def main():
     if len(sys.argv) < 2:
         print("Uso: python vps.py [comando]")
-        print("\nADMINISTRACIÓN SAAS:")
+        print("\nADMINISTRACIÃ“N SAAS:")
         print("  services STATUS        - Ver salud de servicios")
-        print("  services AUTOHEAL      - Reanimar servicios caídos")
-        print("  security FW            - Auditoría de Firewall")
+        print("  services AUTOHEAL      - Reanimar servicios caÃ­dos")
+        print("  security FW            - AuditorÃ­a de Firewall")
         print("  system CLEAN           - Limpieza de logs y temporales")
         print("\nRESPALDOS (BASE DE DATOS):")
         print("  backup SNAPSHOT [name] - Crear Snapshot INTERNO (Proprietary MQHT)")
         print("  backup RESTORE         - Listar y restaurar Snapshots")
-        print("\nCONFIGURACIÓN VPS:")
+        print("\nCONFIGURACIÃ“N VPS:")
         print("  user CREATE user pass  - Crear usuario del sistema")
-        print("  ssl RENEW              - Probar renovación SSL")
+        print("  ssl RENEW              - Probar renovaciÃ³n SSL")
         sys.exit(1)
     
     cmd = sys.argv[1]
@@ -318,3 +318,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

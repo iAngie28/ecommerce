@@ -7,16 +7,15 @@ class ReportRepository {
   final ApiClient _apiClient = ApiClient();
   final SecureStorageService _storage = SecureStorageService();
 
-  Future<String> _getVQueryUrl() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty) {
-      throw Exception('No hay tenant configurado.');
-    }
-    return '${ApiConstants.tenantBaseUrl(schemaName)}${ApiConstants.vquery}';
+  Future<String?> _buildUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}${ApiConstants.vquery}';
   }
 
   Future<Map<String, dynamic>> sendVoiceQuery(String filePath) async {
-    final url = await _getVQueryUrl();
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     
     final response = await _apiClient.multipartPost(
       url,
