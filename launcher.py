@@ -17,19 +17,19 @@ import platform
 import shutil
 from pathlib import Path
 
-# â”€â”€ SO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === SO ===
 SISTEMA_OPERATIVO = platform.system()
 ES_WINDOWS = SISTEMA_OPERATIVO == 'Windows'
 ES_LINUX   = SISTEMA_OPERATIVO == 'Linux'
 ES_MAC     = SISTEMA_OPERATIVO == 'Darwin'
 
-# â”€â”€ Rutas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Rutas ===
 PROJECT_ROOT = Path(__file__).parent
 BACKEND_DIR  = PROJECT_ROOT / 'backend'
 FRONTEND_DIR = PROJECT_ROOT / 'frontend'
 SCRIPTS_DIR  = PROJECT_ROOT / 'scripts_utiles'
 
-# â”€â”€ Colores ANSI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Colores ANSI ===
 class Colors:
     RED     = '\033[91m'
     GREEN   = '\033[92m'
@@ -46,7 +46,7 @@ class Colors:
     INFO    = '[i]'
     WARN    = '[!]'
 
-# â”€â”€ Cargar .env â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Cargar .env ===
 def load_env_manual():
     env_vars = {}
     env_path = PROJECT_ROOT / '.env'
@@ -64,7 +64,7 @@ ENV_CONFIG   = load_env_manual()
 DJANGO_PORT  = ENV_CONFIG.get('DJANGO_PORT', '8001')
 REACT_PORT   = ENV_CONFIG.get('REACT_PORT',  '3000')
 
-# â”€â”€ PresentaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === PresentaciÃ³n ===
 def clear_screen():
     os.system('cls' if ES_WINDOWS else 'clear')
 
@@ -106,7 +106,7 @@ def loading_animation(duration=2, text="Cargando"):
 def pause():
     input(f"\n{Colors.BOLD}Presiona ENTER para continuar...{Colors.RESET}")
 
-# â”€â”€ Ejecutor de scripts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Ejecutor de scripts ===
 def run_script(script_name, *args, use_venv=True):
     """Ejecuta un script en scripts_utiles/ con el Python del venv."""
     script_path = SCRIPTS_DIR / script_name
@@ -140,7 +140,7 @@ def run_script(script_name, *args, use_venv=True):
     finally:
         os.chdir(old_cwd)
 
-# â”€â”€ MenÃº Flutter/MÃ³vil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº Flutter/MÃ³vil ===
 def _get_flutter_dart_defines():
     """Construye los flags --dart-define a partir del .env."""
     ip   = ENV_CONFIG.get('DOMAIN_MAIN', 'localhost')
@@ -242,7 +242,7 @@ def show_flutter_menu():
             print_error("OpciÃ³n invÃ¡lida")
             time.sleep(1)
 
-# â”€â”€ MenÃº Principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº Principal ===
 def show_main_menu():
     while True:
         clear_screen()
@@ -326,7 +326,7 @@ def show_main_menu():
             print_error("OpciÃ³n invÃ¡lida")
             time.sleep(1)
 
-# â”€â”€ MenÃº de Datos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº de Datos ===
 def show_data_menu():
     while True:
         clear_screen()
@@ -389,7 +389,7 @@ def show_data_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ MenÃº de Usuarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº de Usuarios ===
 def show_users_menu():
     while True:
         clear_screen()
@@ -429,7 +429,7 @@ def show_users_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ MenÃº de ConfiguraciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº de ConfiguraciÃ³n ===
 def show_config_menu():
     while True:
         clear_screen()
@@ -543,7 +543,7 @@ def _write_env_key(key, value):
     with open(env_path, 'w', encoding='utf-8') as f:
         f.writelines(lines)
 
-# â”€â”€ MenÃº de Servicios (Nginx / IP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº de Servicios (Nginx / IP) ===
 def show_services_menu():
     while True:
         clear_screen()
@@ -593,7 +593,7 @@ def show_services_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ MenÃº de Mantenimiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº de Mantenimiento ===
 def show_system_menu():
     while True:
         clear_screen()
@@ -636,7 +636,7 @@ def show_system_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ MenÃº VPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº VPS ===
 def show_vps_menu():
     while True:
         clear_screen()
@@ -711,7 +711,7 @@ def _deep_clean_frontend():
     subprocess.run(['sudo', 'systemctl', 'start', 'frontend_saas'], check=False)
     print_success("Servicio Frontend reiniciado")
 
-# â”€â”€ MenÃº Scripts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº Scripts ===
 def show_scripts_menu():
     while True:
         clear_screen()
@@ -733,7 +733,7 @@ def show_scripts_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ MenÃº Pruebas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === MenÃº Pruebas ===
 def show_tests_menu():
     while True:
         clear_screen()
@@ -782,7 +782,7 @@ def show_tests_menu():
         else:
             print_error("OpciÃ³n invÃ¡lida"); time.sleep(1)
 
-# â”€â”€ Info del Sistema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Info del Sistema ===
 def show_system_info():
     clear_screen()
     print_header("INFORMACIÃ“N DEL SISTEMA")
@@ -814,7 +814,7 @@ def show_system_info():
 
     pause()
 
-# â”€â”€ Ayuda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# === Ayuda ===
 def show_help():
     clear_screen()
     print_header("AYUDA")

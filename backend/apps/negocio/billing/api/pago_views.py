@@ -197,7 +197,7 @@ class PagoViewSet(viewsets.ViewSet):
     def _marcar_pagado(self, pedido_id):
         try:
             pedido = Pedido.objects.get(id=pedido_id)
-            if pedido.estado != 'PAGADO':
+            if pedido.estado == 'PENDIENTE':
                 pedido.estado = 'PAGADO'
                 pedido.save()
                 

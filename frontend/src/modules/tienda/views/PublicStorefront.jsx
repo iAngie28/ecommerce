@@ -426,14 +426,19 @@ const PublicStorefront = () => {
                                                 <span className={styles.currency}>Bs.</span>
                                                 <span className={styles.priceValue}>{parseFloat(prod.precio).toFixed(2)}</span>
                                             </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                                                Stock disponible: <strong>{prod.stock}</strong>
+                                            </div>
                                             <button
                                                 className={styles.addToCartBtn}
+                                                style={prod.stock <= 0 ? { backgroundColor: 'var(--color-text-muted)', cursor: 'not-allowed' } : {}}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    addToCart(prod);
+                                                    if (prod.stock > 0) addToCart(prod);
                                                 }}
+                                                disabled={prod.stock <= 0}
                                             >
-                                                Agregar al carrito
+                                                {prod.stock <= 0 ? 'Agotado' : 'Agregar al carrito'}
                                             </button>
                                         </div>
                                     </div>
@@ -475,7 +480,11 @@ const PublicStorefront = () => {
                                                         <div className={styles.qtyControls}>
                                                             <button onClick={() => updateQuantity(item.id, -1)}>-</button>
                                                             <span>{item.quantity}</span>
-                                                            <button onClick={() => updateQuantity(item.id, 1)}>+</button>
+                                                            <button 
+                                                                onClick={() => updateQuantity(item.id, 1)}
+                                                                disabled={item.quantity >= item.stock}
+                                                                style={{ opacity: item.quantity >= item.stock ? 0.5 : 1, cursor: item.quantity >= item.stock ? 'not-allowed' : 'pointer' }}
+                                                            >+</button>
                                                         </div>
                                                     </div>
                                                     <div className={styles.itemPrice}>
@@ -590,13 +599,15 @@ const PublicStorefront = () => {
                                 <Button 
                                     variant="primary"
                                     onClick={() => {
-                                        addToCart(selectedProduct);
-                                        setSelectedProduct(null);
+                                        if (selectedProduct.stock > 0) {
+                                            addToCart(selectedProduct);
+                                            setSelectedProduct(null);
+                                        }
                                     }}
                                     disabled={selectedProduct.stock <= 0}
                                 >
                                     <ShoppingCart size={20} style={{marginRight: '10px'}} />
-                                    Agregar al carrito
+                                    {selectedProduct.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
                                 </Button>
                             </div>
                         </div>

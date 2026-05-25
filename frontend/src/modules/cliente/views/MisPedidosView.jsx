@@ -9,6 +9,7 @@ import styles from './ClientePortal.module.css';
 const MisPedidosView = () => {
     const [pedidos, setPedidos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [expandedPedidoId, setExpandedPedidoId] = useState(null);
 
     const [isGlobal, setIsGlobal] = useState(false);
 
@@ -39,7 +40,8 @@ const MisPedidosView = () => {
         const fetchPedidos = async () => {
             try {
                 // Si estamos en el dominio base, buscamos en todas las tiendas
-                const endpoint = isBase ? '/pedidos/global-list/' : '/pedidos/';
+                const baseUrl = isBase ? '/pedidos/global-list/' : '/pedidos/';
+                const endpoint = `${baseUrl}?_t=${new Date().getTime()}`;
                 const res = await api.get(endpoint);
                 const data = res.data?.results || res.data || [];
                 setPedidos(Array.isArray(data) ? data : []);
@@ -50,6 +52,10 @@ const MisPedidosView = () => {
             }
         };
         fetchPedidos();
+        
+        // Auto-refresh cada 5 segundos para mantener el estado sincronizado en vivo
+        const intervalId = setInterval(fetchPedidos, 5000);
+        return () => clearInterval(intervalId);
     }, []);
 
     return (
@@ -69,100 +75,184 @@ const MisPedidosView = () => {
                     </div>
                 ) : (
                     <div className={styles.orderList}>
-                        {pedidos.map(pedido => (
-                            <div key={`${pedido.schema_name || 'tenant'}_${pedido.id}`} className={styles.orderItem}>
-                                <div className={styles.orderIcon}>
-                                    <Package size={20} />
-                                </div>
-                                <div className={styles.orderInfo}>
-                                    <span className={styles.orderId}>Pedido #{pedido.id}</span>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <Calendar size={12} />
-                                        <span className={styles.orderDate}>{new Date(pedido.fecha_creacion).toLocaleDateString()}</span>
+                        {pedidos.map(pedido => {
+                            const isExpanded = expandedPedidoId === `${pedido.schema_name}_${pedido.id}`;
+                            
+                            return (
+                            <div key={`${pedido.schema_name || 'tenant'}_${pedido.id}`} 
+                                 className={`${styles.orderItem} ${isExpanded ? styles.expanded : ''}`}
+                                 style={{ display: 'flex', flexDirection: 'column', gap: '0' }}
+                            >
+                                {/* Header del Pedido */}
+                                <div 
+                                    style={{ display: 'flex', alignItems: 'center', width: '100%', cursor: 'pointer', padding: '16px' }}
+                                    onClick={() => setExpandedPedidoId(isExpanded ? null : `${pedido.schema_name}_${pedido.id}`)}
+                                >
+                                    <div className={styles.orderIcon}>
+                                        <Package size={20} />
                                     </div>
-                                </div>
-                                <div className={styles.orderStatus}>
-                                    <span className={`${styles.statusBadge} ${styles[pedido.estado.toLowerCase()] || ''}`}>
-                                        {pedido.estado}
-                                    </span>
-                                </div>
-                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <span className={styles.orderTotal}>BS. {parseFloat(pedido.total_pedido || 0).toFixed(2)}</span>
-                                    
-                                    {pedido.estado.toLowerCase() === 'pendiente' && (
-                                        <button 
-                                            className={styles.payBtn}
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                const btn = e.currentTarget;
-                                                if (btn.disabled) return;
-                                                
-                                                btn.disabled = true;
-                                                const originalText = btn.innerText;
-                                                btn.innerText = "Procesando...";
-
-                                                try {
-                                                    const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
-                                                    const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
-                                                    const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
+                                    <div className={styles.orderInfo}>
+                                        <span className={styles.orderId}>Pedido #{pedido.schema_name ? `${pedido.schema_name.toUpperCase()}-` : ''}{pedido.id}</span>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <Calendar size={12} />
+                                            <span className={styles.orderDate}>{new Date(pedido.fecha_creacion).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.orderStatus} style={{ flex: 1, padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
+                                            <span style={{ color: ['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-primary)' : '' }}>PENDIENTE</span>
+                                            <span style={{ color: ['PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-info)' : '' }}>PAGADO</span>
+                                            <span style={{ color: ['PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-warning)' : '' }}>PROCESADO</span>
+                                            <span style={{ color: ['ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-success)' : '' }}>ENVIADO</span>
+                                            <span style={{ color: ['ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-success)' : '' }}>ENTREGADO</span>
+                                        </div>
+                                        <div style={{ display: 'flex', height: '6px', background: 'var(--color-surface-2)', borderRadius: '3px', overflow: 'hidden' }}>
+                                            <div style={{ flex: 1, background: ['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-primary)' : 'transparent' }}></div>
+                                            <div style={{ flex: 1, background: ['PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-info)' : 'transparent' }}></div>
+                                            <div style={{ flex: 1, background: ['PROCESADO', 'ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-warning)' : 'transparent' }}></div>
+                                            <div style={{ flex: 1, background: ['ENVIADO', 'ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-success)' : 'transparent' }}></div>
+                                            <div style={{ flex: 1, background: ['ENTREGADO'].includes(pedido.estado.toUpperCase()) ? 'var(--color-success)' : 'transparent' }}></div>
+                                        </div>
+                                        <span className={`${styles.statusBadge} ${styles[pedido.estado.toLowerCase()] || ''}`} style={{ alignSelf: 'flex-start' }}>
+                                            {pedido.estado}
+                                        </span>
+                                    </div>
+                                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: 'auto', marginRight: '16px' }}>
+                                        <span className={styles.orderTotal}>BS. {parseFloat(pedido.total_pedido || 0).toFixed(2)}</span>
+                                        
+                                        {pedido.estado.toLowerCase() === 'pendiente' && (
+                                            <button 
+                                                className={styles.payBtn}
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const btn = e.currentTarget;
+                                                    if (btn.disabled) return;
                                                     
-                                                    const res = await api.post(`${baseUrl}/pagos/create-checkout-session/`, {
-                                                        pedido_id: pedido.id,
-                                                        success_url: window.location.href + (window.location.href.includes('?') ? '&' : '?') + `status=success&pedido_id=${pedido.id}&tenant=${pedido.schema_name}`,
-                                                        cancel_url: window.location.href
-                                                    });
-                                                    
-                                                    if (res.data.url) {
-                                                        window.location.href = res.data.url;
-                                                    }
-                                                } catch (err) {
-                                                    btn.disabled = false;
-                                                    btn.innerText = originalText;
-                                                    alert("No se pudo iniciar el proceso de pago.");
-                                                }
-                                            }}
-                                        >
-                                            Pagar ahora
-                                        </button>
-                                    )}
+                                                    btn.disabled = true;
+                                                    const originalText = btn.innerText;
+                                                    btn.innerText = "Procesando...";
 
-                                    {pedido.estado.toLowerCase() === 'pagado' && (
-                                        <button 
-                                            className={styles.downloadBtn}
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                try {
-                                                    const res = await api.get(`/facturas/?pedido=${pedido.id}`);
-                                                    const factura = res.data?.results?.[0] || res.data?.[0];
-                                                    if (factura) {
+                                                    try {
                                                         const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
                                                         const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
                                                         const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
                                                         
-                                                        // Descargar con autenticación (blob) usando URL dinámica
-                                                        const pdfRes = await api.get(`${baseUrl}/facturas/${factura.nro}/descargar_pdf/`, {
-                                                            responseType: 'blob'
+                                                        const res = await api.post(`${baseUrl}/pagos/create-checkout-session/`, {
+                                                            pedido_id: pedido.id,
+                                                            success_url: window.location.href + (window.location.href.includes('?') ? '&' : '?') + `status=success&pedido_id=${pedido.id}&tenant=${pedido.schema_name}`,
+                                                            cancel_url: window.location.href
                                                         });
-                                                        const url = window.URL.createObjectURL(new Blob([pdfRes.data]));
-                                                        const link = document.createElement('a');
-                                                        link.href = url;
-                                                        link.setAttribute('download', `factura-${factura.nro}.pdf`);
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        link.remove();
+                                                        
+                                                        if (res.data.url) {
+                                                            window.location.href = res.data.url;
+                                                        }
+                                                    } catch (err) {
+                                                        btn.disabled = false;
+                                                        btn.innerText = originalText;
+                                                        alert("No se pudo iniciar el proceso de pago.");
                                                     }
-                                                } catch (err) {
-                                                    alert("No se pudo obtener la factura.");
-                                                }
-                                            }}
-                                        >
-                                            Descargar Factura
-                                        </button>
-                                    )}
+                                                }}
+                                            >
+                                                Pagar ahora
+                                            </button>
+                                        )}
+
+                                        {pedido.estado.toLowerCase() === 'pagado' && (
+                                            <button 
+                                                className={styles.downloadBtn}
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
+                                                        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
+                                                        const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
+                                                        
+                                                        const res = await api.get(`${baseUrl}/facturas/?pedido=${pedido.id}`);
+                                                        const factura = res.data?.results?.[0] || res.data?.[0];
+                                                        if (factura) {
+                                                            
+                                                            // Descargar con autenticación (blob) usando URL dinámica
+                                                            const pdfRes = await api.get(`${baseUrl}/facturas/${factura.nro}/descargar_pdf/`, {
+                                                                responseType: 'blob'
+                                                            });
+                                                            const url = window.URL.createObjectURL(new Blob([pdfRes.data]));
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.setAttribute('download', `factura-${factura.nro}.pdf`);
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            link.remove();
+                                                        }
+                                                    } catch (err) {
+                                                        alert("No se pudo obtener la factura.");
+                                                    }
+                                                }}
+                                            >
+                                                Descargar Factura
+                                            </button>
+                                        )}
+
+                                        {pedido.estado.toLowerCase() === 'enviado' && (
+                                            <button 
+                                                className={styles.payBtn}
+                                                style={{ backgroundColor: 'var(--color-success)', borderColor: 'var(--color-success)' }}
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if(!window.confirm('¿Confirmas que has recibido tu pedido?')) return;
+                                                    
+                                                    const btn = e.currentTarget;
+                                                    btn.disabled = true;
+                                                    try {
+                                                        const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
+                                                        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
+                                                        const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
+                                                        
+                                                        await api.post(`${baseUrl}/pedidos/${pedido.id}/cambiar-estado/`, { estado: 'ENTREGADO' });
+                                                        
+                                                        // Refrescar lista localmente
+                                                        setPedidos(prev => prev.map(p => (p.id === pedido.id && p.schema_name === pedido.schema_name) ? {...p, estado: 'ENTREGADO'} : p));
+                                                        alert("¡Pedido finalizado con éxito!");
+                                                    } catch (err) {
+                                                        btn.disabled = false;
+                                                        alert("Error al confirmar entrega.");
+                                                    }
+                                                }}
+                                            >
+                                                Marcar como Entregado
+                                            </button>
+                                        )}
+                                    </div>
+                                    <ChevronRight 
+                                        size={16} 
+                                        className={styles.chevron} 
+                                        style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} 
+                                    />
                                 </div>
-                                <ChevronRight size={16} className={styles.chevron} />
+
+                                {/* Body del Pedido Expandido */}
+                                {isExpanded && (
+                                    <div style={{ padding: '0 16px 16px 16px', borderTop: '1px solid var(--color-border)', width: '100%', boxSizing: 'border-box' }}>
+                                        <h4 style={{ margin: '16px 0 8px 0', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                                            Productos del Pedido:
+                                        </h4>
+                                        <div style={{ backgroundColor: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
+                                            {pedido.items && pedido.items.length > 0 ? (
+                                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {pedido.items.map(item => (
+                                                        <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
+                                                            <span>{item.cantidad}x {item.producto_nombre}</span>
+                                                            <span style={{ fontWeight: '500' }}>Bs. {item.subtotal}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>No se encontraron detalles de productos.</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        ))}
+                        )})}
                     </div>
                 )}
             </div>

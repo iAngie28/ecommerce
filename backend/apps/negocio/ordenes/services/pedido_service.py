@@ -41,11 +41,20 @@ class PedidoService(BaseService):
             carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
             
             for item in items:
-                producto = Producto.objects.get(id=item['producto'])
+                producto = Producto.objects.select_for_update().get(id=item['producto'])
+                cantidad_solicitada = int(item['cantidad'])
+                
+                if producto.stock < cantidad_solicitada:
+                    raise ValueError(f"Stock insuficiente para {producto.nombre}. Solicitado: {cantidad_solicitada}, Disponible: {producto.stock}")
+                    
+                # Descontar el stock
+                producto.stock -= cantidad_solicitada
+                producto.save()
+                
                 CarritoItem.objects.create(
                     carrito=carrito,
                     producto=producto,
-                    cantidad=item['cantidad']
+                    cantidad=cantidad_solicitada
                 )
             
             pedido = Pedido.objects.create(

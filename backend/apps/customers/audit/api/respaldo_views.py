@@ -1,4 +1,4 @@
-﻿from rest_framework import status
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.core.views import BaseViewSet
@@ -45,4 +45,36 @@ class RespaldoViewSet(BaseViewSet):
                 'traceback': traceback.format_exc(),
                 'view': 'RespaldoViewSet.historial_encadenado'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get', 'post'], url_path='config')
+    def config(self, request):
+        """Obtiene o actualiza la configuración de respaldos automáticos"""
+        from apps.customers.audit.models.respaldo import ConfiguracionRespaldo
+        
+        config_obj, created = ConfiguracionRespaldo.objects.get_or_create(id=1, defaults={'hora_ejecucion': '00:00:00'})
+        
+        if request.method == 'GET':
+            return Response({
+                'activo': config_obj.activo,
+                'frecuencia': config_obj.frecuencia,
+                'hora_ejecucion': str(config_obj.hora_ejecucion),
+                'dia_referencia': config_obj.dia_referencia
+            })
+            
+        elif request.method == 'POST':
+            config_obj.activo = request.data.get('activo', config_obj.activo)
+            config_obj.frecuencia = request.data.get('frecuencia', config_obj.frecuencia)
+            config_obj.hora_ejecucion = request.data.get('hora_ejecucion', config_obj.hora_ejecucion)
+            config_obj.dia_referencia = request.data.get('dia_referencia', config_obj.dia_referencia)
+            config_obj.save()
+            return Response({'message': 'Configuración actualizada'})
+
+    @action(detail=True, methods=['post'], url_path='restaurar')
+    def restaurar(self, request, pk=None):
+        """Restaura el sistema a partir de este respaldo"""
+        try:
+            self.get_service().restaurar_respaldo(pk)
+            return Response({'message': 'Restauración completada con éxito.'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

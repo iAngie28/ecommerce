@@ -45,3 +45,29 @@ class RespaldoSistema(models.Model):
         if self.blob_data:
             return round(len(self.blob_data) / (1024 * 1024), 2)
         return 0
+
+
+class ConfiguracionRespaldo(models.Model):
+    """
+    Guarda la configuración para respaldos automáticos.
+    """
+    FRECUENCIA_CHOICES = [
+        ('DIARIO', 'Diario'),
+        ('SEMANAL', 'Semanal'),
+        ('MENSUAL', 'Mensual'),
+    ]
+
+    activo = models.BooleanField(default=False)
+    frecuencia = models.CharField(max_length=10, choices=FRECUENCIA_CHOICES, default='DIARIO')
+    hora_ejecucion = models.TimeField(help_text="Hora del día (HH:MM:SS)")
+    
+    # Para Semanal: 0=Lunes, 6=Domingo. Para Mensual: 1 al 31.
+    dia_referencia = models.IntegerField(default=0, help_text="Día de la semana (0-6) o del mes (1-31)")
+
+    class Meta:
+        db_table = 'customers_configuracion_respaldo'
+        verbose_name = "Configuración de Respaldo"
+        verbose_name_plural = "Configuraciones de Respaldo"
+
+    def __str__(self):
+        return f"{self.frecuencia} a las {self.hora_ejecucion} (Activo: {self.activo})"

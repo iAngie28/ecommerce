@@ -29,12 +29,37 @@ class PedidoViewSet(BaseViewSet):
         from django.db import connection
         if connection.schema_name == 'public':
             return Pedido.objects.none()
-        return Pedido.objects.all()
+            
+        user = self.request.user
+        if not user.is_authenticated:
+            return Pedido.objects.none()
+            
+        # El token de cliente usa 'role' (ClienteTokenUser) o 'rol' (Usuario)
+        user_role = getattr(user, 'role', getattr(user, 'rol', None))
+        
+        # Si es un cliente, solo ver sus pedidos
+        if user_role == 'CLIENTE':
+            email = getattr(user, 'email', getattr(user, 'correo', None))
+            if email:
+                return Pedido.objects.filter(carrito__cliente__correo=email).order_by('-fecha_creacion')
+            return Pedido.objects.none()
+            
+        return Pedido.objects.all().order_by('-fecha_creacion')
 
     @action(detail=False, methods=['get'], url_path='global-list')
     def global_list(self, request):
+        """
+        Obtiene los pedidos del cliente logueado a través de todos los tenants.
+        """
         from django_tenants.utils import schema_context
         from apps.customers.models import Client
+        
+        if not request.user.is_authenticated:
+            return Response([])
+            
+        email = getattr(request.user, 'email', getattr(request.user, 'correo', None))
+        if not email:
+            return Response([])
         import traceback
         
         all_pedidos = []
@@ -44,7 +69,7 @@ class PedidoViewSet(BaseViewSet):
                 with schema_context(tenant.schema_name):
                     try:
                         # En tu modelo Cliente, el campo se llama 'correo', no 'email'
-                        pedidos = Pedido.objects.filter(carrito__cliente__correo=request.user.email)
+                        pedidos = Pedido.objects.filter(carrito__cliente__correo=email)
                         for p in pedidos:
                             # Forzamos el contexto del serializer para evitar errores de esquema
                             serializer = self.get_serializer(p)
@@ -78,7 +103,10 @@ class PedidoViewSet(BaseViewSet):
             # Flujo del PublicStorefront: crear carrito + pedido directo
             try:
                 # Obtener cliente desde el token JWT de cliente
-                cliente = Cliente.objects.get(correo=request.user.email)
+                email = getattr(request.user, 'email', getattr(request.user, 'correo', None))
+                if not email:
+                    return Response({'error': 'Cliente no encontrado o no autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+                cliente = Cliente.objects.get(correo=email)
 
                 # Evitar duplicados: Si hay un PENDIENTE, lo eliminamos para crear uno actualizado
                 pedido_existente = Pedido.objects.filter(
@@ -124,7 +152,7 @@ class PedidoViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='cambiar-estado')
     def cambiar_estado(self, request, pk=None):
         """Cambia el estado de un pedido."""
         try:

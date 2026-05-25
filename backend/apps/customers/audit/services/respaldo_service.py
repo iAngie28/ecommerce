@@ -31,7 +31,19 @@ class RespaldoService:
         env['PGPASSWORD'] = db_config['PASSWORD']
         
         import shutil
-        pg_dump_path = shutil.which('pg_dump') or '/usr/bin/pg_dump'
+        import glob
+        
+        pg_dump_path = shutil.which('pg_dump')
+        if not pg_dump_path:
+            # Fallback for Windows standard PostgreSQL installation
+            if os.name == 'nt':
+                pg_paths = glob.glob(r'C:\Program Files\PostgreSQL\*\bin\pg_dump.exe')
+                if pg_paths:
+                    pg_dump_path = pg_paths[-1] # Pick the latest version
+                else:
+                    pg_dump_path = 'pg_dump' # Let it fail if not found
+            else:
+                pg_dump_path = '/usr/bin/pg_dump'
         
         # CAMBIO: Flags -Fc (Custom Binary Format) y -Z9 (Compresión máxima)
         cmd = [
@@ -74,6 +86,58 @@ class RespaldoService:
             
         except Exception as e:
             logger.error(f"❌ Error crítico en backup: {str(e)}")
+            raise e
+
+    def restaurar_respaldo(self, respaldo_id):
+        """Restaura la base de datos a partir de un respaldo usando pg_restore."""
+        respaldo = RespaldoSistema.objects.get(id=respaldo_id)
+        if not respaldo.archivo_path or not os.path.exists(respaldo.archivo_path):
+            raise Exception("El archivo físico del respaldo no existe.")
+            
+        db_config = settings.DATABASES['default']
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_config['PASSWORD']
+        
+        import shutil
+        import glob
+        pg_restore_path = shutil.which('pg_restore')
+        if not pg_restore_path:
+            if os.name == 'nt':
+                pg_paths = glob.glob(r'C:\Program Files\PostgreSQL\*\bin\pg_restore.exe')
+                if pg_paths:
+                    pg_restore_path = pg_paths[-1]
+                else:
+                    pg_restore_path = 'pg_restore'
+            else:
+                pg_restore_path = '/usr/bin/pg_restore'
+        
+        # Usamos -c (clean) para borrar los objetos antes de crearlos,
+        # --if-exists para evitar errores si no existen.
+        cmd = [
+            pg_restore_path,
+            '-h', db_config['HOST'],
+            '-p', str(db_config['PORT']),
+            '-U', db_config['USER'],
+            '-d', db_config['NAME'],
+            '-c', '--if-exists',
+            '--no-owner', # No restaurar dueños de roles, previene errores de permisos
+            respaldo.archivo_path
+        ]
+        
+        try:
+            logger.warning(f"⚠️ Iniciando RESTAURACIÓN desde {respaldo.archivo_path}")
+            result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+            if result.returncode != 0:
+                logger.error(f"Error de pg_restore: {result.stderr}")
+                # A veces pg_restore termina con warnings pero funciona, lo consideramos error si es crítico.
+                # Si falló, levantamos la excepción.
+                if "FATAL" in result.stderr or "falló" in result.stderr.lower():
+                    raise Exception(f"Falló la restauración: {result.stderr}")
+                    
+            logger.info("✅ Restauración completada con éxito.")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error crítico en restauración: {str(e)}")
             raise e
 
     def _generar_catalogo_actual(self):

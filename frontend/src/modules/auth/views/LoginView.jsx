@@ -148,10 +148,10 @@ export default function LoginView() {
         <form onSubmit={handleLogin} className={styles.form}>
           <Input
             id="login-username"
-            label={isCliente ? "Correo Electrónico" : "Usuario"}
-            leftIcon={isCliente ? <Mail size={16} /> : <User size={16} />}
-            type={isCliente ? "email" : "text"}
-            placeholder={isCliente ? "tu@correo.com" : "Tu nombre de usuario"}
+            label={isCliente ? "Correo Electrónico" : "Correo Electrónico (Usuario)"}
+            leftIcon={<Mail size={16} />}
+            type="email"
+            placeholder="tu@correo.com"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required

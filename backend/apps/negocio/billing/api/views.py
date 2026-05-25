@@ -54,7 +54,12 @@ class FacturaViewSet(BaseViewSet):
         from django.db import connection
         if connection.schema_name == 'public':
             return Factura.objects.none()
-        return Factura.objects.all()
+            
+        queryset = Factura.objects.all()
+        pedido_id = self.request.query_params.get('pedido')
+        if pedido_id:
+            queryset = queryset.filter(pedido_id=pedido_id)
+        return queryset
     
     def list(self, request, *args, **kwargs):
         from django.db import connection
