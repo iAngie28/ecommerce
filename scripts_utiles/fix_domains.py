@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 from pathlib import Path
 
@@ -13,11 +13,11 @@ try:
     import django
     django.setup()
 except ImportError:
-    print("Error: No se pudo cargar Django. Asegúrate de estar en el entorno virtual.")
+    print("Error: No se pudo cargar Django. AsegÃºrate de estar en el entorno virtual.")
     sys.exit(1)
 
 from django.conf import settings
-from customers.models import Domain
+from apps.customers.models import Domain
 
 def fix_domains():
     suffix = getattr(settings, 'TENANT_DOMAIN_SUFFIX', '.localhost')
@@ -39,7 +39,7 @@ def fix_domains():
         current_domain = domain_obj.domain
         schema_prefix = current_domain.split('.')[0]
         
-        # El dominio correcto debería ser prefix + suffix
+        # El dominio correcto deberÃ­a ser prefix + suffix
         # Nota: el suffix ya incluye el punto inicial (ej: .nip.io)
         correct_domain = f"{schema_prefix}{suffix}"
         
@@ -49,14 +49,15 @@ def fix_domains():
             domain_obj.save()
             updated_count += 1
         else:
-            print(f"[OK] {current_domain} ya está actualizado.")
+            print(f"[OK] {current_domain} ya estÃ¡ actualizado.")
             ignored_count += 1
             
     print("-" * 50)
-    print(f"Sincronización terminada.")
+    print(f"SincronizaciÃ³n terminada.")
     print(f"  - Actualizados: {updated_count}")
     print(f"  - Ya correctos: {ignored_count}")
     print(f"  - Total: {updated_count + ignored_count}")
 
 if __name__ == '__main__':
     fix_domains()
+

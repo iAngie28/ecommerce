@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # CONFIGURADOR DE NGINX Y SERVICIOS
 # ========================================================================
-# Gestión de Nginx, servicios systemd, y logs
-# Lee configuración de .env y crea servicios systemd
+# GestiÃ³n de Nginx, servicios systemd, y logs
+# Lee configuraciÃ³n de .env y crea servicios systemd
 # Uso: python scripts_utiles/nginx_config.py
 
 import os
@@ -34,27 +34,27 @@ class Colors:
 
 def print_header(text):
     print(f"\n{Colors.CYAN}{'='*70}{Colors.ENDC}")
-    print(f"{Colors.CYAN}{Colors.BOLD}✦ {text}{Colors.ENDC}")
+    print(f"{Colors.CYAN}{Colors.BOLD}âœ¦ {text}{Colors.ENDC}")
     print(f"{Colors.CYAN}{'='*70}{Colors.ENDC}\n")
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓{Colors.ENDC} {text}")
+    print(f"{Colors.GREEN}âœ“{Colors.ENDC} {text}")
 
 def print_error(text):
-    print(f"{Colors.RED}✗{Colors.ENDC} {text}")
+    print(f"{Colors.RED}âœ—{Colors.ENDC} {text}")
 
 def print_info(text):
-    print(f"{Colors.BLUE}ℹ{Colors.ENDC} {text}")
+    print(f"{Colors.BLUE}â„¹{Colors.ENDC} {text}")
 
 def print_warning(text):
-    print(f"{Colors.YELLOW}⚠{Colors.ENDC} {text}")
+    print(f"{Colors.YELLOW}âš {Colors.ENDC} {text}")
 
 # ========================================================================
-# CARGAR CONFIGURACIÓN DE .ENV
+# CARGAR CONFIGURACIÃ“N DE .ENV
 # ========================================================================
 
 def get_env_config():
-    """Obtiene configuración de .env"""
+    """Obtiene configuraciÃ³n de .env"""
     config = {
         'DJANGO_PORT': os.getenv('DJANGO_PORT', '8001'),
         'REACT_PORT': os.getenv('REACT_PORT', '3000'),
@@ -69,8 +69,8 @@ def get_env_config():
     return config
 
 def show_env_config():
-    """Muestra la configuración del .env"""
-    print_header("CONFIGURACIÓN DESDE .env")
+    """Muestra la configuraciÃ³n del .env"""
+    print_header("CONFIGURACIÃ“N DESDE .env")
     
     config = get_env_config()
     
@@ -115,7 +115,7 @@ def create_django_service():
     
     # Detectar el usuario correcto basado en la ruta (www-data no puede acceder a /root)
     default_user = "root" if project_path.startswith('/root/') else "www-data"
-    user_input = input(f"{Colors.BOLD}Usuario que correrá el servicio (default: {default_user}): {Colors.ENDC}").strip()
+    user_input = input(f"{Colors.BOLD}Usuario que correrÃ¡ el servicio (default: {default_user}): {Colors.ENDC}").strip()
     run_user = user_input if user_input else default_user
     
     print(f"\n{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
@@ -127,7 +127,7 @@ def create_django_service():
     service_name = "django_saas"
     service_file = f"/etc/systemd/system/{service_name}.service"
     
-    confirm = input(f"{Colors.BOLD}¿Crear/Reemplazar servicio? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"{Colors.BOLD}Â¿Crear/Reemplazar servicio? (s/n): {Colors.ENDC}").lower()
     
     if confirm != 's':
         print_warning("Cancelado")
@@ -169,11 +169,11 @@ WantedBy=multi-user.target
         subprocess.run(['systemctl', 'daemon-reload'], check=True)
         print_success(f"Servicio creado/reemplazado: {service_file}")
         
-        if input(f"\n{Colors.BOLD}¿Habilitar al iniciar? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"\n{Colors.BOLD}Â¿Habilitar al iniciar? (s/n): {Colors.ENDC}").lower() == 's':
             subprocess.run(['systemctl', 'enable', service_name], check=True)
             print_success(f"{service_name} habilitado al inicio")
         
-        if input(f"{Colors.BOLD}¿Iniciar servicio ahora? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"{Colors.BOLD}Â¿Iniciar servicio ahora? (s/n): {Colors.ENDC}").lower() == 's':
             subprocess.run(['systemctl', 'start', service_name], check=True)
             print_success(f"{service_name} iniciado")
             
@@ -195,7 +195,7 @@ def create_frontend_service():
     
     # Detectar el usuario correcto basado en la ruta
     default_user = "root" if project_path.startswith('/root/') else "www-data"
-    user_input = input(f"{Colors.BOLD}Usuario que correrá el servicio (default: {default_user}): {Colors.ENDC}").strip()
+    user_input = input(f"{Colors.BOLD}Usuario que correrÃ¡ el servicio (default: {default_user}): {Colors.ENDC}").strip()
     run_user = user_input if user_input else default_user
     
     print(f"\n{Colors.BOLD}Servicio a crear:{Colors.ENDC}")
@@ -207,7 +207,7 @@ def create_frontend_service():
     service_name = "frontend_saas"
     service_file = f"/etc/systemd/system/{service_name}.service"
     
-    confirm = input(f"{Colors.BOLD}¿Crear/Reemplazar servicio? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"{Colors.BOLD}Â¿Crear/Reemplazar servicio? (s/n): {Colors.ENDC}").lower()
     
     if confirm != 's':
         print_warning("Cancelado")
@@ -244,7 +244,7 @@ WantedBy=multi-user.target
             subprocess.run(['systemctl', 'stop', service_name], timeout=10)
         
         # Limpiar procesos en puerto (Evita bloqueos de npm start manuales)
-        print_info(f"Limpiando puerto {react_port} para evitar bloqueos de procesos huérfanos...")
+        print_info(f"Limpiando puerto {react_port} para evitar bloqueos de procesos huÃ©rfanos...")
         try:
             subprocess.run(['sudo', 'fuser', '-k', f'{react_port}/tcp'], capture_output=True)
         except:
@@ -258,11 +258,11 @@ WantedBy=multi-user.target
         subprocess.run(['systemctl', 'daemon-reload'], check=True)
         print_success(f"Servicio creado/reemplazado: {service_file}")
         
-        if input(f"\n{Colors.BOLD}¿Habilitar al iniciar? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"\n{Colors.BOLD}Â¿Habilitar al iniciar? (s/n): {Colors.ENDC}").lower() == 's':
             subprocess.run(['systemctl', 'enable', service_name], check=True)
             print_success(f"{service_name} habilitado al inicio")
         
-        if input(f"{Colors.BOLD}¿Iniciar servicio ahora? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"{Colors.BOLD}Â¿Iniciar servicio ahora? (s/n): {Colors.ENDC}").lower() == 's':
             subprocess.run(['systemctl', 'start', service_name], check=True)
             print_success(f"{service_name} iniciado")
             
@@ -296,7 +296,7 @@ def delete_service():
     service_name = services[choice]
     service_file = f"/etc/systemd/system/{service_name}.service"
     
-    confirm = input(f"\n{Colors.RED}¿ELIMINAR {service_name}? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"\n{Colors.RED}Â¿ELIMINAR {service_name}? (s/n): {Colors.ENDC}").lower()
     
     if confirm != 's':
         print_warning("Cancelado")
@@ -338,11 +338,11 @@ def view_service_status():
             status = result.stdout.strip()
             
             if status == 'active':
-                print(f"{Colors.GREEN}✓{Colors.ENDC} {service:<20} {Colors.GREEN}ACTIVO{Colors.ENDC}")
+                print(f"{Colors.GREEN}âœ“{Colors.ENDC} {service:<20} {Colors.GREEN}ACTIVO{Colors.ENDC}")
             else:
-                print(f"{Colors.RED}✗{Colors.ENDC} {service:<20} {Colors.RED}{status.upper()}{Colors.ENDC}")
+                print(f"{Colors.RED}âœ—{Colors.ENDC} {service:<20} {Colors.RED}{status.upper()}{Colors.ENDC}")
         except subprocess.TimeoutExpired:
-            print(f"{Colors.YELLOW}⚠{Colors.ENDC} {service:<20} {Colors.YELLOW}TIMEOUT{Colors.ENDC}")
+            print(f"{Colors.YELLOW}âš {Colors.ENDC} {service:<20} {Colors.YELLOW}TIMEOUT{Colors.ENDC}")
         except Exception as e:
             print(f"{Colors.YELLOW}?{Colors.ENDC} {service:<20} No disponible")
     
@@ -373,7 +373,7 @@ def view_logs():
         log_file = logs[choice]
         
         if os.path.exists(log_file):
-            print(f"\n{Colors.CYAN}Últimas 50 líneas de {log_file}:{Colors.ENDC}\n")
+            print(f"\n{Colors.CYAN}Ãšltimas 50 lÃ­neas de {log_file}:{Colors.ENDC}\n")
             
             try:
                 result = subprocess.run(
@@ -387,10 +387,10 @@ def view_logs():
         else:
             print_warning(f"Log no existe: {log_file}")
     else:
-        print_error("Opción inválida")
+        print_error("OpciÃ³n invÃ¡lida")
 
 def reload_nginx():
-    """Recarga configuración de Nginx"""
+    """Recarga configuraciÃ³n de Nginx"""
     print_header("RECARGAR NGINX")
     
     if os.geteuid() != 0:
@@ -398,16 +398,16 @@ def reload_nginx():
         return
     
     try:
-        print_info("Verificando configuración...")
+        print_info("Verificando configuraciÃ³n...")
         result = subprocess.run(['nginx', '-t'], capture_output=True, text=True)
         
         if result.returncode == 0:
-            print_success("Configuración válida")
+            print_success("ConfiguraciÃ³n vÃ¡lida")
             print_info("Recargando Nginx...")
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
             print_success("Nginx recargado")
         else:
-            print_error("Configuración inválida")
+            print_error("ConfiguraciÃ³n invÃ¡lida")
             print(result.stderr)
     except Exception as e:
         print_error(f"Error: {str(e)}")
@@ -417,7 +417,7 @@ def deploy_nginx_config():
     Lee la IP del .env, carga el template de nginx/prod.vps.conf,
     lo genera y lo activa en /etc/nginx/sites-enabled/
     """
-    print_header("DESPLEGAR CONFIGURACIÓN NGINX")
+    print_header("DESPLEGAR CONFIGURACIÃ“N NGINX")
     
     if os.geteuid() != 0:
         print_error("Debes ejecutar como root (sudo)")
@@ -431,10 +431,10 @@ def deploy_nginx_config():
     link_path = Path("/etc/nginx/sites-enabled/ecommerce.conf")
     
     if not template_path.exists():
-        print_error(f"No se encontró el template en {template_path}")
+        print_error(f"No se encontrÃ³ el template en {template_path}")
         return
         
-    print_info(f"Generando configuración para IP: {vps_ip}")
+    print_info(f"Generando configuraciÃ³n para IP: {vps_ip}")
     
     try:
         # 0. ELIMINAR CONFLICTOS (Nuke default config)
@@ -473,7 +473,7 @@ def deploy_nginx_config():
         project_abs_path = str(PROJECT_ROOT)
         # Nota: {{PROJECT_ROOT}} ya no se usa en el template pues root es fijo en /var/www/
         
-        # 5. MIGRACIÓN A TERRITORIO SEGURO (/var/www/ ecommerce)
+        # 5. MIGRACIÃ“N A TERRITORIO SEGURO (/var/www/ ecommerce)
         print_info("Migrando frontend a territorio seguro (/var/www/)...")
         secure_root = Path("/var/www/ecommerce")
         secure_build = secure_root / "build"
@@ -485,48 +485,48 @@ def deploy_nginx_config():
         local_build = Path(project_abs_path) / "frontend" / "build"
         if local_build.exists():
             print_info(f"Copiando archivos de {local_build} a {secure_build}...")
-            # Usamos rsync si está disponible o cp -r
+            # Usamos rsync si estÃ¡ disponible o cp -r
             subprocess.run(['sudo', 'cp', '-rn', f"{local_build}/.", str(secure_build)], check=True)
         else:
-            print_warning("No se encontró carpeta 'build' local. Asegúrate de ejecutar el comando build en el VPS.")
+            print_warning("No se encontrÃ³ carpeta 'build' local. AsegÃºrate de ejecutar el comando build en el VPS.")
 
         # 6. Configurar permisos AGRESIVOS en el nuevo territorio
         print_info("Configurando permisos en /var/www/ecommerce...")
         subprocess.run(['sudo', 'chown', '-R', 'www-data:www-data', str(secure_root)], check=True)
         subprocess.run(['sudo', 'chmod', '-R', '755', str(secure_root)], check=True)
         
-        # 7. Permisos de travesía en /root (para el backend)
-        print_info("Asegurando permisos de travesía en /root para API...")
+        # 7. Permisos de travesÃ­a en /root (para el backend)
+        print_info("Asegurando permisos de travesÃ­a en /root para API...")
         subprocess.run(['sudo', 'chmod', 'o+x', '/root'], check=False)
 
         # 8. Detener servicio frontend viejo si existe
         subprocess.run(['sudo', 'systemctl', 'stop', 'frontend_saas'], check=False)
         subprocess.run(['sudo', 'systemctl', 'disable', 'frontend_saas'], check=False)
 
-        # 9. Guardar configuración mediante archivo temporal y SUDO
+        # 9. Guardar configuraciÃ³n mediante archivo temporal y SUDO
         temp_file = Path("/tmp/ecommerce_nginx.tmp")
         with open(temp_file, 'w') as f:
             f.write(content)
             
-        print_info(f"Copiando configuración a {target_path}...")
+        print_info(f"Copiando configuraciÃ³n a {target_path}...")
         subprocess.run(['sudo', 'mv', str(temp_file), str(target_path)], check=True)
         
-        # 5. Activar configuración (link simbólico con sudo)
-        print_info(f"Activando configuración en {link_path}...")
+        # 5. Activar configuraciÃ³n (link simbÃ³lico con sudo)
+        print_info(f"Activando configuraciÃ³n en {link_path}...")
         subprocess.run(['sudo', 'ln', '-sf', str(target_path), str(link_path)], check=True)
         
-        print_success(f"Configuración desplegada exitosamente.")
+        print_success(f"ConfiguraciÃ³n desplegada exitosamente.")
         
         # 6. Verificar y Reiniciar (con sudo)
-        print_info("Verificando configuración de Nginx...")
+        print_info("Verificando configuraciÃ³n de Nginx...")
         test_res = subprocess.run(['sudo', 'nginx', '-t'], capture_output=True, text=True)
         if test_res.returncode == 0:
-            print_success("Configuración válida")
+            print_success("ConfiguraciÃ³n vÃ¡lida")
             print_info("Reiniciando Nginx...")
             subprocess.run(['sudo', 'systemctl', 'restart', 'nginx'], check=True)
             print_success("Nginx reiniciado correctamente")
         else:
-            print_error("Configuración INVÁLIDA:")
+            print_error("ConfiguraciÃ³n INVÃLIDA:")
             print(test_res.stderr)
         
     except Exception as e:
@@ -562,15 +562,15 @@ def restart_service():
         
         # 1. Actualizar dependencias de Backend si se reinicia Django o Todo
         if choice in ['1', '4']:
-            print_info("📦 Actualizando dependencias de Backend...")
+            print_info("ðŸ“¦ Actualizando dependencias de Backend...")
             subprocess.run([f"{project_path}/backend/venv/bin/pip", "install", "-r", f"{project_path}/backend/requirements.txt"], check=False)
-            print_info("🗄️ Ejecutando migraciones...")
+            print_info("ðŸ—„ï¸ Ejecutando migraciones...")
             subprocess.run([f"{project_path}/backend/venv/bin/python", "manage.py", "migrate"], cwd=f"{project_path}/backend", check=False)
 
         if choice in ['2', '4']:
-            print_info("📦 Actualizando Frontend (npm install)...")
+            print_info("ðŸ“¦ Actualizando Frontend (npm install)...")
             subprocess.run(["npm", "install"], cwd=f"{project_path}/frontend", check=False)
-            print_info("🏗️ Generando Build de Frontend...")
+            print_info("ðŸ—ï¸ Generando Build de Frontend...")
             config = get_env_config()
             env = os.environ.copy()
             env['REACT_APP_DOMAIN_MAIN'] = config.get('DOMAIN_MAIN', 'localhost')
@@ -585,7 +585,7 @@ def restart_service():
             except subprocess.CalledProcessError:
                 print_error(f"Error reiniciando {svc}")
     else:
-        print_error("Opción inválida")
+        print_error("OpciÃ³n invÃ¡lida")
 
 # ========================================================================
 # CREAR PAQUETES COMPLETOS
@@ -616,7 +616,7 @@ def _run_user_from_path(project_path):
 
 def create_all_nginx():
     """Crea django_saas + frontend_saas + despliega nginx de una sola vez."""
-    print_header('CREAR SERVICIOS CON NGINX (PRODUCCIÓN)')
+    print_header('CREAR SERVICIOS CON NGINX (PRODUCCIÃ“N)')
 
     if os.geteuid() != 0:
         print_error('Debes ejecutar como root (sudo)')
@@ -634,7 +634,7 @@ def create_all_nginx():
     print_info(f'Frontend: /var/www/ecommerce/build (via Nginx)')
     print()
 
-    confirm = input(f"{Colors.BOLD}¿Crear/reemplazar servicios con Nginx? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"{Colors.BOLD}Â¿Crear/reemplazar servicios con Nginx? (s/n): {Colors.ENDC}").lower()
     if confirm != 's':
         print_warning('Cancelado')
         return
@@ -727,7 +727,7 @@ def create_all_ip():
     print_info(f'Frontend: {detected_ip}:{react_port}')
     print()
 
-    confirm = input(f"{Colors.BOLD}¿Crear/reemplazar servicios con IP directa? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"{Colors.BOLD}Â¿Crear/reemplazar servicios con IP directa? (s/n): {Colors.ENDC}").lower()
     if confirm != 's':
         print_warning('Cancelado')
         return
@@ -842,11 +842,11 @@ def main():
             print("5. Ver logs")
             print("6. Recargar Nginx")
             print("7. Reiniciar servicio")
-            print("8. Desplegar Configuración Nginx (.conf)")
+            print("8. Desplegar ConfiguraciÃ³n Nginx (.conf)")
             print("0. Salir")
             print()
             
-            choice = input("Selecciona opción: ").strip()
+            choice = input("Selecciona opciÃ³n: ").strip()
             
             if choice == '1':
                 create_django_service()
@@ -867,7 +867,7 @@ def main():
             elif choice == '0':
                 break
             else:
-                print_error("Opción inválida")
+                print_error("OpciÃ³n invÃ¡lida")
                 time.sleep(1)
     else:
         cmd = sys.argv[1]
@@ -897,3 +897,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

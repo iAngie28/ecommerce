@@ -1,10 +1,10 @@
-import sys
+﻿import sys
 from django.db import connection, transaction
-from customers.models import Client
+from apps.customers.models import Client
 
 def run_schema_check():
-    """Validar la creación de esquemas (Multi-tenant)"""
-    print("\n[+] 2/4 Verificando creación automática de esquemas...")
+    """Validar la creaciÃ³n de esquemas (Multi-tenant)"""
+    print("\n[+] 2/4 Verificando creaciÃ³n automÃ¡tica de esquemas...")
     test_schema = 'esquema_prueba_qa'
     try:
         # Usamos transaction.atomic para poder deshacer todo al final
@@ -19,16 +19,17 @@ def run_schema_check():
                     [test_schema]
                 )
                 if cursor.fetchone():
-                    print(f"  [OK] El esquema '{test_schema}' se creó correctamente en PostgreSQL.")
+                    print(f"  [OK] El esquema '{test_schema}' se creÃ³ correctamente en PostgreSQL.")
                 else:
-                    print(f"  [ERROR] El Tenant se guardó, pero el esquema '{test_schema}' NO se creó.")
+                    print(f"  [ERROR] El Tenant se guardÃ³, pero el esquema '{test_schema}' NO se creÃ³.")
                     sys.exit(1)
             
             # Forzamos un rollback para que este tenant de prueba no se guarde en tu BD real
             raise Exception("ROLLBACK_INTENCIONAL")
     except Exception as e:
         if str(e) == "ROLLBACK_INTENCIONAL":
-            pass # Todo salió perfecto y limpiamos la BD
+            pass # Todo saliÃ³ perfecto y limpiamos la BD
         else:
-            print(f"  [ERROR] Falló la prueba de esquemas: {e}")
+            print(f"  [ERROR] FallÃ³ la prueba de esquemas: {e}")
             sys.exit(1)
+

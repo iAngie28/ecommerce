@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # GESTOR DE SISTEMA
 # ========================================================================
@@ -61,10 +61,10 @@ def update_django():
         return
     
     print_info(f"Archivo: {req_file}")
-    print_warning("Esto actualizará todas las dependencias de Django")
+    print_warning("Esto actualizarÃ¡ todas las dependencias de Django")
     print()
     
-    if input("¿Continuar? (s/n): ").lower() != 's':
+    if input("Â¿Continuar? (s/n): ").lower() != 's':
         print_info("Cancelado")
         return
     
@@ -96,10 +96,10 @@ def update_npm():
         return
     
     print_info(f"Directorio: {frontend_dir}")
-    print_warning("Esto actualizará todas las dependencias de npm")
+    print_warning("Esto actualizarÃ¡ todas las dependencias de npm")
     print()
     
-    if input("¿Continuar? (s/n): ").lower() != 's':
+    if input("Â¿Continuar? (s/n): ").lower() != 's':
         print_info("Cancelado")
         return
     
@@ -113,7 +113,7 @@ def update_npm():
         sudo_cmd = ['sudo'] if is_linux else []
 
         if node_modules.exists():
-            print_warning("Detectado node_modules previo. Limpiando para instalación fresca a nivel root...")
+            print_warning("Detectado node_modules previo. Limpiando para instalaciÃ³n fresca a nivel root...")
             try:
                 if is_linux:
                     subprocess.run(sudo_cmd + ['rm', '-rf', str(node_modules)], check=True)
@@ -124,33 +124,33 @@ def update_npm():
                     shutil.rmtree(node_modules)
                     if package_lock.exists():
                         package_lock.unlink()
-                print_success("Limpieza física completada.")
+                print_success("Limpieza fÃ­sica completada.")
             except Exception as e:
                 print_error(f"No se pudo limpiar node_modules: {e}")
 
-        print_info("Limpiando caché de npm (Deep Clean)...")
+        print_info("Limpiando cachÃ© de npm (Deep Clean)...")
         try:
             subprocess.run(sudo_cmd + ['npm', 'cache', 'clean', '--force'], check=True)
         except:
-            print_warning("No se pudo limpiar el caché de npm (esto es normal si ya estaba limpio)")
+            print_warning("No se pudo limpiar el cachÃ© de npm (esto es normal si ya estaba limpio)")
 
         print_info("Instalando dependencias frescas con todos los permisos...")
         subprocess.run(sudo_cmd + ['npm', 'install'], cwd=frontend_dir, check=True)
         
-        print_info("Generando build de producción optimizado...")
+        print_info("Generando build de producciÃ³n optimizado...")
         subprocess.run(sudo_cmd + ['npm', 'run', 'build'], cwd=frontend_dir, check=True)
         
         print_info("Reiniciando servicio frontend_saas para aplicar cambios...")
         try:
             subprocess.run(sudo_cmd + ['systemctl', 'restart', 'frontend_saas'], check=True)
-            print_success("Servicio frontend_saas reiniciado con éxito")
+            print_success("Servicio frontend_saas reiniciado con Ã©xito")
         except:
-            print_warning("No se pudo reiniciar frontend_saas (puede que aún no esté creado)")
+            print_warning("No se pudo reiniciar frontend_saas (puede que aÃºn no estÃ© creado)")
 
         print_success("Dependencias npm reinstaladas y frontend reconstruido correctamente")
         
     except FileNotFoundError:
-        print_error("npm no está instalado")
+        print_error("npm no estÃ¡ instalado")
     except subprocess.CalledProcessError as e:
         print_error(f"Error: {str(e)}")
 
@@ -162,10 +162,10 @@ def update_system():
         print_error("Debes ejecutar como root (sudo)")
         return
     
-    print_warning("Esto ejecutará: apt update && apt upgrade")
+    print_warning("Esto ejecutarÃ¡: apt update && apt upgrade")
     print()
     
-    if input("¿Continuar? (s/n): ").lower() != 's':
+    if input("Â¿Continuar? (s/n): ").lower() != 's':
         print_info("Cancelado")
         return
     
@@ -213,7 +213,7 @@ def generate_all_secrets():
     
     print(f"{Colors.BOLD}.env:{Colors.ENDC} {ENV_FILE}\n")
     
-    confirm = input(f"{Colors.BOLD}¿Guardar en .env? (s/n): {Colors.ENDC}").lower()
+    confirm = input(f"{Colors.BOLD}Â¿Guardar en .env? (s/n): {Colors.ENDC}").lower()
     
     if confirm != 's':
         print_warning("Cancelado")
@@ -238,13 +238,13 @@ def safe_system_reset():
         print_error("Debes ejecutar como root (sudo)")
         return
     
-    print_warning("OPERACIÓN DESTRUCTIVA - LEE BIEN ANTES DE CONTINUAR")
+    print_warning("OPERACIÃ“N DESTRUCTIVA - LEE BIEN ANTES DE CONTINUAR")
     print()
-    print("Esto hará:")
+    print("Esto harÃ¡:")
     print("  - Detener todos los servicios (Django, Frontend, Nginx)")
     print("  - Resetear la base de datos")
-    print("  - Limpiar caché y archivos temporales")
-    print("  - Pero NO afectará: Nginx config, SSL certs, system files")
+    print("  - Limpiar cachÃ© y archivos temporales")
+    print("  - Pero NO afectarÃ¡: Nginx config, SSL certs, system files")
     print()
     
     confirm = input("Escribe 'RESETEAR SISTEMA CONTABO' para confirmar: ").strip()
@@ -263,11 +263,11 @@ def safe_system_reset():
             except:
                 pass
         
-        # Limpiar caché Python
-        print_info("Limpiando caché Python...")
+        # Limpiar cachÃ© Python
+        print_info("Limpiando cachÃ© Python...")
         subprocess.run(['find', str(PROJECT_ROOT), '-type', 'd', '-name', '__pycache__', '-exec', 'rm', '-rf', '{}', '+'], timeout=30)
         subprocess.run(['find', str(PROJECT_ROOT), '-type', 'f', '-name', '*.pyc', '-delete'], timeout=30)
-        print_success("Caché Python limpiado")
+        print_success("CachÃ© Python limpiado")
         
         # Limpiar logs
         print_info("Limpiando logs viejos...")
@@ -277,10 +277,10 @@ def safe_system_reset():
         print_success("Logs limpiados")
         
         # BD
-        print_warning("¿Resetear base de datos? (s/n): ", end='')
+        print_warning("Â¿Resetear base de datos? (s/n): ", end='')
         if input().lower() == 's':
             print_info("Reseteando BD...")
-            # Aquí iría el reset de BD
+            # AquÃ­ irÃ­a el reset de BD
             print_success("BD reseteada")
         
         # Iniciar servicios
@@ -293,7 +293,7 @@ def safe_system_reset():
                 print_warning(f"No se pudo iniciar {svc}")
         
         print_success("Sistema reseteado de forma segura")
-        print_info("Los datos principales están intactos")
+        print_info("Los datos principales estÃ¡n intactos")
         
     except Exception as e:
         print_error(f"Error: {str(e)}")
@@ -307,14 +307,14 @@ def check_system_health():
         result = subprocess.run(['df', '-h', '/'], capture_output=True, text=True)
         print(result.stdout)
     except:
-        print_warning("No se pudo obtener información de disco")
+        print_warning("No se pudo obtener informaciÃ³n de disco")
     
     print(f"\n{Colors.BOLD}Memoria disponible:{Colors.ENDC}")
     try:
         result = subprocess.run(['free', '-h'], capture_output=True, text=True)
         print(result.stdout)
     except:
-        print_warning("No se pudo obtener información de memoria")
+        print_warning("No se pudo obtener informaciÃ³n de memoria")
     
     print(f"\n{Colors.BOLD}Procesos Python:{Colors.ENDC}")
     try:
@@ -347,7 +347,7 @@ def main():
         print("  0. Salir")
         print()
         
-        choice = input("Selecciona opción: ").strip()
+        choice = input("Selecciona opciÃ³n: ").strip()
         
         if choice == '1':
             update_django()
@@ -379,3 +379,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

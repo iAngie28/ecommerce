@@ -1,18 +1,18 @@
-import os
+﻿import os
 import sys
 import django
 
-# 1. Configuración de Django
+# 1. ConfiguraciÃ³n de Django
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from customers.models import Rol, Permiso
+from apps.customers.models import Rol, Permiso
 
 def ejecutar():
-    print("--- 🚀 Iniciando Sincronización de Roles y Permisos ---")
+    print("--- ðŸš€ Iniciando SincronizaciÃ³n de Roles y Permisos ---")
 
-    # 1. Crear Permisos Básicos
+    # 1. Crear Permisos BÃ¡sicos
     permisos_data = [
         # Permisos Super Usuario
         ("Acceso Total Sistema", "SYS_ALL", "Sistema", "Acceso irrestricto a todo el SaaS"),
@@ -21,10 +21,10 @@ def ejecutar():
         # Permisos Vendedor
         ("Gestionar Productos", "STORE_PRODUCTS", "Inventario", "Crear, editar y eliminar productos"),
         ("Gestionar Ventas", "STORE_SALES", "Ventas", "Ver y procesar facturas"),
-        ("Ver Reportes", "STORE_REPORTS", "Análisis", "Ver métricas de la tienda"),
+        ("Ver Reportes", "STORE_REPORTS", "AnÃ¡lisis", "Ver mÃ©tricas de la tienda"),
         
         # Permisos Cliente
-        ("Realizar Compras", "CLIENT_BUY", "Tienda", "Añadir al carrito y pagar"),
+        ("Realizar Compras", "CLIENT_BUY", "Tienda", "AÃ±adir al carrito y pagar"),
         ("Ver Historial", "CLIENT_HISTORY", "Tienda", "Ver sus pedidos anteriores"),
     ]
 
@@ -36,7 +36,7 @@ def ejecutar():
         )
         permisos_creados[codigo] = p
         if created:
-            print(f"✅ Permiso creado: {nombre}")
+            print(f"âœ… Permiso creado: {nombre}")
 
     # 2. Crear Roles
     roles_data = [
@@ -51,14 +51,15 @@ def ejecutar():
             defaults={'nivel': nivel, 'descripcion': f"Rol del sistema para {nombre_rol}", 'activo': True}
         )
         if created:
-            print(f"✅ Rol creado: {nombre_rol}")
+            print(f"âœ… Rol creado: {nombre_rol}")
         
         # Asignar permisos al rol
         permisos_a_asignar = [permisos_creados[codigo] for codigo in codigos_permisos if codigo in permisos_creados]
         rol.permisos.set(permisos_a_asignar)
-        print(f"🔗 Permisos asignados a '{nombre_rol}': {len(permisos_a_asignar)}")
+        print(f"ðŸ”— Permisos asignados a '{nombre_rol}': {len(permisos_a_asignar)}")
 
-    print("\n✅ Sincronización de Roles finalizada con éxito.")
+    print("\nâœ… SincronizaciÃ³n de Roles finalizada con Ã©xito.")
 
 if __name__ == "__main__":
     ejecutar()
+

@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # CONFIGURADOR DE BASE DE DATOS
 # ========================================================================
-# Configuración interactiva y completa de PostgreSQL
+# ConfiguraciÃ³n interactiva y completa de PostgreSQL
 # Uso: python scripts_utiles/db_config.py
 
 import os
@@ -39,24 +39,24 @@ class Colors:
 
 def print_header(text):
     print(f"\n{Colors.CYAN}{'='*70}{Colors.ENDC}")
-    print(f"{Colors.CYAN}{Colors.BOLD}✦ {text}{Colors.ENDC}")
+    print(f"{Colors.CYAN}{Colors.BOLD}âœ¦ {text}{Colors.ENDC}")
     print(f"{Colors.CYAN}{'='*70}{Colors.ENDC}\n")
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓{Colors.ENDC} {text}")
+    print(f"{Colors.GREEN}âœ“{Colors.ENDC} {text}")
 
 def print_error(text):
-    print(f"{Colors.RED}✗{Colors.ENDC} {text}")
+    print(f"{Colors.RED}âœ—{Colors.ENDC} {text}")
 
 def print_info(text):
-    print(f"{Colors.BLUE}ℹ{Colors.ENDC} {text}")
+    print(f"{Colors.BLUE}â„¹{Colors.ENDC} {text}")
 
 def print_warning(text):
-    print(f"{Colors.YELLOW}⚠{Colors.ENDC} {text}")
+    print(f"{Colors.YELLOW}âš {Colors.ENDC} {text}")
 
 def loading_animation(duration=2, text="Guardando"):
-    """Animación de carga"""
-    frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    """AnimaciÃ³n de carga"""
+    frames = ['â ‹', 'â ™', 'â ¹', 'â ¸', 'â ¼', 'â ´', 'â ¦', 'â §', 'â ‡', 'â ']
     end_time = time.time() + duration
     i = 0
     
@@ -65,14 +65,14 @@ def loading_animation(duration=2, text="Guardando"):
         time.sleep(0.1)
         i += 1
     
-    print(f"\r✓ Completado        ", flush=True)
+    print(f"\râœ“ Completado        ", flush=True)
 
 # ========================================================================
-# FUNCIONES DE CONFIGURACIÓN
+# FUNCIONES DE CONFIGURACIÃ“N
 # ========================================================================
 
 def load_current_config():
-    """Carga configuración actual de .env"""
+    """Carga configuraciÃ³n actual de .env"""
     load_dotenv(ENV_FILE)
     
     config = {
@@ -87,15 +87,15 @@ def load_current_config():
     return config
 
 def show_current_config():
-    """Muestra configuración actual de forma bonita"""
+    """Muestra configuraciÃ³n actual de forma bonita"""
     config = load_current_config()
     
-    print_header("CONFIGURACIÓN ACTUAL DE BASE DE DATOS")
+    print_header("CONFIGURACIÃ“N ACTUAL DE BASE DE DATOS")
     
     print(f"{Colors.BOLD}Tipo de Base de Datos:{Colors.ENDC}")
     print(f"  Engine: {Colors.CYAN}{config['ENGINE']}{Colors.ENDC}")
     
-    print(f"\n{Colors.BOLD}Conexión:{Colors.ENDC}")
+    print(f"\n{Colors.BOLD}ConexiÃ³n:{Colors.ENDC}")
     print(f"  Host:   {Colors.YELLOW}{config['HOST']}{Colors.ENDC}:{Colors.YELLOW}{config['PORT']}{Colors.ENDC}")
     print(f"  BD:     {Colors.CYAN}{config['NAME']}{Colors.ENDC}")
     print(f"  User:   {Colors.CYAN}{config['USER']}{Colors.ENDC}")
@@ -124,12 +124,12 @@ def test_connection(host, port, user, password, db_name):
         cursor.close()
         conn.close()
         
-        print_success("Conexión exitosa")
+        print_success("ConexiÃ³n exitosa")
         print_info(f"PostgreSQL: {version.split(',')[0]}")
         return True
         
     except ImportError:
-        print_warning("psycopg2 no está instalado - no se puede probar conexión")
+        print_warning("psycopg2 no estÃ¡ instalado - no se puede probar conexiÃ³n")
         print_info("Instala con: pip install psycopg2-binary")
         return None
     except Exception as e:
@@ -137,8 +137,8 @@ def test_connection(host, port, user, password, db_name):
         return False
 
 def configure_basic():
-    """Configuración básica"""
-    print_header("CONFIGURACIÓN BÁSICA")
+    """ConfiguraciÃ³n bÃ¡sica"""
+    print_header("CONFIGURACIÃ“N BÃSICA")
     
     print(f"{Colors.BOLD}Presets disponibles:{Colors.ENDC}\n")
     print("  1. {:<30} Desarrollo Local (localhost:5432)".format("LOCAL"))
@@ -162,7 +162,7 @@ def configure_basic():
             'PORT': input("Puerto (default 5432): ") or '5432',
             'NAME': input("Nombre de la BD: "),
             'USER': input("Usuario: "),
-            'PASSWORD': __import__('getpass').getpass("Contraseña: "),
+            'PASSWORD': __import__('getpass').getpass("ContraseÃ±a: "),
         },
         '3': {
             'HOST': 'postgres',
@@ -176,23 +176,23 @@ def configure_basic():
             'PORT': input("Puerto (default 5432): ") or '5432',
             'NAME': input("Nombre de la BD: "),
             'USER': input("Usuario: "),
-            'PASSWORD': __import__('getpass').getpass("Contraseña: "),
+            'PASSWORD': __import__('getpass').getpass("ContraseÃ±a: "),
         },
         '5': {
             'HOST': input("Hostname DigitalOcean: "),
             'PORT': input("Puerto (default 25060): ") or '25060',
             'NAME': input("Nombre de la BD: "),
             'USER': input("Usuario: "),
-            'PASSWORD': __import__('getpass').getpass("Contraseña: "),
+            'PASSWORD': __import__('getpass').getpass("ContraseÃ±a: "),
         },
     }
     
     if choice in presets:
         config = presets[choice]
         
-        # Test de conexión
+        # Test de conexiÃ³n
         print()
-        if input(f"\n{Colors.BOLD}¿Probar conexión? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"\n{Colors.BOLD}Â¿Probar conexiÃ³n? (s/n): {Colors.ENDC}").lower() == 's':
             test_connection(
                 config['HOST'], config['PORT'],
                 config['USER'], config['PASSWORD'],
@@ -200,8 +200,8 @@ def configure_basic():
             )
         
         # Guardar
-        if input(f"\n{Colors.BOLD}¿Guardar configuración? (s/n): {Colors.ENDC}").lower() == 's':
-            loading_animation(1, "Guardando configuración")
+        if input(f"\n{Colors.BOLD}Â¿Guardar configuraciÃ³n? (s/n): {Colors.ENDC}").lower() == 's':
+            loading_animation(1, "Guardando configuraciÃ³n")
             
             set_key(ENV_FILE, 'DATABASE_HOST', config['HOST'])
             set_key(ENV_FILE, 'DATABASE_PORT', config['PORT'])
@@ -209,21 +209,21 @@ def configure_basic():
             set_key(ENV_FILE, 'DATABASE_USER', config['USER'])
             set_key(ENV_FILE, 'DATABASE_PASSWORD', config['PASSWORD'])
             
-            print_success("Configuración guardada en .env")
+            print_success("ConfiguraciÃ³n guardada en .env")
             
             return True
     else:
-        print_error("Opción inválida")
+        print_error("OpciÃ³n invÃ¡lida")
     
     return False
 
 def configure_advanced():
-    """Configuración avanzada (personalizada)"""
-    print_header("CONFIGURACIÓN AVANZADA")
+    """ConfiguraciÃ³n avanzada (personalizada)"""
+    print_header("CONFIGURACIÃ“N AVANZADA")
     
     config = load_current_config()
     
-    print(f"{Colors.BOLD}Configuración actual:{Colors.ENDC}")
+    print(f"{Colors.BOLD}ConfiguraciÃ³n actual:{Colors.ENDC}")
     print(f"  Host: {Colors.YELLOW}{config['HOST']}{Colors.ENDC}")
     print(f"  Port: {Colors.YELLOW}{config['PORT']}{Colors.ENDC}")
     print(f"  Name: {Colors.YELLOW}{config['NAME']}{Colors.ENDC}")
@@ -244,7 +244,7 @@ def configure_advanced():
             int(new_port)
             new_config['PORT'] = new_port
         except ValueError:
-            print_error("Puerto debe ser un número")
+            print_error("Puerto debe ser un nÃºmero")
             new_config['PORT'] = config['PORT']
     else:
         new_config['PORT'] = config['PORT']
@@ -259,7 +259,7 @@ def configure_advanced():
     
     # Password
     import getpass
-    print(f"Contraseña [{Colors.DIM}(sin cambios){Colors.ENDC}]:")
+    print(f"ContraseÃ±a [{Colors.DIM}(sin cambios){Colors.ENDC}]:")
     new_password = getpass.getpass()
     new_config['PASSWORD'] = new_password or config['PASSWORD']
     
@@ -268,19 +268,19 @@ def configure_advanced():
     
     cambios = 0
     if new_config['HOST'] != config['HOST']:
-        print(f"  Host: {Colors.DIM}{config['HOST']}{Colors.ENDC} → {Colors.YELLOW}{new_config['HOST']}{Colors.ENDC}")
+        print(f"  Host: {Colors.DIM}{config['HOST']}{Colors.ENDC} â†’ {Colors.YELLOW}{new_config['HOST']}{Colors.ENDC}")
         cambios += 1
     if new_config['PORT'] != config['PORT']:
-        print(f"  Port: {Colors.DIM}{config['PORT']}{Colors.ENDC} → {Colors.YELLOW}{new_config['PORT']}{Colors.ENDC}")
+        print(f"  Port: {Colors.DIM}{config['PORT']}{Colors.ENDC} â†’ {Colors.YELLOW}{new_config['PORT']}{Colors.ENDC}")
         cambios += 1
     if new_config['NAME'] != config['NAME']:
-        print(f"  Name: {Colors.DIM}{config['NAME']}{Colors.ENDC} → {Colors.YELLOW}{new_config['NAME']}{Colors.ENDC}")
+        print(f"  Name: {Colors.DIM}{config['NAME']}{Colors.ENDC} â†’ {Colors.YELLOW}{new_config['NAME']}{Colors.ENDC}")
         cambios += 1
     if new_config['USER'] != config['USER']:
-        print(f"  User: {Colors.DIM}{config['USER']}{Colors.ENDC} → {Colors.YELLOW}{new_config['USER']}{Colors.ENDC}")
+        print(f"  User: {Colors.DIM}{config['USER']}{Colors.ENDC} â†’ {Colors.YELLOW}{new_config['USER']}{Colors.ENDC}")
         cambios += 1
     if new_config['PASSWORD'] != config['PASSWORD']:
-        print(f"  Pass: {Colors.DIM}***{Colors.ENDC} → {Colors.YELLOW}***{Colors.ENDC}")
+        print(f"  Pass: {Colors.DIM}***{Colors.ENDC} â†’ {Colors.YELLOW}***{Colors.ENDC}")
         cambios += 1
     
     if cambios == 0:
@@ -289,16 +289,16 @@ def configure_advanced():
         print(f"\n  Total: {Colors.BOLD}{cambios}{Colors.ENDC} cambio(s)")
     
     # Confirmar
-    if cambios > 0 and input(f"\n{Colors.BOLD}¿Aplicar cambios? (s/n): {Colors.ENDC}").lower() == 's':
+    if cambios > 0 and input(f"\n{Colors.BOLD}Â¿Aplicar cambios? (s/n): {Colors.ENDC}").lower() == 's':
         
         # Test
-        if input(f"{Colors.BOLD}¿Probar conexión primero? (s/n): {Colors.ENDC}").lower() == 's':
+        if input(f"{Colors.BOLD}Â¿Probar conexiÃ³n primero? (s/n): {Colors.ENDC}").lower() == 's':
             if not test_connection(
                 new_config['HOST'], new_config['PORT'],
                 new_config['USER'], new_config['PASSWORD'],
                 new_config['NAME']
             ):
-                if input(f"{Colors.BOLD}¿Continuar de todos modos? (s/n): {Colors.ENDC}").lower() != 's':
+                if input(f"{Colors.BOLD}Â¿Continuar de todos modos? (s/n): {Colors.ENDC}").lower() != 's':
                     return False
         
         # Guardar
@@ -316,8 +316,8 @@ def configure_advanced():
     return False
 
 def configure_field():
-    """Configurar un campo específico"""
-    print_header("CONFIGURAR CAMPO ESPECÍFICO")
+    """Configurar un campo especÃ­fico"""
+    print_header("CONFIGURAR CAMPO ESPECÃFICO")
     
     config = load_current_config()
     
@@ -326,7 +326,7 @@ def configure_field():
     print("  2. PORT           - Puerto (default: 5432)")
     print("  3. NAME           - Nombre de Base de Datos")
     print("  4. USER           - Usuario")
-    print("  5. PASSWORD       - Contraseña")
+    print("  5. PASSWORD       - ContraseÃ±a")
     print("  6. ENGINE         - Motor de BD")
     
     choice = input(f"\n{Colors.BOLD}Selecciona campo (1-6): {Colors.ENDC}").strip()
@@ -336,7 +336,7 @@ def configure_field():
         '2': ('PORT', 'Puerto (ej: 5432)'),
         '3': ('NAME', 'Nombre de la BD'),
         '4': ('USER', 'Usuario de la BD'),
-        '5': ('PASSWORD', 'Contraseña'),
+        '5': ('PASSWORD', 'ContraseÃ±a'),
         '6': ('ENGINE', 'Engine de Django'),
     }
     
@@ -353,20 +353,20 @@ def configure_field():
             nuevo_valor = input("Nuevo valor: ").strip()
         
         if nuevo_valor and nuevo_valor != config[field_name]:
-            print(f"\n{Colors.DIM}{config[field_name]}{Colors.ENDC} → {Colors.YELLOW}{nuevo_valor}{Colors.ENDC}")
+            print(f"\n{Colors.DIM}{config[field_name]}{Colors.ENDC} â†’ {Colors.YELLOW}{nuevo_valor}{Colors.ENDC}")
             
-            if input(f"\n{Colors.BOLD}¿Confirmar cambio? (s/n): {Colors.ENDC}").lower() == 's':
+            if input(f"\n{Colors.BOLD}Â¿Confirmar cambio? (s/n): {Colors.ENDC}").lower() == 's':
                 loading_animation(0.5)
                 set_key(ENV_FILE, f'DATABASE_{field_name}', nuevo_valor)
                 print_success(f"{field_name} actualizado")
         else:
             print_warning("Sin cambios")
     else:
-        print_error("Opción inválida")
+        print_error("OpciÃ³n invÃ¡lida")
 
 def show_presets():
     """Muestra presets disponibles"""
-    print_header("PRESETS DE CONFIGURACIÓN")
+    print_header("PRESETS DE CONFIGURACIÃ“N")
     
     presets = {
         'LOCAL': {
@@ -408,7 +408,7 @@ def show_presets():
     
     for key, preset in presets.items():
         print(f"{Colors.BOLD}{key}:{Colors.ENDC}")
-        print(f"  Descripción: {preset['desc']}")
+        print(f"  DescripciÃ³n: {preset['desc']}")
         print(f"  Host: {Colors.CYAN}{preset['host']}{Colors.ENDC}")
         print(f"  Port: {Colors.CYAN}{preset['port']}{Colors.ENDC}")
         print(f"  User: {Colors.CYAN}{preset['user']}{Colors.ENDC}")
@@ -420,14 +420,14 @@ def main():
         print_header("CONFIGURADOR DE BASE DE DATOS")
         
         print(f"{Colors.BOLD}Opciones:{Colors.ENDC}\n")
-        print("  1. Ver configuración actual")
-        print("  2. Configuración básica (presets)")
-        print("  3. Configuración avanzada (personalizada)")
+        print("  1. Ver configuraciÃ³n actual")
+        print("  2. ConfiguraciÃ³n bÃ¡sica (presets)")
+        print("  3. ConfiguraciÃ³n avanzada (personalizada)")
         print("  4. Configurar un campo")
         print("  5. Ver presets disponibles")
         print("  0. Salir")
         
-        choice = input(f"\n{Colors.BOLD}Selecciona opción (0-5): {Colors.ENDC}").strip()
+        choice = input(f"\n{Colors.BOLD}Selecciona opciÃ³n (0-5): {Colors.ENDC}").strip()
         
         if choice == '1':
             show_current_config()
@@ -442,7 +442,7 @@ def main():
         elif choice == '0':
             print_info("Saliendo...")
         else:
-            print_error("Opción inválida")
+            print_error("OpciÃ³n invÃ¡lida")
     else:
         cmd = sys.argv[1]
         
@@ -464,3 +464,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

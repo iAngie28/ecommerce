@@ -66,7 +66,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   }
 
   Future<void> _inicializar() async {
-    final schemaName = await _authRepository.getSchemaName();
+    final subdomain = await _authRepository.getSubdomain();
     String decodedUser = 'Invitado';
     final token = await _authRepository.getAccessToken();
     if (token != null) {
@@ -80,7 +80,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     }
 
     setState(() {
-      _storeName = schemaName?.replaceAll('_', ' ').toUpperCase() ?? 'Tienda';
+      _storeName = subdomain?.replaceAll('_', ' ').toUpperCase() ?? 'Tienda';
       _userName = decodedUser;
     });
 

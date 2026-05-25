@@ -14,7 +14,7 @@ import { productosApi, categoriasApi } from '../../productos_catalogo/services/p
 import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
 import api from 'core/services/api';
-import { getBaseDomain } from 'core/utils/domain';
+import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
 
 const PublicStorefront = () => {
@@ -117,7 +117,11 @@ const PublicStorefront = () => {
             clearCart();
             // Confirmar en el backend por si el webhook se retrasa
             if (pid) {
-                const tenant = query.get('tenant') || window.location.hostname.split('.')[0];
+                let tenant = query.get('tenant');
+                if (!tenant) {
+                    const host = window.location.hostname;
+                    tenant = isBaseDomain(host) ? 'public' : host.split('.')[0];
+                }
                 api.post('/pagos/confirm-success/', {
                     pedido_id: pid,
                     tenant: tenant
@@ -150,7 +154,11 @@ const PublicStorefront = () => {
             // La URL de retorno es la misma página del catálogo (donde el usuario ya está)
             // Stripe agregará el status al regresar para que mostremos confirmación
             const currentUrl = window.location.href.split('?')[0]; // URL limpia sin params anteriores
-            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}`;
+            
+            const host = window.location.hostname;
+            const tenantStr = isBaseDomain(host) ? 'public' : host.split('.')[0];
+
+            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}&tenant=${tenantStr}`;
 
             const stripeRes = await api.post('/pagos/create-checkout-session/', {
                 pedido_id: pedidoId,
@@ -418,14 +426,19 @@ const PublicStorefront = () => {
                                                 <span className={styles.currency}>Bs.</span>
                                                 <span className={styles.priceValue}>{parseFloat(prod.precio).toFixed(2)}</span>
                                             </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                                                Stock disponible: <strong>{prod.stock}</strong>
+                                            </div>
                                             <button
                                                 className={styles.addToCartBtn}
+                                                style={prod.stock <= 0 ? { backgroundColor: 'var(--color-text-muted)', cursor: 'not-allowed' } : {}}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    addToCart(prod);
+                                                    if (prod.stock > 0) addToCart(prod);
                                                 }}
+                                                disabled={prod.stock <= 0}
                                             >
-                                                Agregar al carrito
+                                                {prod.stock <= 0 ? 'Agotado' : 'Agregar al carrito'}
                                             </button>
                                         </div>
                                     </div>
@@ -467,7 +480,11 @@ const PublicStorefront = () => {
                                                         <div className={styles.qtyControls}>
                                                             <button onClick={() => updateQuantity(item.id, -1)}>-</button>
                                                             <span>{item.quantity}</span>
-                                                            <button onClick={() => updateQuantity(item.id, 1)}>+</button>
+                                                            <button 
+                                                                onClick={() => updateQuantity(item.id, 1)}
+                                                                disabled={item.quantity >= item.stock}
+                                                                style={{ opacity: item.quantity >= item.stock ? 0.5 : 1, cursor: item.quantity >= item.stock ? 'not-allowed' : 'pointer' }}
+                                                            >+</button>
                                                         </div>
                                                     </div>
                                                     <div className={styles.itemPrice}>
@@ -582,13 +599,15 @@ const PublicStorefront = () => {
                                 <Button 
                                     variant="primary"
                                     onClick={() => {
-                                        addToCart(selectedProduct);
-                                        setSelectedProduct(null);
+                                        if (selectedProduct.stock > 0) {
+                                            addToCart(selectedProduct);
+                                            setSelectedProduct(null);
+                                        }
                                     }}
                                     disabled={selectedProduct.stock <= 0}
                                 >
                                     <ShoppingCart size={20} style={{marginRight: '10px'}} />
-                                    Agregar al carrito
+                                    {selectedProduct.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
                                 </Button>
                             </div>
                         </div>

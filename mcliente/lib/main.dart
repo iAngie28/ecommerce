@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'core/services/push_notification_service.dart';
 
 import 'gestion_usuario/screens/login_screen.dart';
 import 'gestion_usuario/screens/registration_screen.dart';
@@ -10,9 +13,17 @@ import 'gestion_producto/screens/storefront_screen.dart';
 import 'gestion_producto/screens/cart_screen.dart';
 import 'gestion_producto/screens/orders_screen.dart';
 import 'gestion_producto/screens/shop_list_screen.dart';
+import 'gestion_usuario/screens/notifications_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await PushNotificationService.initializeApp();
   
   await dotenv.load(fileName: "assets/.env");
   
@@ -31,6 +42,7 @@ class MyApp extends StatelessWidget {
       title: 'MiQhatu Cliente',
       theme: AppTheme.themeData,
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
@@ -40,6 +52,7 @@ class MyApp extends StatelessWidget {
         '/carrito': (context) => const CartScreen(),
         '/pedidos': (context) => const OrdersScreen(),
         '/perfil': (context) => const ProfileScreen(),
+        '/notificaciones': (context) => const NotificationsScreen(),
       },
     );
   }

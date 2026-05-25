@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # SCRIPT PARA AJUSTAR ROLES DE USUARIO
 # ========================================================================
@@ -15,28 +15,28 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 import django
 django.setup()
 
-from customers.models import Usuario, Rol, Permiso
+from apps.customers.models import Usuario, Rol, Permiso
 
 def setup_basic_permissions():
-    """Crea permisos básicos si no existen"""
-    print("[i] Verificando permisos básicos...")
+    """Crea permisos bÃ¡sicos si no existen"""
+    print("[i] Verificando permisos bÃ¡sicos...")
     permisos_config = [
-        # Módulo Productos
+        # MÃ³dulo Productos
         {'nombre': 'Ver Productos', 'codigo': 'VER_PRODUCTOS', 'modulo': 'Productos'},
         {'nombre': 'Crear Producto', 'codigo': 'CREAR_PRODUCTO', 'modulo': 'Productos'},
         {'nombre': 'Editar Producto', 'codigo': 'EDITAR_PRODUCTO', 'modulo': 'Productos'},
         {'nombre': 'Eliminar Producto', 'codigo': 'ELIMINAR_PRODUCTO', 'modulo': 'Productos'},
         
-        # Módulo Ventas
+        # MÃ³dulo Ventas
         {'nombre': 'Ver Ventas', 'codigo': 'VER_VENTAS', 'modulo': 'Ventas'},
         {'nombre': 'Ver Pedidos', 'codigo': 'VER_PEDIDOS', 'modulo': 'Ventas'},
         {'nombre': 'Gestionar Pedidos', 'codigo': 'GESTIONAR_PEDIDOS', 'modulo': 'Ventas'},
         
-        # Módulo Usuarios/Clientes
+        # MÃ³dulo Usuarios/Clientes
         {'nombre': 'Gestionar Usuarios', 'codigo': 'GESTIONAR_USUARIOS', 'modulo': 'Usuarios'},
         {'nombre': 'Ver Clientes', 'codigo': 'VER_CLIENTES', 'modulo': 'Clientes'},
         
-        # Módulo Cliente (Buyer)
+        # MÃ³dulo Cliente (Buyer)
         {'nombre': 'Realizar Pedido', 'codigo': 'REALIZAR_PEDIDO', 'modulo': 'Cliente'},
         {'nombre': 'Ver Mis Pedidos', 'codigo': 'VER_MIS_PEDIDOS', 'modulo': 'Cliente'},
     ]
@@ -50,11 +50,11 @@ def setup_basic_permissions():
             print(f"  [+] Permiso creado: {permiso.codigo}")
 
 def setup_basic_roles():
-    """Asegura que los roles básicos existan y tengan sus permisos"""
-    print("\n[i] Verificando roles básicos...")
+    """Asegura que los roles bÃ¡sicos existan y tengan sus permisos"""
+    print("\n[i] Verificando roles bÃ¡sicos...")
     roles_config = [
         {'nombre': 'Administrador', 'nivel': 1, 'descripcion': 'Acceso total al sistema'},
-        {'nombre': 'Vendedor', 'nivel': 2, 'descripcion': 'Gestión de tienda y ventas'},
+        {'nombre': 'Vendedor', 'nivel': 2, 'descripcion': 'GestiÃ³n de tienda y ventas'},
         {'nombre': 'Cliente', 'nivel': 3, 'descripcion': 'Comprador en el marketplace'},
     ]
     
@@ -72,7 +72,7 @@ def setup_basic_roles():
             defaults={'nivel': r_data['nivel'], 'descripcion': r_data['descripcion']}
         )
         
-        # Asignar permisos según el rol
+        # Asignar permisos segÃºn el rol
         if rol.nivel == 1: # Admin
             rol.permisos.set(all_perms)
         elif rol.nivel == 2: # Vendedor
@@ -86,7 +86,7 @@ def setup_basic_roles():
             print(f"  [OK] Rol verificado: {rol.nombre} ({rol.permisos.count()} permisos)")
 
 def fix_missing_roles():
-    """Asigna roles automáticamente basados en flags de Django si no tienen roles"""
+    """Asigna roles automÃ¡ticamente basados en flags de Django si no tienen roles"""
     print("\n[i] Buscando usuarios sin roles asignados...")
     
     admin_rol = Rol.objects.filter(nivel=1).first()
@@ -94,7 +94,7 @@ def fix_missing_roles():
     cliente_rol = Rol.objects.filter(nivel=3).first()
     
     if not admin_rol or not vendedor_rol or not cliente_rol:
-        print("[ERROR] Roles básicos no encontrados. Ejecuta primero la configuración.")
+        print("[ERROR] Roles bÃ¡sicos no encontrados. Ejecuta primero la configuraciÃ³n.")
         return
 
     usuarios_sin_rol = Usuario.objects.filter(roles__isnull=True)
@@ -116,7 +116,7 @@ def fix_missing_roles():
         else:
             # Si no es staff ni superuser, asumimos que es un usuario con rol Cliente
             # (Aunque en este sistema los compradores suelen ir a la tabla Cliente,
-            # si están en Usuario, les asignamos este rol).
+            # si estÃ¡n en Usuario, les asignamos este rol).
             user.roles.add(cliente_rol)
             print(f"    [+] {user.email} -> Cliente (Usuario final)")
 
@@ -126,7 +126,7 @@ def list_user_roles():
     print(f"{'Email':<35} {'Roles':<45}")
     print("-" * 80)
     for user in Usuario.objects.all():
-        roles = ", ".join([r.nombre for r in user.roles.all()]) or "NINGUNO ⚠️"
+        roles = ", ".join([r.nombre for r in user.roles.all()]) or "NINGUNO âš ï¸"
         print(f"{user.email:<35} {roles:<45}")
     print("="*80)
 
@@ -137,10 +137,10 @@ def main():
     
     print("\nOpciones:")
     print("1. Ver resumen de usuarios y roles")
-    print("2. Corregir roles automáticamente (basado en is_superuser/is_staff)")
+    print("2. Corregir roles automÃ¡ticamente (basado en is_superuser/is_staff)")
     print("3. Salir")
     
-    choice = input("\nSelecciona una opción: ").strip()
+    choice = input("\nSelecciona una opciÃ³n: ").strip()
     
     if choice == '1':
         list_user_roles()
@@ -150,7 +150,8 @@ def main():
     elif choice == '3':
         return
     else:
-        print("Opción inválida.")
+        print("OpciÃ³n invÃ¡lida.")
 
 if __name__ == '__main__':
     main()
+

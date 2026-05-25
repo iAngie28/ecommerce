@@ -23,16 +23,14 @@ class ApiConstants {
   static const String mainBaseUrl = 'http://$vpsIp:$djangoPort/api';
 
   // ── URL para peticiones dentro de un tenant ──
-  // Formato: http://mitienda.157.173.102.129.nip.io:8001/api
-  static String tenantBaseUrl(String schemaName) {
-    final slug = schemaName.replaceAll('_', '');
-    return 'http://$slug.$vpsIp.nip.io:$djangoPort/api';
+  // El subdomain viene del backend (ej: tienda1.192.168.x.x.nip.io o tienda1.miqhatu.com)
+  static String tenantBaseUrl(String subdomain) {
+    return 'http://$subdomain:$djangoPort/api';
   }
 
   // ── Header Host para django-tenants ──
-  static String tenantHost(String schemaName) {
-    final slug = schemaName.replaceAll('_', '');
-    return '$slug.$vpsIp.nip.io:$djangoPort';
+  static String tenantHost(String subdomain) {
+    return subdomain;
   }
 
   // ── Auth Endpoints (IP directa, sin tenant) ──

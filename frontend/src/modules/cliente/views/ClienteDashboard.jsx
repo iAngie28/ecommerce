@@ -66,12 +66,6 @@ const ClienteDashboard = () => {
                     gap: '25px' 
                 }}>
                     {filteredShops.map(shop => {
-                        const port = window.location.port ? `:${window.location.port}` : '';
-                        // Calcular sufijo dinámicamente (misma lógica que el backend)
-                        const domainMain = process.env.REACT_APP_DOMAIN_MAIN || window.location.hostname;
-                        const suffix = (domainMain === 'localhost' || domainMain === '127.0.0.1')
-                            ? '.localhost'
-                            : `.${domainMain}.nip.io`;
                         // Pasar tokens por URL al /sso del subdominio (cross-subdomain auth)
                         const ssoParams = new URLSearchParams({
                             token: localStorage.getItem('access_token') || '',
@@ -79,8 +73,7 @@ const ClienteDashboard = () => {
                             full_name: localStorage.getItem('user_full_name') || '',
                             role: localStorage.getItem('user_role') || 'cliente',
                         });
-                        const subdomain = shop.subdominio ? shop.subdominio.split('.')[0] : shop.schema_name;
-                        const url = `${window.location.protocol}//${subdomain}${suffix}${port}/sso?${ssoParams.toString()}`;
+                        const url = `${shop.store_url}/sso?${ssoParams.toString()}`;
                         
                         return (
                             <a 

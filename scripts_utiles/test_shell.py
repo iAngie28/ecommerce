@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # SHELL INTERACTIVO DE PRUEBAS
 # ========================================================================
@@ -33,8 +33,8 @@ from django_tenants.utils import schema_context
 from django.db import connection
 
 # Importar modelos y utilidades
-from customers.models import Client, Usuario, Domain
-from app_negocio.models import Producto
+from apps.customers.models import Client, Usuario, Domain
+from apps.negocio.models import Producto
 from django.utils import timezone
 from django.db.models import Q, Count
 import random
@@ -81,13 +81,13 @@ def crear_productos_test(cantidad=10):
     ]
     
     productos = []
-    categorias = ['Electrónica', 'Ropa', 'Libros', 'Hogar', 'Deportes']
+    categorias = ['ElectrÃ³nica', 'Ropa', 'Libros', 'Hogar', 'Deportes']
     
     for nombre in nombres:
         prod, created = Producto.objects.get_or_create(
             nombre=nombre,
             defaults={
-                'descripcion': f"Descripción de {nombre}",
+                'descripcion': f"DescripciÃ³n de {nombre}",
                 'precio': round(random.uniform(10, 1000), 2),
                 'categoria': random.choice(categorias),
                 'stock': random.randint(0, 100),
@@ -144,7 +144,7 @@ def setup_inicial():
     - user1, user2 : Usuarios de prueba
     - productos    : Lista de 15 productos
 
-  FUNCIONES ÚTILES:
+  FUNCIONES ÃšTILES:
     - crear_tenant_test(nombre)
     - crear_usuario_test(email, password, es_admin)
     - crear_productos_test(cantidad)
@@ -200,7 +200,7 @@ def listar_usuarios(activos_solo=False):
     for u in query[:10]:
         print(f"{u.email:<30} {u.first_name} {u.last_name:<15} {'Si' if u.is_superuser else ''}")
     if query.count() > 10:
-        print(f"...y {query.count() - 10} más")
+        print(f"...y {query.count() - 10} mÃ¡s")
     return query
 
 def listar_productos():
@@ -211,7 +211,7 @@ def listar_productos():
         estado = "Activo" if p.activo else "Inactivo"
         print(f"{p.id:<5} {p.nombre:<30} ${p.precio:<9} {p.stock:<7} {estado}")
     if Producto.objects.count() > 10:
-        print(f"...y {Producto.objects.count() - 10} más")
+        print(f"...y {Producto.objects.count() - 10} mÃ¡s")
     return Producto.objects.all()
 
 # ========================================================================
@@ -230,7 +230,7 @@ if __name__ == '__main__':
         'Domain': Domain,
         'Producto': Producto,
         
-        # Imports útiles
+        # Imports Ãºtiles
         'Q': Q,
         'Count': Count,
         'timezone': timezone,
@@ -259,3 +259,4 @@ if __name__ == '__main__':
     # Lanzar shell interactivo
     shell = code.InteractiveConsole(local_vars)
     shell.interact(banner="", exitmsg="[OK] Saliendo del shell de pruebas...")
+

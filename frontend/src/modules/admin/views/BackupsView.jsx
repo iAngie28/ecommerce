@@ -13,6 +13,20 @@ export default function BackupsView() {
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [backupName, setBackupName] = useState('Respaldo del Sistema');
+    
+    // Auto-Backup Config
+    const [autoConfig, setAutoConfig] = useState({
+        activo: false,
+        frecuencia: 'DIARIO',
+        hora_ejecucion: '00:00:00',
+        dia_referencia: 0
+    });
+    const [savingConfig, setSavingConfig] = useState(false);
+    
+    // Restore
+    const [restoring, setRestoring] = useState(false);
+    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+    const [restoreTargetId, setRestoreTargetId] = useState(null);
 
     const fetchBackups = async () => {
         setLoading(true);
@@ -27,7 +41,46 @@ export default function BackupsView() {
         }
     };
 
-    useEffect(() => { fetchBackups(); }, []);
+    const fetchConfig = async () => {
+        try {
+            const res = await api.get('/respaldos/config/');
+            setAutoConfig(res.data);
+        } catch (err) {
+            console.error('Error loading backup config', err);
+        }
+    };
+
+    useEffect(() => { 
+        fetchBackups(); 
+        fetchConfig();
+    }, []);
+
+    const saveConfig = async () => {
+        setSavingConfig(true);
+        try {
+            await api.post('/respaldos/config/', autoConfig);
+            alert('Configuración guardada correctamente');
+        } catch (err) {
+            alert('Error guardando configuración');
+        } finally {
+            setSavingConfig(false);
+        }
+    };
+
+    const handleRestore = async () => {
+        if (!restoreTargetId) return;
+        setRestoring(true);
+        try {
+            await api.post(`/respaldos/${restoreTargetId}/restaurar/`);
+            alert('Sistema restaurado con éxito. Por favor recarga la página.');
+            window.location.reload();
+        } catch (err) {
+            setError('Error crítico al restaurar: ' + (err.response?.data?.error || err.message));
+        } finally {
+            setRestoring(false);
+            setIsRestoreModalOpen(false);
+        }
+    };
 
     const handleCreate = async () => {
         setCreating(true);
@@ -236,19 +289,87 @@ export default function BackupsView() {
                 />
             </StatCard.Group>
 
-            <div style={{ marginTop: '24px' }}>
-                <DataTable
-                    title="Cronología de Versiones"
-                    columns={COLUMNS}
-                    data={backups}
-                    loading={loading}
-                    onRowClick={openExplorer}
-                    actions={
-                        <Button onClick={() => setIsModalOpen(true)}>
-                            <Plus size={18} style={{ marginRight: '8px' }} /> Crear Snapshot
+            <div style={{ marginTop: '24px', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                    <DataTable
+                        title="Cronología de Versiones"
+                        columns={COLUMNS}
+                        data={backups}
+                        loading={loading}
+                        onRowClick={openExplorer}
+                        actions={
+                            <Button onClick={() => setIsModalOpen(true)}>
+                                <Plus size={18} style={{ marginRight: '8px' }} /> Crear Snapshot
+                            </Button>
+                        }
+                    />
+                </div>
+                
+                {/* Panel de Configuración Automática */}
+                <div style={{ width: '320px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--color-text)' }}>Respaldo Automático</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={autoConfig.activo} 
+                                onChange={e => setAutoConfig({...autoConfig, activo: e.target.checked})} 
+                            />
+                            Habilitar respaldos automáticos
+                        </label>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Frecuencia</label>
+                            <select 
+                                value={autoConfig.frecuencia}
+                                onChange={e => setAutoConfig({...autoConfig, frecuencia: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                disabled={!autoConfig.activo}
+                            >
+                                <option value="DIARIO">Diario</option>
+                                <option value="SEMANAL">Semanal</option>
+                                <option value="MENSUAL">Mensual</option>
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Hora de ejecución</label>
+                            <input 
+                                type="time" 
+                                value={autoConfig.hora_ejecucion}
+                                onChange={e => setAutoConfig({...autoConfig, hora_ejecucion: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                disabled={!autoConfig.activo}
+                                step="1"
+                            />
+                        </div>
+
+                        {autoConfig.frecuencia !== 'DIARIO' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                    {autoConfig.frecuencia === 'SEMANAL' ? 'Día de la semana (0=Lun, 6=Dom)' : 'Día del mes (1-31)'}
+                                </label>
+                                <input 
+                                    type="number" 
+                                    min={0} max={31}
+                                    value={autoConfig.dia_referencia}
+                                    onChange={e => setAutoConfig({...autoConfig, dia_referencia: parseInt(e.target.value)})}
+                                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                    disabled={!autoConfig.activo}
+                                />
+                            </div>
+                        )}
+
+                        <Button 
+                            variant="primary" 
+                            fullWidth 
+                            onClick={saveConfig} 
+                            loading={savingConfig}
+                        >
+                            Guardar Configuración
                         </Button>
-                    }
-                />
+                    </div>
+                </div>
             </div>
 
             {/* VISOR DE DATOS GIGANTE (PANTALLA COMPLETA) */}
@@ -269,19 +390,30 @@ export default function BackupsView() {
                             </h2>
                             <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>v. {selectedBackup?.fecha_display} | Modo Administrador</p>
                         </div>
-                        <div 
-                            onClick={() => setIsExplorerOpen(false)} 
-                            style={{ 
-                                cursor: 'pointer', padding: '10px', borderRadius: '50%', 
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                background: '#1e293b', border: '1px solid #334155',
-                                transition: 'all 0.2s', color: '#94a3b8'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.background = '#991b1b'; e.currentTarget.style.color = 'white'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#94a3b8'; }}
-                        >
-                            <X size={20} />
-                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Cerrar Visor</span>
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <Button 
+                                variant="danger" 
+                                onClick={() => {
+                                    setRestoreTargetId(selectedBackup.id);
+                                    setIsRestoreModalOpen(true);
+                                }}
+                            >
+                                Restaurar Sistema
+                            </Button>
+                            <div 
+                                onClick={() => setIsExplorerOpen(false)} 
+                                style={{ 
+                                    cursor: 'pointer', padding: '10px', borderRadius: '50%', 
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    background: '#1e293b', border: '1px solid #334155',
+                                    transition: 'all 0.2s', color: '#94a3b8'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = '#991b1b'; e.currentTarget.style.color = 'white'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#94a3b8'; }}
+                            >
+                                <X size={20} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Cerrar Visor</span>
+                            </div>
                         </div>
                     </div>
 
@@ -314,6 +446,35 @@ export default function BackupsView() {
                         value={backupName} 
                         onChange={e => setBackupName(e.target.value)} 
                     />
+                </div>
+            </Modal>
+
+            {/* MODAL DE RESTAURACIÓN DE EMERGENCIA */}
+            <Modal
+                isOpen={isRestoreModalOpen}
+                onClose={() => !restoring && setIsRestoreModalOpen(false)}
+                title="⚠️ ADVERTENCIA DE RESTAURACIÓN CRÍTICA"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} disabled={restoring}>Cancelar</Button>
+                        <Button variant="danger" onClick={handleRestore} loading={restoring}>
+                            Sí, Formatear y Restaurar
+                        </Button>
+                    </>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <Alert variant="danger">
+                        <strong>Estás a punto de formatear la base de datos actual.</strong><br/>
+                        Todos los datos creados o modificados después de este respaldo se PERDERÁN permanentemente.
+                    </Alert>
+                    <p style={{ fontSize: '14px', color: 'var(--color-text)' }}>
+                        El sistema será reiniciado al estado exacto de la versión: <br/>
+                        <strong>{backups.find(b => b.id === restoreTargetId)?.nombre}</strong>
+                    </p>
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                        Durante este proceso el sistema estará inaccesible. Si estás seguro, haz clic en confirmar.
+                    </p>
                 </div>
             </Modal>
         </AppView>

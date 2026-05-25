@@ -70,7 +70,7 @@ class AuthRepository {
     return await _storage.getAccessToken();
   }
 
-  Future<String?> getSchemaName() async {
-    return await _storage.getSchemaName();
+  Future<String?> getSubdomain() async {
+    return await _storage.getSubdomain();
   }
 }

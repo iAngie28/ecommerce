@@ -1,4 +1,4 @@
-import urllib.request as ur
+﻿import urllib.request as ur
 import urllib.error as ue
 import json
 
@@ -8,3 +8,4 @@ try:
 except ue.HTTPError as e:
     html = e.read().decode()
     open('error_500.html', 'w', encoding='utf-8').write(html)
+

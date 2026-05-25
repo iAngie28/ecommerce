@@ -46,19 +46,13 @@ export default function LoginView() {
       const { access, refresh } = res.data;
 
       if (loginType === 'vendedor') {
-        const { subdomain, full_name, is_superuser } = res.data;
+        const { store_url, full_name, is_superuser } = res.data;
         if (is_superuser) {
-          login(access, refresh, res.data.full_name, 'admin');
-          navigate('/su', { replace: true });
-        } else if (subdomain) {
-          const protocol    = window.location.protocol;
-          const currentPort = window.location.port;
-          const portPart    = (currentPort && currentPort !== '80' && currentPort !== '443')
-            ? `:${currentPort}` : '';
-          window.location.href = `${protocol}//${subdomain}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}&is_superuser=${is_superuser || false}`;
+          window.location.href = '/admin-dashboard';
+        } else if (store_url) {
+          window.location.href = `${store_url}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}&is_superuser=${is_superuser || false}`;
         } else {
-          login(access, refresh, res.data.full_name, 'vendedor');
-          navigate('/dashboard', { replace: true });
+          setError('No tienes una tienda asignada.');
         }
       } else {
         // Cliente: Guardar tokens y redirigir a su portal
@@ -154,10 +148,10 @@ export default function LoginView() {
         <form onSubmit={handleLogin} className={styles.form}>
           <Input
             id="login-username"
-            label={isCliente ? "Correo Electrónico" : "Usuario"}
-            leftIcon={isCliente ? <Mail size={16} /> : <User size={16} />}
-            type={isCliente ? "email" : "text"}
-            placeholder={isCliente ? "tu@correo.com" : "Tu nombre de usuario"}
+            label={isCliente ? "Correo Electrónico" : "Correo Electrónico (Usuario)"}
+            leftIcon={<Mail size={16} />}
+            type="email"
+            placeholder="tu@correo.com"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required

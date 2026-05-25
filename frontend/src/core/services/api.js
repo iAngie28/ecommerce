@@ -15,8 +15,14 @@ const api = axios.create({
 // ── Interceptor REQUEST: inyectar JWT ─────────────────────────
 api.interceptors.request.use(
   (config) => {
+    // Evitar enviar token (potencialmente expirado) al intentar iniciar sesión o refrescar
+    const noAuthUrls = ['/token/', '/clientes/login/'];
+    const requiresAuth = !noAuthUrls.some(url => config.url?.includes(url));
+
     const token = localStorage.getItem('access_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token && requiresAuth) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)

@@ -23,9 +23,9 @@ class ApiClient {
     }
 
     if (includeTenantHost) {
-      final schemaName = await _storage.getSchemaName();
-      if (schemaName != null && schemaName.isNotEmpty) {
-        headers['Host'] = ApiConstants.tenantHost(schemaName);
+      final subdomain = await _storage.getSubdomain();
+      if (subdomain != null && subdomain.isNotEmpty) {
+        headers['Host'] = ApiConstants.tenantHost(subdomain);
       }
     }
 

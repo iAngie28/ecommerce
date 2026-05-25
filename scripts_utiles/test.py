@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # ========================================================================
 # SCRIPT DE TESTING (RUNNER)
 # ========================================================================
-# Ejecuta tests del proyecto importando lógica desde testUnit/
+# Ejecuta tests del proyecto importando lÃ³gica desde testUnit/
 # Uso: python scripts_utiles/test.py [opciones]
 
 import os
@@ -10,11 +10,11 @@ import sys
 import subprocess
 from pathlib import Path
 
-# Directorio raíz
+# Directorio raÃ­z
 PROJECT_ROOT = Path(__file__).parent.parent
 
 # ========================================================================
-# INICIALIZACIÓN DE DJANGO
+# INICIALIZACIÃ“N DE DJANGO
 # ========================================================================
 sys.path.insert(0, str(PROJECT_ROOT / 'backend'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
@@ -46,7 +46,7 @@ def run_django_tests(app=None):
     if app:
         cmd.append(app)
     else:
-        cmd.extend(['app_negocio', 'customers'])
+        cmd.extend(['negocio', 'customers'])
     cmd.extend(['--verbosity=2'])
     subprocess.run(cmd)
 
@@ -77,7 +77,7 @@ def main():
         print("  lint       - Ejecutar linter")
         print("  migrations - Verificar migraciones")
         print("  sprint1    - Ejecutar los checks de BD, Esquemas e Integridad")
-        print("  bitacora   - Ejecutar la prueba del sistema de auditoría")
+        print("  bitacora   - Ejecutar la prueba del sistema de auditorÃ­a")
         sys.exit(1)
     
     cmd = sys.argv[1]
