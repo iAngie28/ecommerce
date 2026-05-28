@@ -132,6 +132,11 @@ def run_seed():
     script_path = PROJECT_ROOT / 'scripts_utiles' / 'db_seed.py'
     subprocess.run([python_exe, str(script_path)], env=_build_env())
 
+def run_seed_permisos():
+    """Ejecuta el seeder de permisos básicos del sistema."""
+    print("\n[+] Sincronizando Permisos Básicos y Premium del sistema...")
+    run_django_command_visible(['seed_permisos'])
+
 def show_migrations():
     """Muestra el estado de las migraciones"""
     print("\n[+] Estado actual de migraciones:\n")
@@ -164,6 +169,7 @@ def main():
         print("  sync         - Actualizar estructura (Make + Migrate Shared + Tenants)")
         print("  reset        - REINICIAR TODO (Borra BD, recrea estructura)")
         print("  seed         - Cargar datos de prueba")
+        print("  seed_permisos- Cargar permisos base (roles)")
         print("  make         - Solo detectar cambios en modelos (makemigrations)")
         print("  migrate      - Solo aplicar cambios al esquema público")
         print("  tenants      - Solo aplicar cambios a los esquemas de clientes")
@@ -180,6 +186,8 @@ def main():
         run_reset()
     elif cmd == 'seed':
         run_seed()
+    elif cmd == 'seed_permisos':
+        run_seed_permisos()
     elif cmd == 'make':
         run_make_migrations()
     elif cmd == 'migrate':

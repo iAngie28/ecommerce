@@ -182,12 +182,22 @@ class ClienteViewSet(ClienteSSOMixin, BaseViewSet):
     def get_permissions(self):
         """
         Permitir registro anónimo, proteger el resto del CRUD.
+        Solo superusers pueden hacer CRUD completo.
+        Los clientes usan el endpoint 'perfil'.
         """
-        from rest_framework.permissions import IsAuthenticated
+        from rest_framework.permissions import IsAuthenticated, BasePermission
         
+        class IsSuperUser(BasePermission):
+            def has_permission(self, request, view):
+                user = request.user
+                return bool(user and hasattr(user, 'is_superuser') and user.is_superuser)
+                
         if self.action == 'create':
             return [AllowAny()]
-        return [IsAuthenticated()]
+        if self.action == 'perfil':
+            return [IsAuthenticated()]
+            
+        return [IsAuthenticated(), IsSuperUser()]
 
     def create(self, request, *args, **kwargs):
         """

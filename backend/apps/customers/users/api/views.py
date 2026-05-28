@@ -79,9 +79,17 @@ class UsuarioCrudViewSet(BaseViewSet):
     def get_queryset(self):
         from django.db import connection
         qs = super().get_queryset()
-        if connection.schema_name != 'public':
-            return qs.filter(tenant__schema_name=connection.schema_name)
-        return qs
+        user = self.request.user
+        
+        if user.is_superuser:
+            if connection.schema_name != 'public':
+                return qs.filter(tenant__schema_name=connection.schema_name)
+            return qs
+            
+        if user.tenant:
+            return qs.filter(tenant=user.tenant)
+            
+        return qs.none()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
