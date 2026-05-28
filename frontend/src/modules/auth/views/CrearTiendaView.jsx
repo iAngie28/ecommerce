@@ -162,9 +162,11 @@ export default function CrearTiendaView() {
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
             Inicia sesión con <strong>{responseData.admin_email}</strong>
           </p>
-          <Button as="a" href="/login" rightIcon={<ArrowRight size={16} />} fullWidth>
-            Continuar
-          </Button>
+          <Link to="/login" style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
+            <Button rightIcon={<ArrowRight size={16} />} fullWidth type="button">
+              Continuar
+            </Button>
+          </Link>
         </div>
       </AuthLayout>
     );
