@@ -73,8 +73,8 @@ class UploadMobileReleaseView(APIView):
 
     def post(self, request):
         secret = request.headers.get('X-Upload-Secret')
-        # Utilizamos un secret que por defecto serÃ¡ 'miqhatu_super_secret_upload_token_2026' si no estÃ¡ en .env
-        expected_secret = getattr(settings, 'MOBILE_UPLOAD_SECRET', 'miqhatu_super_secret_upload_token_2026')
+        # Leer desde las variables de entorno directamente (cargadas por dotenv)
+        expected_secret = os.environ.get('MOBILE_UPLOAD_SECRET', 'miqhatu_super_secret_upload_token_2026')
         
         if not secret or secret != expected_secret:
             return Response({'error': 'No autorizado. Token invÃ¡lido.'}, status=403)
