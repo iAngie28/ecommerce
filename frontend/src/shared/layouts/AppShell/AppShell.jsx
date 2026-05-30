@@ -3,6 +3,7 @@ import { Box, LogOut, Bell, Search, Settings } from 'lucide-react';
 import { getSidebarGroups } from 'core/router/routes.config';
 import { useAuth } from 'core/hooks/useAuth';
 import { useTenant } from 'core/hooks/useTenant';
+import { NotificationsDropdown } from 'shared/components';
 import styles from './AppShell.module.css';
 
 // ─── Etiquetas legibles para cada grupo ──────────────────────
@@ -25,7 +26,7 @@ const AppShell = () => {
   const tenant = useTenant();
   const navigate = useNavigate();
 
-  const sidebarGroups = getSidebarGroups(user?.role);
+  const sidebarGroups = getSidebarGroups(user);
 
   const fullName = user?.fullName || 'Usuario';
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=18aea4&color=fff&bold=true`;
@@ -106,9 +107,7 @@ const AppShell = () => {
               <span className={styles.tenantLabel}>Tienda activa</span>
               <span className={styles.tenantValue}>{tenant}</span>
             </div>
-            <div className={styles.iconBtn}>
-              <Bell size={20} />
-            </div>
+            <NotificationsDropdown />
             <div className={styles.userProfile} onClick={handleProfileClick}>
               <img
                 src={avatarUrl}

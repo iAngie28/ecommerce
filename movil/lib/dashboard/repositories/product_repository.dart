@@ -9,30 +9,30 @@ class ProductRepository {
   final ApiClient _apiClient = ApiClient();
   final SecureStorageService _storage = SecureStorageService();
 
-  Future<String> _getProductsUrl() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty) {
-      throw Exception('No hay tenant configurado.');
-    }
-    return '${ApiConstants.tenantBaseUrl(schemaName)}${ApiConstants.productos}';
+  Future<String?> _buildUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}${ApiConstants.productos}';
   }
 
-  Future<String> _getCategoriesUrl() async {
-    final schemaName = await _storage.getSchemaName();
-    if (schemaName == null || schemaName.isEmpty) {
-      throw Exception('No hay tenant configurado.');
-    }
-    return '${ApiConstants.tenantBaseUrl(schemaName)}/categorias/';
+  Future<String?> _buildCategoriesUrl() async {
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) return null;
+    return '${ApiConstants.tenantBaseUrl(subdomain)}/categorias/';
   }
 
   // ── PRODUCTOS ──
 
   Future<List<ProductModel>> fetchProducts() async {
-    final url = await _getProductsUrl();
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+          ? decoded['results'] 
+          : decoded;
       return data.map((json) => ProductModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar productos: ${response.statusCode}');
@@ -40,7 +40,8 @@ class ProductRepository {
   }
 
   Future<ProductModel> createProduct(ProductModel product) async {
-    final url = await _getProductsUrl();
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.post(url, product.toJson(), requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 201) {
@@ -51,9 +52,9 @@ class ProductRepository {
   }
 
   Future<ProductModel> updateProduct(int id, ProductModel product) async {
-    final baseUrl = await _getProductsUrl();
-    final url = '$baseUrl$id/';
-    final response = await _apiClient.put(url, product.toJson(), requiresAuth: true, includeTenantHost: true);
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
+    final response = await _apiClient.put('$url$id/', product.toJson(), requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
       return ProductModel.fromJson(jsonDecode(response.body));
@@ -63,16 +64,16 @@ class ProductRepository {
   }
 
   Future<bool> deleteProduct(int id) async {
-    final baseUrl = await _getProductsUrl();
-    final url = '$baseUrl$id/';
-    final response = await _apiClient.delete(url, requiresAuth: true, includeTenantHost: true);
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
+    final response = await _apiClient.delete('$url$id/', requiresAuth: true, includeTenantHost: true);
     return response.statusCode == 204 || response.statusCode == 200;
   }
 
   Future<void> adjustStock(int id, int newStock) async {
-    final baseUrl = await _getProductsUrl();
-    final url = '$baseUrl$id/';
-    final response = await _apiClient.patch(url, {'stock': newStock}, requiresAuth: true, includeTenantHost: true);
+    final url = await _buildUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
+    final response = await _apiClient.patch('$url$id/', {'stock': newStock}, requiresAuth: true, includeTenantHost: true);
     if (response.statusCode != 200) {
       throw Exception('Error al ajustar stock');
     }
@@ -81,11 +82,15 @@ class ProductRepository {
   // ── CATEGORÍAS ──
 
   Future<List<CategoryModel>> fetchCategories() async {
-    final url = await _getCategoriesUrl();
+    final url = await _buildCategoriesUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> data = (decoded is Map && decoded.containsKey('results')) 
+          ? decoded['results'] 
+          : decoded;
       return data.map((json) => CategoryModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al cargar categorías');
@@ -93,7 +98,8 @@ class ProductRepository {
   }
 
   Future<CategoryModel> createCategory(CategoryModel category) async {
-    final url = await _getCategoriesUrl();
+    final url = await _buildCategoriesUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.post(url, category.toJson(), requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 201) {
@@ -104,9 +110,9 @@ class ProductRepository {
   }
 
   Future<CategoryModel> updateCategory(int id, CategoryModel category) async {
-    final baseUrl = await _getCategoriesUrl();
-    final url = '$baseUrl$id/';
-    final response = await _apiClient.put(url, category.toJson(), requiresAuth: true, includeTenantHost: true);
+    final url = await _buildCategoriesUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
+    final response = await _apiClient.put('$url$id/', category.toJson(), requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
       return CategoryModel.fromJson(jsonDecode(response.body));
@@ -116,9 +122,9 @@ class ProductRepository {
   }
 
   Future<bool> deleteCategory(int id) async {
-    final baseUrl = await _getCategoriesUrl();
-    final url = '$baseUrl$id/';
-    final response = await _apiClient.delete(url, requiresAuth: true, includeTenantHost: true);
+    final url = await _buildCategoriesUrl();
+    if (url == null) throw Exception('No hay tenant configurado.');
+    final response = await _apiClient.delete('$url$id/', requiresAuth: true, includeTenantHost: true);
     return response.statusCode == 204 || response.statusCode == 200;
   }
 }

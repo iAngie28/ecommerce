@@ -5,22 +5,22 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# CARGAR .ENV DESDE LA RAÍZ DEL PROYECTO
+# CARGAR .ENV DESDE LA RAÃZ DEL PROYECTO
 load_dotenv(os.path.join(BASE_DIR.parent, '.env'))
 
 # ========================================================================
-# CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción)
+# CARGAR CONFIGURACIÃ“N LOCAL (desarrollo/producciÃ³n)
 # ========================================================================
-# 1. ENTORNO Y CONFIGURACIÓN BÁSICA
+# 1. ENTORNO Y CONFIGURACIÃ“N BÃSICA
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# 2. USUARIO GLOBAL ÚNICO
+# 2. USUARIO GLOBAL ÃšNICO
 AUTH_USER_MODEL = 'customers.Usuario'
 
 # 3. APPS MULTI-TENANT
 SHARED_APPS = (
     'django_tenants',
-    'customers',
+    'apps.customers',
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
@@ -36,15 +36,15 @@ SHARED_APPS = (
 
 TENANT_APPS = (
     'django.contrib.contenttypes',
-    'app_negocio',
-    'voice_query',
+    'apps.negocio',
+    'apps.voice',
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 # 4. MIDDLEWARES
 MIDDLEWARE = [
-    'customers.middleware.TenantHostMiddleware',           
+    'apps.customers.users.middleware.TenantHostMiddleware',           
     'corsheaders.middleware.CorsMiddleware',                
     'django_tenants.middleware.main.TenantMainMiddleware',  
     'django.middleware.security.SecurityMiddleware',
@@ -83,7 +83,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # 6. BASE DE DATOS
-# (DATABASES se configurará en settings_local.py)
+# (DATABASES se configurarÃ¡ en settings_local.py)
 DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
 
 # 7. MODELOS DE TENANTS
@@ -91,20 +91,24 @@ TENANT_MODEL = 'customers.Client'
 TENANT_DOMAIN_MODEL = 'customers.Domain'
 SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 
-# 8. VALIDACIONES E INTERNACIONALIZACIÓN
+# 8. VALIDACIONES E INTERNACIONALIZACIÃ“N
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'es-bo'
+TIME_ZONE = 'America/La_Paz'
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR.parent, 'static')
 
-# 10. CONFIGURACIÓN DE CAMPOS AUTO (Silencia warnings)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, 'media')
+
+# 10. CONFIGURACIÃ“N DE CAMPOS AUTO (Silencia warnings)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 9. CORS Y API (REST FRAMEWORK & JWT)
@@ -112,8 +116,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'customers.authentication.UsuarioJWTAuthentication',
-        'customers.authentication.ClienteJWTAuthentication',
+        'apps.customers.users.authentication.UsuarioJWTAuthentication',
+        'apps.customers.users.authentication.ClienteJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -146,15 +150,25 @@ STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 
 if not STRIPE_SECRET_KEY:
-    print("⚠️ ADVERTENCIA: STRIPE_SECRET_KEY no detectada en el entorno.")
+    print("âš ï¸ ADVERTENCIA: STRIPE_SECRET_KEY no detectada en el entorno.")
 
 # ========================================================================
-# CARGAR CONFIGURACIÓN LOCAL (desarrollo/producción) Y .ENV
+# CARGAR CONFIGURACIÃ“N LOCAL (desarrollo/producciÃ³n) Y .ENV
 # ========================================================================
 try:
     from .settings_local import *
 except ImportError:
-    # Si no existe settings_local, usar valores por defecto mínimos
+    # Si no existe settings_local, usar valores por defecto mÃ­nimos
     SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-8dl7kzt3gurd5j=)2(7=6kkf-vfp(5qq=46*8(w)g_)9q8*t^*')
     DEBUG = config('DEBUG', default=True, cast=bool)
     ALLOWED_HOSTS = ['*']
+
+# 12. AUDITORÃA
+AUDIT_LOG_RETENTION_DAYS = 90
+
+
+
+
+# FIREBASE CONFIG
+FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default=os.path.join(BASE_DIR, "credenciales", "si2parcial-9e9e9-firebase-adminsdk-fbsvc-c5fcfdacf9.json"))
+

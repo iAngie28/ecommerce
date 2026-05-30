@@ -46,6 +46,8 @@ console.log(`✓ Variables de .env cargadas desde: ${envPath}`);
 // Forzar configuración para que Webpack Dev Server funcione sobre IPs en el VPS
 process.env.WDS_SOCKET_PORT = '0';
 process.env.HOST = '0.0.0.0';
+// Permite que el dev server sirva desde cualquier subdominio (tenants nip.io, *.localhost, etc.)
+process.env.DANGEROUSLY_DISABLE_HOST_CHECK = 'true';
 
 // Si hay argumentos adicionales, ejecutar comando
 const args = process.argv.slice(2);

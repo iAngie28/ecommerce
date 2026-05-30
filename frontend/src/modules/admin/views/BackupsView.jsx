@@ -1,0 +1,482 @@
+import { useState, useEffect } from 'react';
+import { Database, Download, Plus, ArrowRight, History, Server, FileJson, X } from 'lucide-react';
+import AppView from 'shared/widgets/AppView/AppView';
+import StatCard from 'shared/widgets/StatCard/StatCard';
+import DataTable from 'shared/widgets/DataTable/DataTable';
+import { Button, Badge, Alert, Modal, Input, Spinner } from 'shared/components';
+import api from 'core/services/api';
+
+export default function BackupsView() {
+    const [backups, setBackups] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [backupName, setBackupName] = useState('Respaldo del Sistema');
+    
+    // Auto-Backup Config
+    const [autoConfig, setAutoConfig] = useState({
+        activo: false,
+        frecuencia: 'DIARIO',
+        hora_ejecucion: '00:00:00',
+        dia_referencia: 0
+    });
+    const [savingConfig, setSavingConfig] = useState(false);
+    
+    // Restore
+    const [restoring, setRestoring] = useState(false);
+    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+    const [restoreTargetId, setRestoreTargetId] = useState(null);
+
+    const fetchBackups = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/respaldos/historial/');
+            setBackups(res.data);
+            setError(null);
+        } catch (err) {
+            setError('Error al cargar historial de respaldos.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchConfig = async () => {
+        try {
+            const res = await api.get('/respaldos/config/');
+            setAutoConfig(res.data);
+        } catch (err) {
+            console.error('Error loading backup config', err);
+        }
+    };
+
+    useEffect(() => { 
+        fetchBackups(); 
+        fetchConfig();
+    }, []);
+
+    const saveConfig = async () => {
+        setSavingConfig(true);
+        try {
+            await api.post('/respaldos/config/', autoConfig);
+            alert('Configuración guardada correctamente');
+        } catch (err) {
+            alert('Error guardando configuración');
+        } finally {
+            setSavingConfig(false);
+        }
+    };
+
+    const handleRestore = async () => {
+        if (!restoreTargetId) return;
+        setRestoring(true);
+        try {
+            await api.post(`/respaldos/${restoreTargetId}/restaurar/`);
+            alert('Sistema restaurado con éxito. Por favor recarga la página.');
+            window.location.reload();
+        } catch (err) {
+            setError('Error crítico al restaurar: ' + (err.response?.data?.error || err.message));
+        } finally {
+            setRestoring(false);
+            setIsRestoreModalOpen(false);
+        }
+    };
+
+    const handleCreate = async () => {
+        setCreating(true);
+        try {
+            await api.post('/respaldos/', { nombre: backupName });
+            setIsModalOpen(false);
+            fetchBackups();
+        } catch (err) {
+            setError('Error al crear el respaldo en el servidor.');
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const [selectedBackup, setSelectedBackup] = useState(null);
+    const [isExplorerOpen, setIsExplorerOpen] = useState(false);
+    const [selectedSchema, setSelectedSchema] = useState('public');
+    const [selectedTable, setSelectedTable] = useState('');
+
+    const openExplorer = (backup) => {
+        const catalogo = backup.metadata?.catalogo || {};
+        const schemas = Object.keys(catalogo);
+        setSelectedBackup({ ...backup, catalogo, schemas });
+        
+        if (schemas.length > 0) {
+            const firstSchema = schemas.includes('public') ? 'public' : schemas[0];
+            setSelectedSchema(firstSchema);
+            const tables = Object.keys(catalogo[firstSchema] || {});
+            if (tables.length > 0) setSelectedTable(tables[0]);
+        }
+        setIsExplorerOpen(true);
+    };
+
+    const COLUMNS = [
+        { 
+            key: 'fecha_display', 
+            label: 'Versión', 
+            render: (v, row) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Badge variant="primary" size="lg" style={{ minWidth: '100px', textAlign: 'center' }}>{v}</Badge>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => { e.stopPropagation(); openExplorer(row); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-primary)', border: '1px solid #e0e7ff' }}
+                    >
+                        <FileJson size={14} />
+                        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Explorar</span>
+                    </Button>
+                </div>
+            )
+        },
+        { key: 'nombre', label: 'Identificador' },
+        { 
+            key: 'metadata', 
+            label: 'Info', 
+            render: (m) => (
+                <div style={{ fontSize: '12px' }}>
+                    <div><strong>{m?.size_bytes ? `${(m.size_bytes / (1024 * 1024)).toFixed(2)} MB` : '—'}</strong></div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>{m?.formato || 'SQL Plano'}</div>
+                </div>
+            )
+        },
+        { 
+            key: 'archivo_path', 
+            label: 'Ruta Servidor', 
+            render: (v) => <code style={{fontSize: '10px', color: '#94a3b8', display: 'block', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={v}>{v}</code> 
+        }
+    ];
+
+    const renderExplorerContent = () => {
+        if (!selectedBackup || !selectedBackup.catalogo) return null;
+        
+        const currentSchemaData = selectedBackup.catalogo[selectedSchema] || {};
+        const tableInfo = currentSchemaData[selectedTable] || { columns: [], rows: [] };
+        const allTables = Object.keys(currentSchemaData);
+
+        return (
+            <div style={{ 
+                display: 'flex', 
+                flex: 1,
+                height: '100%', 
+                background: '#0f172a', 
+                color: '#f8fafc',
+                overflow: 'hidden'
+            }}>
+                {/* Sidebar Izquierda */}
+                <div style={{ 
+                    width: '280px', 
+                    background: '#111827', 
+                    borderRight: '1px solid #1e293b',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <div style={{ padding: '20px', borderBottom: '1px solid #1e293b' }}>
+                        <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Esquema / Tienda</label>
+                        <select 
+                            value={selectedSchema}
+                            onChange={(e) => {
+                                const newSchema = e.target.value;
+                                setSelectedSchema(newSchema);
+                                const firstTable = Object.keys(selectedBackup.catalogo[newSchema] || {})[0];
+                                setSelectedTable(firstTable || '');
+                            }}
+                            style={{ 
+                                width: '100%', marginTop: '10px', background: '#1f2937', color: 'white', 
+                                border: '1px solid #374151', padding: '10px', borderRadius: '8px', outline: 'none' 
+                            }}
+                        >
+                            {selectedBackup.schemas.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+                        <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', padding: '10px', display: 'block' }}>TABLAS DETECTADAS</label>
+                        {allTables.map(table => (
+                            <div 
+                                key={table}
+                                onClick={() => setSelectedTable(table)}
+                                style={{ 
+                                    padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px',
+                                    marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px',
+                                    background: selectedTable === table ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                    color: selectedTable === table ? '#60a5fa' : '#9ca3af',
+                                    border: `1px solid ${selectedTable === table ? '#3b82f633' : 'transparent'}`,
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Database size={14} />
+                                {table}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Visor de Datos Derecha */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
+                    <div style={{ padding: '15px 25px', background: '#111827', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>Viendo tabla: </span>
+                            <span style={{ color: 'white', fontWeight: 'bold' }}>{selectedSchema}.{selectedTable}</span>
+                        </div>
+                        <Badge variant="primary">{tableInfo.rows?.length || 0} filas en muestra</Badge>
+                    </div>
+
+                    <div style={{ flex: 1, overflow: 'auto' }}>
+                        {tableInfo.columns && tableInfo.columns.length > 0 ? (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{ position: 'sticky', top: 0, background: '#1f2937', zIndex: 10 }}>
+                                    <tr>
+                                        {tableInfo.columns.map(col => (
+                                            <th key={col} style={{ padding: '12px 15px', textAlign: 'left', color: '#9ca3af', fontSize: '11px', borderBottom: '1px solid #374151', textTransform: 'uppercase' }}>{col}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tableInfo.rows.map((row, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? '#0f172a' : '#111827' }}>
+                                            {tableInfo.columns.map(col => (
+                                                <td key={col} style={{ padding: '10px 15px', color: '#d1d5db', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                                                    {String(row[col])}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#4b5563', gap: '15px' }}>
+                                <History size={64} opacity={0.2} />
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ margin: 0, fontWeight: 'bold' }}>Sin datos disponibles</p>
+                                    <p style={{ fontSize: '12px' }}>Crea un backup nuevo para ver el contenido real de esta tabla.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <AppView 
+            title="Copias de Seguridad" 
+            subtitle="Gestión de snapshots con explorador de catálogo Premium"
+        >
+            {error && <Alert variant="danger" style={{ marginBottom: '20px' }}>{error}</Alert>}
+
+            <StatCard.Group>
+                <StatCard 
+                    label="Versión Actual" 
+                    value={backups.length > 0 ? `v. ${backups[backups.length - 1].fecha_display}` : '—'}
+                    icon={<Database size={18} />}
+                />
+                <StatCard 
+                    label="Puntos de Restauración" 
+                    value={backups.length}
+                    icon={<History size={18} />}
+                />
+                <StatCard 
+                    label="Almacenamiento" 
+                    value="Optimizado"
+                    icon={<Server size={18} />}
+                    accentColor="var(--color-success)"
+                />
+            </StatCard.Group>
+
+            <div style={{ marginTop: '24px', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                    <DataTable
+                        title="Cronología de Versiones"
+                        columns={COLUMNS}
+                        data={backups}
+                        loading={loading}
+                        onRowClick={openExplorer}
+                        actions={
+                            <Button onClick={() => setIsModalOpen(true)}>
+                                <Plus size={18} style={{ marginRight: '8px' }} /> Crear Snapshot
+                            </Button>
+                        }
+                    />
+                </div>
+                
+                {/* Panel de Configuración Automática */}
+                <div style={{ width: '320px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--color-text)' }}>Respaldo Automático</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={autoConfig.activo} 
+                                onChange={e => setAutoConfig({...autoConfig, activo: e.target.checked})} 
+                            />
+                            Habilitar respaldos automáticos
+                        </label>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Frecuencia</label>
+                            <select 
+                                value={autoConfig.frecuencia}
+                                onChange={e => setAutoConfig({...autoConfig, frecuencia: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                disabled={!autoConfig.activo}
+                            >
+                                <option value="DIARIO">Diario</option>
+                                <option value="SEMANAL">Semanal</option>
+                                <option value="MENSUAL">Mensual</option>
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Hora de ejecución</label>
+                            <input 
+                                type="time" 
+                                value={autoConfig.hora_ejecucion}
+                                onChange={e => setAutoConfig({...autoConfig, hora_ejecucion: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                disabled={!autoConfig.activo}
+                                step="1"
+                            />
+                        </div>
+
+                        {autoConfig.frecuencia !== 'DIARIO' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                    {autoConfig.frecuencia === 'SEMANAL' ? 'Día de la semana (0=Lun, 6=Dom)' : 'Día del mes (1-31)'}
+                                </label>
+                                <input 
+                                    type="number" 
+                                    min={0} max={31}
+                                    value={autoConfig.dia_referencia}
+                                    onChange={e => setAutoConfig({...autoConfig, dia_referencia: parseInt(e.target.value)})}
+                                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+                                    disabled={!autoConfig.activo}
+                                />
+                            </div>
+                        )}
+
+                        <Button 
+                            variant="primary" 
+                            fullWidth 
+                            onClick={saveConfig} 
+                            loading={savingConfig}
+                        >
+                            Guardar Configuración
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* VISOR DE DATOS GIGANTE (PANTALLA COMPLETA) */}
+            {isExplorerOpen && (
+                <div style={{ 
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
+                    background: '#020617', zIndex: 9999, display: 'flex', flexDirection: 'column' 
+                }}>
+                    {/* Header del Visor */}
+                    <div style={{ 
+                        padding: '15px 30px', background: '#0f172a', borderBottom: '1px solid #1e293b',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '18px', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Database color="#60a5fa" />
+                                Explorador de Snapshot: <span style={{ color: '#60a5fa' }}>{selectedBackup?.nombre}</span>
+                            </h2>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>v. {selectedBackup?.fecha_display} | Modo Administrador</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <Button 
+                                variant="danger" 
+                                onClick={() => {
+                                    setRestoreTargetId(selectedBackup.id);
+                                    setIsRestoreModalOpen(true);
+                                }}
+                            >
+                                Restaurar Sistema
+                            </Button>
+                            <div 
+                                onClick={() => setIsExplorerOpen(false)} 
+                                style={{ 
+                                    cursor: 'pointer', padding: '10px', borderRadius: '50%', 
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    background: '#1e293b', border: '1px solid #334155',
+                                    transition: 'all 0.2s', color: '#94a3b8'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = '#991b1b'; e.currentTarget.style.color = 'white'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#94a3b8'; }}
+                            >
+                                <X size={20} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Cerrar Visor</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Contenido Full Screen */}
+                    <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                        {renderExplorerContent()}
+                    </div>
+                </div>
+            )}
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Nuevo Snapshot del Sistema"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleCreate} disabled={creating}>
+                            {creating ? <Spinner size="sm" /> : 'Confirmar Snapshot'}
+                        </Button>
+                    </>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <p style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
+                        Se generará un punto de restauración binario con catálogo de datos reales (Vista Previa).
+                    </p>
+                    <Input 
+                        label="Nombre del punto de restauración" 
+                        value={backupName} 
+                        onChange={e => setBackupName(e.target.value)} 
+                    />
+                </div>
+            </Modal>
+
+            {/* MODAL DE RESTAURACIÓN DE EMERGENCIA */}
+            <Modal
+                isOpen={isRestoreModalOpen}
+                onClose={() => !restoring && setIsRestoreModalOpen(false)}
+                title="⚠️ ADVERTENCIA DE RESTAURACIÓN CRÍTICA"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} disabled={restoring}>Cancelar</Button>
+                        <Button variant="danger" onClick={handleRestore} loading={restoring}>
+                            Sí, Formatear y Restaurar
+                        </Button>
+                    </>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <Alert variant="danger">
+                        <strong>Estás a punto de formatear la base de datos actual.</strong><br/>
+                        Todos los datos creados o modificados después de este respaldo se PERDERÁN permanentemente.
+                    </Alert>
+                    <p style={{ fontSize: '14px', color: 'var(--color-text)' }}>
+                        El sistema será reiniciado al estado exacto de la versión: <br/>
+                        <strong>{backups.find(b => b.id === restoreTargetId)?.nombre}</strong>
+                    </p>
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                        Durante este proceso el sistema estará inaccesible. Si estás seguro, haz clic en confirmar.
+                    </p>
+                </div>
+            </Modal>
+        </AppView>
+    );
+}

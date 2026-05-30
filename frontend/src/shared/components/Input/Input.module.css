@@ -80,6 +80,33 @@
 .iconLeft  { left: var(--space-3); }
 .iconRight { right: var(--space-3); }
 
+/* Botón toggle de contraseña (ojo) */
+.eyeBtn {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  line-height: 1;
+}
+.eyeBtn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-3);
+}
+.eyeBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 /* error state */
 .error .input {
   border-color: var(--color-danger);

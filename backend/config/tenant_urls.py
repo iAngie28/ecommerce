@@ -3,23 +3,23 @@ from django.db import connection
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from app_negocio.views.carrito_views import CarritoViewSet
-from app_negocio.views.producto_views import ProductoViewSet
-from app_negocio.views.categoria_views import CategoriaViewSet
-from app_negocio.views.pedido_views import PedidoViewSet
-from app_negocio.views.factura_views import FacturaViewSet, TipoPagoViewSet
-from app_negocio.views.pago_views import PagoViewSet
-from voice_query.views.query_view import VoiceQueryView
-from customers.views.usuario_views import (
+from apps.negocio.ordenes.api.views import CarritoViewSet
+from apps.negocio.ordenes.api.pedido_views import PedidoViewSet
+from apps.negocio.catalogo.api.views import ProductoViewSet
+from apps.negocio.catalogo.api.categoria_views import CategoriaViewSet
+from apps.negocio.billing.api.views import FacturaViewSet, TipoPagoViewSet
+from apps.negocio.billing.api.pago_views import PagoViewSet
+from apps.negocio.notificaciones.api.views import NotificacionViewSet
+from apps.voice.api.views import VoiceQueryView, VoiceTaskStatusView
+from apps.customers.users.api.views import (
     MyTokenObtainPairView, LogoutView,
     PasswordResetRequestView, PasswordResetConfirmView, MiPerfilView
 )
+from apps.customers.users.api.device_token_views import DeviceTokenRegisterView
 
-# Debug temporal
 def debug_schema(request):
     return JsonResponse({'urlconf': 'config.tenant_urls', 'schema': connection.schema_name})
 
-# URLs explícitas SIN usar DefaultRouter para evitar conflictos de nombre con config.urls
 urlpatterns = [
     path('api/debug/', debug_schema),
 
@@ -27,6 +27,8 @@ urlpatterns = [
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/logout/', LogoutView.as_view(), name='logout'),
+    
+    path('api/device-token/', DeviceTokenRegisterView.as_view(), name='device_token_register'),
 
     # Productos - paths explícitos, sin DefaultRouter
     path('api/productos/', ProductoViewSet.as_view({'get': 'list', 'post': 'create'}), name='producto-list'),
@@ -68,4 +70,17 @@ urlpatterns = [
 
     # Consultas por voz
     path('api/vquery/', VoiceQueryView.as_view(), name='voice_query'),
+    path('api/vquery/status/<uuid:task_id>/', VoiceTaskStatusView.as_view(), name='voice_task_status'),
+
+    # Notificaciones
+    path('api/notificaciones/', NotificacionViewSet.as_view({'get': 'list', 'put': 'update', 'patch': 'partial_update'}), name='notificacion-list'),
+    path('api/notificaciones/marcar-todas-leidas/', NotificacionViewSet.as_view({'post': 'marcar_todas_leidas'}), name='notificacion-marcar-todas'),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+

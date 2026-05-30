@@ -3,7 +3,7 @@ import { Shield, Activity, Users, FileText } from 'lucide-react';
 import AppView   from 'shared/widgets/AppView/AppView';
 import StatCard  from 'shared/widgets/StatCard/StatCard';
 import DataTable from 'shared/widgets/DataTable/DataTable';
-import { Badge, Alert } from 'shared/components';
+import { Badge, Alert, Input } from 'shared/components';
 import { useTenant } from 'core/hooks/useTenant';
 import api from 'core/services/api';
 
@@ -18,27 +18,41 @@ const COLUMNS = [
 export default function AdminView() {
   const tenant = useTenant();
   const [logs, setLogs] = useState([]);
+  const [filteredLogs, setFilteredLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/bitacora/');
+      const data = res.data;
+      const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+      setLogs(list);
+      setFilteredLogs(list);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError('No se pudo cargar la bitácora de actividad.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/bitacora/');
-        const data = res.data;
-        const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-        setLogs(list);
-        setError(null);
-      } catch (err) {
-        console.error(err);
-        setError('No se pudo cargar la bitácora de actividad.');
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, [tenant]);
+
+  useEffect(() => {
+    const filtered = logs.filter(log => 
+      log.accion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.modulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.usuario_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.usuario_email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredLogs(filtered);
+  }, [searchTerm, logs]);
 
   const logins = logs.filter(l => l.accion === 'LOGIN').length;
   const hoy = logs.filter(l => new Date(l.fecha).toDateString() === new Date().toDateString()).length;
@@ -76,13 +90,24 @@ export default function AdminView() {
         />
       </StatCard.Group>
 
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '300px' }}>
+              <Input 
+                placeholder="Buscar por usuario, acción o módulo..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                leftIcon={<Activity size={16} />}
+              />
+          </div>
+      </div>
+
       <DataTable
         title="Bitácora de Actividades"
         columns={COLUMNS}
-        data={logs}
+        data={filteredLogs}
         loading={loading}
-        emptyText="No hay registros en la bitácora."
-        footer={!loading ? `Mostrando ${logs.length} registro${logs.length !== 1 ? 's' : ''}` : ''}
+        emptyText="No se encontraron registros que coincidan con la búsqueda."
+        footer={!loading ? `Mostrando ${filteredLogs.length} de ${logs.length} registros` : ''}
       />
     </AppView>
   );

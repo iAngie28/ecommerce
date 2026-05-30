@@ -1,0 +1,14 @@
+# requirements/local.txt
+# Extiende base.txt con dependencias pesadas de ML/IA
+-r base.txt
+
+# Machine Learning / NLP
+pandas==2.2.3
+scikit-learn==1.5.2
+numpy==2.1.3
+
+# Voz / Whisper
+faster-whisper==1.0.3
+
+# Desarrollo y testing
+Faker==25.0.0

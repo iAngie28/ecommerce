@@ -56,11 +56,11 @@ export default function RegistroView() {
           // 3. Guardar tokens en localStorage y contexto
           localStorage.setItem('access_token', access);
           localStorage.setItem('refresh_token', refresh);
-          login(access, refresh, clienteNombre);
+          login(access, refresh, clienteNombre, 'cliente');
 
-          // 4. Redirigir al marketplace
+          // 4. Redirigir al portal del cliente
           setTimeout(() => {
-            navigate('/marketplace', { replace: true });
+            navigate('/mi-portal', { replace: true });
           }, 1000);
         } catch (loginError) {
           console.error('Error en auto-login:', loginError);

@@ -1,9 +1,9 @@
-import os
+﻿import os
 import shutil
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÃ“N ---
 DB_NAME = 'mi_saas_db'
 DB_USER = 'postgres'
 DB_PASS = 'adm123' #
@@ -11,9 +11,9 @@ DB_HOST = '127.0.0.1'
 DB_PORT = '5432'
 
 def clean_migrations():
-    print("--- 🗑️ Borrando archivos de migraciones (Seguro) ---")
-    # Lista de carpetas donde SÍ queremos borrar migraciones
-    target_apps = ['customers', 'app_negocio'] 
+    print("--- ðŸ—‘ï¸ Borrando archivos de migraciones (Seguro) ---")
+    # Lista de carpetas donde SÃ queremos borrar migraciones
+    target_apps = ['customers', 'negocio'] 
     
     for app in target_apps:
         migration_dir = os.path.join(app, "migrations")
@@ -29,7 +29,7 @@ def clean_migrations():
                         print(f"Error eliminando {file_path}: {e}")
 
 def reset_database():
-    print(f"--- 🔄 Reiniciando base de datos: {DB_NAME} ---")
+    print(f"--- ðŸ”„ Reiniciando base de datos: {DB_NAME} ---")
     try:
         # Conectar a la base de datos 'postgres' para poder borrar la tuya
         conn = psycopg2.connect(
@@ -51,20 +51,20 @@ def reset_database():
         
         cursor.close()
         conn.close()
-        print("✅ Base de datos recreada con éxito.")
+        print("âœ… Base de datos recreada con Ã©xito.")
     except Exception as e:
-        print(f"❌ Error en la base de datos: {e}")
+        print(f"âŒ Error en la base de datos: {e}")
 
 def run_django_commands():
-    print("--- 🏗️ Ejecutando comandos de Django ---")
+    print("--- ðŸ—ï¸ Ejecutando comandos de Django ---")
     os.system("python manage.py makemigrations")
     os.system("python manage.py migrate_schemas --shared")
-    # Ejecutamos tu seeder automáticamente al final
-    print("--- 🌱 Sembrando datos iniciales ---")
+    # Ejecutamos tu seeder automÃ¡ticamente al final
+    print("--- ðŸŒ± Sembrando datos iniciales ---")
     os.system("python scripts_utiles/seed_db.py")
 
 if __name__ == "__main__":
     clean_migrations()
     reset_database()
     run_django_commands()
-    print("\n✨ ¡Todo listo! Sistema reiniciado y datos sembrados.")
+    print("\nâœ¨ Â¡Todo listo! Sistema reiniciado y datos sembrados.")

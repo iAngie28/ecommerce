@@ -23,9 +23,9 @@ class ApiClient {
     }
 
     if (includeTenantHost) {
-      final schemaName = await _storage.getSchemaName();
-      if (schemaName != null && schemaName.isNotEmpty) {
-        headers['Host'] = ApiConstants.tenantHost(schemaName);
+      final subdomain = await _storage.getSubdomain();
+      if (subdomain != null && subdomain.isNotEmpty) {
+        headers['Host'] = ApiConstants.tenantHost(subdomain);
       }
     }
 
@@ -98,6 +98,34 @@ class ApiClient {
 
     if (response.statusCode == 401 && requiresAuth) {
       return await _handleTokenRefresh(() => put(
+            url,
+            body,
+            requiresAuth: requiresAuth,
+            includeTenantHost: includeTenantHost,
+          ));
+    }
+    return response;
+  }
+
+
+  Future<http.Response> patch(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = false,
+    bool includeTenantHost = false,
+  }) async {
+    final headers = await _getHeaders(
+      requiresAuth: requiresAuth,
+      includeTenantHost: includeTenantHost,
+    );
+    final response = await http.patch(
+      Uri.parse(url),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 401 && requiresAuth) {
+      return await _handleTokenRefresh(() => patch(
             url,
             body,
             requiresAuth: requiresAuth,

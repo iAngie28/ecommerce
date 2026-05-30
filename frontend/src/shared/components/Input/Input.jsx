@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import styles from './Input.module.css';
 
 /**
@@ -30,12 +32,33 @@ const Input = ({
   labelRight,
   id,
   className = '',
+  type,
   ...rest
 }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+
+  // Si es campo de contraseña, el tipo real alterna entre 'password' y 'text'
+  const resolvedType = isPassword ? (showPassword ? 'text' : 'password') : type;
+
+  // El ícono de la derecha: si hay rightIcon externo lo respetamos,
+  // si es password usamos el toggle de ojo
+  const effectiveRightIcon = isPassword ? (
+    <button
+      type="button"
+      onClick={() => setShowPassword(v => !v)}
+      className={styles.eyeBtn}
+      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      tabIndex={-1}
+    >
+      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  ) : rightIcon;
+
   const wrapCls = [
     styles.inputWrap,
-    leftIcon  ? styles.hasLeft  : '',
-    rightIcon ? styles.hasRight : '',
+    leftIcon            ? styles.hasLeft  : '',
+    effectiveRightIcon  ? styles.hasRight : '',
   ].filter(Boolean).join(' ');
 
   const groupCls = [styles.group, error ? styles.error : '', className].filter(Boolean).join(' ');
@@ -49,9 +72,13 @@ const Input = ({
         </div>
       )}
       <div className={wrapCls}>
-        {leftIcon  && <span className={styles.iconLeft}>{leftIcon}</span>}
-        <input id={id} className={styles.input} {...rest} />
-        {rightIcon && <span className={styles.iconRight}>{rightIcon}</span>}
+        {leftIcon && <span className={styles.iconLeft}>{leftIcon}</span>}
+        <input id={id} className={styles.input} type={resolvedType} {...rest} />
+        {effectiveRightIcon && (
+          isPassword
+            ? effectiveRightIcon
+            : <span className={styles.iconRight}>{effectiveRightIcon}</span>
+        )}
       </div>
       {error && <span className={styles.errorMsg}>{error}</span>}
       {hint && !error && <span className={styles.hint}>{hint}</span>}

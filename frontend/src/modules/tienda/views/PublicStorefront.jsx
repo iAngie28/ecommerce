@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getBaseDomain } from 'core/utils/domain';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Search,
     ArrowUpDown,
@@ -8,12 +7,14 @@ import {
     Filter,
     X,
     ImageOff,
-    ShoppingCart
+    ShoppingCart,
+    ArrowLeft
 } from 'lucide-react';
 import { productosApi, categoriasApi } from '../../productos_catalogo/services/productosApi';
-import { Button, Badge, Spinner } from 'shared/components';
+import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
 import api from 'core/services/api';
+import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
 
 const PublicStorefront = () => {
@@ -27,17 +28,34 @@ const PublicStorefront = () => {
     const [search, setSearch] = useState('');
     const [selectedCat, setSelectedCat] = useState('');
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-    const [attributes, setAttributes] = useState({}); // { color: 'rojo', talla: 'M' }
+    const [attributes, setAttributes] = useState({});
     const [sortBy, setSortBy] = useState('-creado_en');
     const [viewMode, setViewMode] = useState('grid');
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
-    const checkoutInProgress = React.useRef(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const checkoutInProgress = useRef(false);
 
     // --- Carrito ---
     const { cart, addToCart, removeFromCart, updateQuantity, total, clearCart } = useCart();
     const [isCartOpen, setIsCartOpen] = useState(false);
 
+    // --- Recomendaciones del carrito ---
+    const [recommendations, setRecommendations] = useState([]);
+    const [loadingRecs, setLoadingRecs] = useState(false);
+    const lastProductId = cart.length > 0 ? cart[cart.length - 1].id : null;
+
+    useEffect(() => {
+        if (lastProductId && isCartOpen) {
+            setLoadingRecs(true);
+            api.get(`/productos/${lastProductId}/recomendaciones/`)
+                .then(res => setRecommendations(res.data.recommendations || []))
+                .catch(() => setRecommendations([]))
+                .finally(() => setLoadingRecs(false));
+        } else {
+            setRecommendations([]);
+        }
+    }, [lastProductId, isCartOpen]);
 
     const fetchProducts = useCallback(async () => {
         setLoading(true);
@@ -99,7 +117,11 @@ const PublicStorefront = () => {
             clearCart();
             // Confirmar en el backend por si el webhook se retrasa
             if (pid) {
-                const tenant = query.get('tenant') || window.location.hostname.split('.')[0];
+                let tenant = query.get('tenant');
+                if (!tenant) {
+                    const host = window.location.hostname;
+                    tenant = isBaseDomain(host) ? 'public' : host.split('.')[0];
+                }
                 api.post('/pagos/confirm-success/', {
                     pedido_id: pid,
                     tenant: tenant
@@ -132,7 +154,11 @@ const PublicStorefront = () => {
             // La URL de retorno es la misma página del catálogo (donde el usuario ya está)
             // Stripe agregará el status al regresar para que mostremos confirmación
             const currentUrl = window.location.href.split('?')[0]; // URL limpia sin params anteriores
-            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}`;
+            
+            const host = window.location.hostname;
+            const tenantStr = isBaseDomain(host) ? 'public' : host.split('.')[0];
+
+            const successUrl = `${currentUrl}?status=success&pedido_id=${pedidoId}&tenant=${tenantStr}`;
 
             const stripeRes = await api.post('/pagos/create-checkout-session/', {
                 pedido_id: pedidoId,
@@ -144,12 +170,15 @@ const PublicStorefront = () => {
                 window.location.href = stripeRes.data.url;
             }
         } catch (err) {
-            console.error("Error en checkout", err);
+            console.error("❌ ERROR DETALLADO EN CHECKOUT:", err);
+            const errorMsg = err.response?.data?.error || err.message || 'Error desconocido';
+            console.error("Mensaje del servidor:", errorMsg);
+            
             if (pedidoId) {
-                // Revertir creación de pedido si Stripe falla (evita pedidos huérfanos)
+                console.log("Limpiando pedido huérfano...", pedidoId);
                 await api.delete(`/pedidos/${pedidoId}/`).catch(e => console.error("No se pudo limpiar pedido huérfano", e));
             }
-            setError('Error al procesar el pago. Inténtalo de nuevo.');
+            setError(`Error al procesar el pago: ${errorMsg}`);
         } finally {
             checkoutInProgress.current = false;
             setIsCheckingOut(false);
@@ -212,6 +241,19 @@ const PublicStorefront = () => {
             {/* --- HEADER TIENDA --- */}
             <header className={styles.storeHeader}>
                 <div className={styles.headerContent}>
+                    <div className={styles.backToPortal}>
+                        <button 
+                            className={styles.backBtn}
+                            onClick={() => {
+                                const base = getBaseDomain(window.location.hostname);
+                                const port = window.location.port ? `:${window.location.port}` : '';
+                                window.location.href = `${window.location.protocol}//${base}${port}/mi-portal`;
+                            }}
+                        >
+                            <ArrowLeft size={18} />
+                            <span>Regresar al Portal</span>
+                        </button>
+                    </div>
                     <div className={styles.searchWrapper}>
                         <Search className={styles.searchIcon} size={18} />
                         <input
@@ -225,6 +267,18 @@ const PublicStorefront = () => {
                         <div className={styles.totalDisplay}>
                             <span>Total:</span>
                             <strong>Bs. {total.toFixed(2)}</strong>
+                        </div>
+                        <div className={styles.sellerAccess}>
+                            <button 
+                                onClick={() => {
+                                    const base = getBaseDomain(window.location.hostname);
+                                    const port = window.location.port ? `:${window.location.port}` : '';
+                                    window.location.href = `${window.location.protocol}//${base}${port}/login`;
+                                }}
+                                className={styles.sellerLink}
+                            >
+                                Acceso Vendedor
+                            </button>
                         </div>
                         <button
                             className={styles.cartBtn}
@@ -297,22 +351,6 @@ const PublicStorefront = () => {
                             />
                         </div>
                     </div>
-
-                    {/* Atributos (Ejemplo: Talla/Color) */}
-                    <div className={styles.filterSection}>
-                        <h4>Talla</h4>
-                        <div className={styles.tagGroup}>
-                            {['S', 'M', 'L', 'XL'].map(talla => (
-                                <button
-                                    key={talla}
-                                    className={attributes.talla === talla ? styles.activeTag : ''}
-                                    onClick={() => handleAttrChange('talla', talla)}
-                                >
-                                    {talla}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                 </aside>
 
                 {/* --- CONTENIDO PRINCIPAL --- */}
@@ -370,7 +408,7 @@ const PublicStorefront = () => {
                                 </div>
                             ) : (
                                 products.map(prod => (
-                                    <div key={prod.id} className={styles.productCard}>
+                                    <div key={prod.id} className={styles.productCard} onClick={() => setSelectedProduct(prod)}>
                                         <div className={styles.imageBox}>
                                             {prod.imagen_url ? (
                                                 <img src={prod.imagen_url} alt={prod.nombre} />
@@ -388,11 +426,19 @@ const PublicStorefront = () => {
                                                 <span className={styles.currency}>Bs.</span>
                                                 <span className={styles.priceValue}>{parseFloat(prod.precio).toFixed(2)}</span>
                                             </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                                                Stock disponible: <strong>{prod.stock}</strong>
+                                            </div>
                                             <button
                                                 className={styles.addToCartBtn}
-                                                onClick={() => addToCart(prod)}
+                                                style={prod.stock <= 0 ? { backgroundColor: 'var(--color-text-muted)', cursor: 'not-allowed' } : {}}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (prod.stock > 0) addToCart(prod);
+                                                }}
+                                                disabled={prod.stock <= 0}
                                             >
-                                                Agregar al carrito
+                                                {prod.stock <= 0 ? 'Agotado' : 'Agregar al carrito'}
                                             </button>
                                         </div>
                                     </div>
@@ -434,7 +480,11 @@ const PublicStorefront = () => {
                                                         <div className={styles.qtyControls}>
                                                             <button onClick={() => updateQuantity(item.id, -1)}>-</button>
                                                             <span>{item.quantity}</span>
-                                                            <button onClick={() => updateQuantity(item.id, 1)}>+</button>
+                                                            <button 
+                                                                onClick={() => updateQuantity(item.id, 1)}
+                                                                disabled={item.quantity >= item.stock}
+                                                                style={{ opacity: item.quantity >= item.stock ? 0.5 : 1, cursor: item.quantity >= item.stock ? 'not-allowed' : 'pointer' }}
+                                                            >+</button>
                                                         </div>
                                                     </div>
                                                     <div className={styles.itemPrice}>
@@ -498,6 +548,69 @@ const PublicStorefront = () => {
                                 )}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            {/* --- PRODUCT DETAIL MODAL --- */}
+            {selectedProduct && (
+                <div className={styles.detailOverlay} onClick={() => setSelectedProduct(null)}>
+                    <div className={styles.detailCard} onClick={e => e.stopPropagation()}>
+                        <button className={styles.closeDetail} onClick={() => setSelectedProduct(null)}>
+                            <X size={20} />
+                        </button>
+                        
+                        <div className={styles.detailImage}>
+                            {selectedProduct.imagen_url ? (
+                                <img src={selectedProduct.imagen_url} alt={selectedProduct.nombre} />
+                            ) : (
+                                <div className={styles.noImage}><ImageOff size={64} /></div>
+                            )}
+                        </div>
+
+                        <div className={styles.detailContent}>
+                            <div className={styles.detailHeader}>
+                                <span className={styles.detailCategory}>{selectedProduct.categoria_detail?.nombre}</span>
+                                <h2 className={styles.detailName}>{selectedProduct.nombre}</h2>
+                            </div>
+
+                            <div className={styles.detailPrice}>
+                                <span className={styles.cur}>Bs.</span>
+                                <span className={styles.val}>{parseFloat(selectedProduct.precio).toFixed(2)}</span>
+                            </div>
+
+                            <p className={styles.detailDesc}>
+                                {selectedProduct.descripcion || 'Sin descripción disponible para este producto.'}
+                            </p>
+
+                            <div className={styles.detailMeta}>
+                                <div className={styles.metaItem}>
+                                    <span className={styles.metaLabel}>Disponibilidad</span>
+                                    <span className={`${styles.metaValue} ${selectedProduct.stock > 0 ? styles.stockOk : styles.stockOut}`}>
+                                        {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Agotado'}
+                                    </span>
+                                </div>
+                                <div className={styles.metaItem}>
+                                    <span className={styles.metaLabel}>Código de producto</span>
+                                    <span className={styles.metaValue}>#PRD-{selectedProduct.id}</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.detailActions}>
+                                <Button 
+                                    variant="primary"
+                                    onClick={() => {
+                                        if (selectedProduct.stock > 0) {
+                                            addToCart(selectedProduct);
+                                            setSelectedProduct(null);
+                                        }
+                                    }}
+                                    disabled={selectedProduct.stock <= 0}
+                                >
+                                    <ShoppingCart size={20} style={{marginRight: '10px'}} />
+                                    {selectedProduct.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

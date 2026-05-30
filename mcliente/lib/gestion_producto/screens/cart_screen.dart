@@ -9,7 +9,9 @@ import '../../core/widgets/layout/app_sidebar.dart';
 import '../../core/widgets/buttons/app_button.dart';
 import '../../core/widgets/feedback/app_toast.dart';
 import '../models/cart_model.dart';
+import '../models/product_model.dart';
 import '../repositories/cart_repository.dart';
+import '../repositories/product_repository.dart';
 import '../../gestion_pago/repositories/payment_repository.dart';
 
 class CartScreen extends StatefulWidget {
@@ -21,8 +23,10 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   CartModel? _cart;
+  List<ProductModel> _recommendations = [];
   bool _isLoading = true;
   final CartRepository _cartRepository = CartRepository();
+  final ProductRepository _productRepository = ProductRepository();
   final PaymentRepository _paymentRepository = PaymentRepository();
 
   @override
@@ -39,10 +43,22 @@ class _CartScreenState extends State<CartScreen> {
         _cart = cart;
         _isLoading = false;
       });
+      _loadRecommendations();
     } catch (e) {
       setState(() => _isLoading = false);
       AppToast.showError(context, 'Error al cargar el carrito');
     }
+  }
+
+  Future<void> _loadRecommendations() async {
+    if (_cart == null || _cart!.items.isEmpty) return;
+    try {
+      final lastProductId = _cart!.items.last.producto.id;
+      final recs = await _productRepository.fetchRecommendations(lastProductId);
+      setState(() {
+        _recommendations = recs;
+      });
+    } catch (_) {}
   }
 
   Future<void> _removeItem(int productId) async {
@@ -213,7 +229,9 @@ class _CartScreenState extends State<CartScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total a pagar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Expanded(
+                    child: Text('Total a pagar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
                   Text('BS. ${_cart!.total}', style: AppTextStyles.h2.copyWith(color: AppColors.accentTeal)),
                 ],
               ),
@@ -223,6 +241,55 @@ class _CartScreenState extends State<CartScreen> {
                 onPressed: _processCheckout,
               ),
             ],
+          ),
+        ),
+        if (_recommendations.isNotEmpty) _buildRecommendationsSection(),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildRecommendationsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 40),
+        const Text('Te podría interesar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 15),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _recommendations.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 15),
+            itemBuilder: (context, index) {
+              final rec = _recommendations[index];
+              return Container(
+                width: 140,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(child: Icon(Icons.shopping_bag_outlined, color: AppColors.accentTeal.withOpacity(0.5), size: 40)),
+                    Text(rec.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, textAlign: TextAlign.center),
+                    const SizedBox(height: 5),
+                    Text('BS. ${rec.precio}', style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    InkWell(
+                      onTap: () async {
+                        await _cartRepository.addItem(_cart!.id, rec.id);
+                        _loadCart();
+                      },
+                      child: const Text('Añadir', style: TextStyle(color: AppColors.primaryDark, fontSize: 11, fontWeight: FontWeight.bold)),
+                    )
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],

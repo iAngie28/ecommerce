@@ -5,12 +5,19 @@ import AuthLayout from 'shared/layouts/AuthLayout/AuthLayout';
 import { Button, Input, Alert } from 'shared/components';
 import { useAuth } from 'core/hooks/useAuth';
 import api from 'core/services/api';
+import { useLocation } from 'react-router-dom';
 import styles from './AuthView.module.css';
 
 export default function LoginView() {
   const { login } = useAuth();
   const navigate   = useNavigate();
-  const [loginType, setLoginType] = useState('cliente'); // 'cliente' o 'vendedor'
+  const location   = useLocation();
+  
+  // Leer tipo de login desde URL (ej: /login?type=vendedor)
+  const queryParams = new URLSearchParams(location.search);
+  const initialType = queryParams.get('type') === 'vendedor' ? 'vendedor' : 'cliente';
+
+  const [loginType, setLoginType] = useState(initialType); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -39,19 +46,14 @@ export default function LoginView() {
       const { access, refresh } = res.data;
 
       if (loginType === 'vendedor') {
-        const { subdomain, full_name, is_superuser } = res.data;
+        const { store_url, full_name, is_superuser, is_staff, role } = res.data;
         if (is_superuser) {
-          login(access, refresh, res.data.full_name, 'admin');
+          login(access, refresh, full_name, 'admin', is_superuser, is_staff);
           navigate('/su', { replace: true });
-        } else if (subdomain) {
-          const protocol    = window.location.protocol;
-          const currentPort = window.location.port;
-          const portPart    = (currentPort && currentPort !== '80' && currentPort !== '443')
-            ? `:${currentPort}` : '';
-          window.location.href = `${protocol}//${subdomain}${portPart}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}&is_superuser=${is_superuser || false}`;
+        } else if (store_url) {
+          window.location.href = `${store_url}/sso?token=${access}&refresh=${refresh}&full_name=${encodeURIComponent(full_name || '')}&is_superuser=${is_superuser || false}&is_staff=${is_staff || false}&role=${role || 'vendedor'}`;
         } else {
-          login(access, refresh, res.data.full_name, 'vendedor');
-          navigate('/dashboard', { replace: true });
+          setError('No tienes una tienda asignada.');
         }
       } else {
         // Cliente: Guardar tokens y redirigir a su portal
@@ -147,10 +149,10 @@ export default function LoginView() {
         <form onSubmit={handleLogin} className={styles.form}>
           <Input
             id="login-username"
-            label={isCliente ? "Correo Electrónico" : "Usuario"}
-            leftIcon={isCliente ? <Mail size={16} /> : <User size={16} />}
-            type={isCliente ? "email" : "text"}
-            placeholder={isCliente ? "tu@correo.com" : "Tu nombre de usuario"}
+            label={isCliente ? "Correo Electrónico" : "Correo Electrónico (Usuario)"}
+            leftIcon={<Mail size={16} />}
+            type="email"
+            placeholder="tu@correo.com"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -166,11 +168,9 @@ export default function LoginView() {
             onChange={(e) => setPassword(e.target.value)}
             required
             labelRight={
-              !isCliente && (
-                <Link to="/forgot-password" className={styles.forgotLink}>
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              )
+              <Link to="/forgot-password" className={styles.forgotLink}>
+                ¿Olvidaste tu contraseña?
+              </Link>
             }
           />
           <Button

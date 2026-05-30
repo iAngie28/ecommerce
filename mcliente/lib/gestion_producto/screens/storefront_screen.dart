@@ -10,6 +10,7 @@ import '../repositories/product_repository.dart';
 import '../../gestion_usuario/repositories/auth_repository.dart';
 import '../../core/widgets/feedback/app_toast.dart';
 import '../repositories/cart_repository.dart';
+import 'product_detail_screen.dart';
 
 class StorefrontScreen extends StatefulWidget {
   const StorefrontScreen({super.key});
@@ -20,7 +21,10 @@ class StorefrontScreen extends StatefulWidget {
 
 class _StorefrontScreenState extends State<StorefrontScreen> {
   List<ProductModel> _products = [];
+  List<Map<String, dynamic>> _categories = [];
+  int? _selectedCategoryId;
   bool _isLoading = true;
+  bool _isLoadingCats = true;
   String? _error;
   String _storeName = 'Cargando...';
   String _userName = 'Invitado';
@@ -33,8 +37,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   @override
   void initState() {
     super.initState();
-    _inicializar();
-    _loadCartCount();
+    _inicializar().then((_) => _loadCartCount());
   }
 
   Future<void> _loadCartCount() async {
@@ -47,9 +50,12 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   }
 
   Future<void> _addToCart(ProductModel product) async {
+    print('[DEBUG] _addToCart iniciado para: ${product.nombre} (ID: ${product.id})');
     try {
       final cart = await _cartRepository.fetchActiveCart();
+      print('[DEBUG] Carrito obtenido: ID ${cart.id}');
       await _cartRepository.addItem(cart.id, product.id);
+      print('[DEBUG] Item añadido exitosamente');
       await _loadCartCount();
       if (!mounted) return;
       AppToast.showSuccess(context, '${product.nombre} añadido al carrito');
@@ -60,7 +66,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   }
 
   Future<void> _inicializar() async {
-    final schemaName = await _authRepository.getSchemaName();
+    final subdomain = await _authRepository.getSubdomain();
     String decodedUser = 'Invitado';
     final token = await _authRepository.getAccessToken();
     if (token != null) {
@@ -74,11 +80,24 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     }
 
     setState(() {
-      _storeName = schemaName?.replaceAll('_', ' ').toUpperCase() ?? 'Tienda';
+      _storeName = subdomain?.replaceAll('_', ' ').toUpperCase() ?? 'Tienda';
       _userName = decodedUser;
     });
 
+    await _cargarCategorias();
     await _cargarProductos();
+  }
+
+  Future<void> _cargarCategorias() async {
+    try {
+      final cats = await _productRepository.fetchCategories();
+      setState(() {
+        _categories = cats;
+        _isLoadingCats = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingCats = false);
+    }
   }
 
   Future<void> _cargarProductos() async {
@@ -88,7 +107,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     });
 
     try {
-      final productos = await _productRepository.fetchProducts();
+      final productos = await _productRepository.fetchProducts(categoryId: _selectedCategoryId);
       setState(() {
         _products = productos;
         _isLoading = false;
@@ -165,7 +184,9 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
           Text('Nuestro Catálogo', style: AppTextStyles.h1),
           const SizedBox(height: 5),
           Text('Encuentra los mejores productos aquí', style: AppTextStyles.subtitle),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
+          _buildCategoryBar(),
+          const SizedBox(height: 20),
           if (_isLoading)
             const Center(child: CircularProgressIndicator(color: AppColors.accentTeal))
           else if (_error != null)
@@ -191,49 +212,108 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
+  Widget _buildCategoryBar() {
+    if (_isLoadingCats) return const SizedBox(height: 40);
+    
+    return SizedBox(
+      height: 45,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length + 1,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final isAll = index == 0;
+          final cat = isAll ? null : _categories[index - 1];
+          final id = isAll ? null : cat!['id'];
+          final name = isAll ? 'Todos' : cat!['nombre'];
+          final isSelected = _selectedCategoryId == id;
+
+          return InkWell(
+            onTap: () {
+              setState(() => _selectedCategoryId = id);
+              _cargarProductos();
+            },
             child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.bgSearch,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryDark : AppColors.bgCard,
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: isSelected ? AppColors.primaryDark : AppColors.border),
               ),
-              child: const Icon(Icons.image_outlined, size: 50, color: AppColors.textMuted),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(product.categoriaNombre ?? 'General', style: const TextStyle(color: AppColors.accentTeal, fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(product.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('BS. ${product.precio}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark)),
-                    IconButton(
-                      icon: const Icon(Icons.add_shopping_cart, color: AppColors.accentTeal),
-                      onPressed: () => _addToCart(product),
-                    ),
-                  ],
+              child: Text(
+                name,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductCard(ProductModel product) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+      ).then((refresh) {
+        if (refresh == true) _loadCartCount();
+      }),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Hero(
+                tag: 'product-${product.id}',
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.bgSearch,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                  ),
+                  child: const Icon(Icons.image_outlined, size: 50, color: AppColors.textMuted),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.categoriaNombre ?? 'General', style: const TextStyle(color: AppColors.accentTeal, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(product.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 8),
+                    Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'BS. ${product.precio}', 
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_shopping_cart, color: AppColors.accentTeal),
+                        onPressed: () => _addToCart(product),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Shield,
   Store,
+  Database,
 } from 'lucide-react';
 
 // ─── MÓDULOS AUTENTICADOS (con sidebar) ─────────────────────
@@ -41,6 +42,50 @@ export const APP_MODULES = [
     roles: ['admin'],
   },
   {
+    id: 'admin_roles',
+    path: '/su/roles',
+    label: 'Gestionar Roles',
+    icon: Users,
+    component: lazy(() => import('modules/admin/views/RolesView')),
+    protected: true,
+    inSidebar: true,
+    group: 'admin',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin_permisos',
+    path: '/su/permisos',
+    label: 'Gestionar Permisos',
+    icon: Shield,
+    component: lazy(() => import('modules/admin/views/PermisosView')),
+    protected: true,
+    inSidebar: true,
+    group: 'admin',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin_usuarios',
+    path: '/su/usuarios',
+    label: 'Gestionar Usuarios',
+    icon: Users,
+    component: lazy(() => import('modules/admin/views/UsersView')),
+    protected: true,
+    inSidebar: true,
+    group: 'admin',
+    roles: ['admin'],
+  },
+  {
+    id: 'admin_backups',
+    path: '/su/backups',
+    label: 'Backups Sistema',
+    icon: Database,
+    component: lazy(() => import('modules/admin/views/BackupsView')),
+    protected: true,
+    inSidebar: true,
+    group: 'admin',
+    roles: ['admin'],
+  },
+  {
     id: 'panel',
     path: '/dashboard',
     label: 'Panel',
@@ -50,6 +95,18 @@ export const APP_MODULES = [
     inSidebar: true,
     group: 'principal',
     roles: ['vendedor'],
+  },
+  {
+    id: 'negocio_usuarios',
+    path: '/usuarios',
+    label: 'Usuarios / Personal',
+    icon: Users,
+    component: lazy(() => import('modules/admin/views/UsersView')),
+    protected: true,
+    inSidebar: true,
+    group: 'negocio',
+    roles: ['vendedor'],
+    requireOwner: true,
   },
   {
     id: 'productos',
@@ -211,9 +268,18 @@ export const AUTH_ROUTES = [
 ];
 
 // ─── Helper: agrupar módulos del sidebar por grupo ──────────
-export const getSidebarGroups = (userRole) => {
+export const getSidebarGroups = (user) => {
+  if (!user) return {};
+  const userRole = user.role;
+  const isOwner = user.is_staff || user.is_superuser;
+
   const sidebarItems = APP_MODULES.filter(
-    (m) => m.inSidebar && m.roles?.includes(userRole)
+    (m) => {
+      if (!m.inSidebar) return false;
+      if (!m.roles?.includes(userRole)) return false;
+      if (m.requireOwner && !isOwner) return false;
+      return true;
+    }
   );
   const groups = {};
   sidebarItems.forEach((item) => {
