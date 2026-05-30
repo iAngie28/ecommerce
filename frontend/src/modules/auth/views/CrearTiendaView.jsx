@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -34,14 +34,25 @@ export default function CrearTiendaView() {
     nombre_tienda: '', schema_name: '', dominio: '',
     first_name: '', last_name: '', email: '', password: '', icono: null, plan: initialPlan
   });
-  const [preview,      setPreview]      = useState(null);
-  const [status,       setStatus]       = useState('idle');
+  const [preview, setPreview] = useState(null);
+  const [status, setStatus] = useState('idle');
   const [responseData, setResponseData] = useState(null);
-  const [error,        setError]        = useState(null);
+  const [error, setError] = useState(null);
 
   // Stripe Modal State
   const [showStripe, setShowStripe] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
+  const [nombreHintVisible, setNombreHintVisible] = useState(false);
+  const nombreHintTimer = useRef(null);
+
+  const handleNombreKeyDown = (e) => {
+    if (e.key === '-') {
+      e.preventDefault();
+      setNombreHintVisible(true);
+      clearTimeout(nombreHintTimer.current);
+      nombreHintTimer.current = setTimeout(() => setNombreHintVisible(false), 2500);
+    }
+  };
 
   useEffect(() => {
     if (!form.nombre_tienda) return;
@@ -50,8 +61,8 @@ export default function CrearTiendaView() {
       .replace(/\s+/g, 'x').replace(/[^a-z0-9]/g, '');
 
     const baseDomain = process.env.REACT_APP_DOMAIN_MAIN || 'localhost';
-    const suffix     = process.env.REACT_APP_TENANT_DOMAIN_SUFFIX;
-    const dominio    = suffix
+    const suffix = process.env.REACT_APP_TENANT_DOMAIN_SUFFIX;
+    const dominio = suffix
       ? `${slug}${suffix}`
       : baseDomain !== 'localhost'
         ? `${slug}.${baseDomain}.nip.io`
@@ -88,7 +99,7 @@ export default function CrearTiendaView() {
 
       // Si es gratuito, creamos directo
       if (form.plan === 'basico') {
-        const res  = await fetch(`${apiBase}/api/tiendas/crear/`, {
+        const res = await fetch(`${apiBase}/api/tiendas/crear/`, {
           method: 'POST',
           body: formData,
         });
@@ -104,7 +115,7 @@ export default function CrearTiendaView() {
         });
         const data = await res.json();
         if (!res.ok) throw data;
-        
+
         setClientSecret(data.clientSecret);
         setShowStripe(true);
         setStatus('idle');
@@ -121,7 +132,7 @@ export default function CrearTiendaView() {
     try {
       const backendPort = process.env.REACT_APP_DJANGO_PORT || '8001';
       const apiBase = `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
-      
+
       const formData = new FormData();
       Object.keys(form).forEach(key => {
         if (form[key]) formData.append(key, form[key]);
@@ -191,14 +202,14 @@ export default function CrearTiendaView() {
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>
-              <CreditCard size={14} style={{ display: 'inline', marginRight: '4px' }} /> 
+              <CreditCard size={14} style={{ display: 'inline', marginRight: '4px' }} />
               Plan de Suscripción
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {PLANS.map(p => (
-                <div 
+                <div
                   key={p.id}
-                  onClick={() => setForm({...form, plan: p.id})}
+                  onClick={() => setForm({ ...form, plan: p.id })}
                   style={{
                     flex: 1, padding: '12px', border: `2px solid ${form.plan === p.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
                     borderRadius: '8px', cursor: 'pointer', textAlign: 'center', background: form.plan === p.id ? 'var(--color-primary-ghost)' : 'transparent'
@@ -217,8 +228,10 @@ export default function CrearTiendaView() {
             name="nombre_tienda"
             value={form.nombre_tienda}
             onChange={handleChange}
+            onKeyDown={handleNombreKeyDown}
             placeholder="Ej: Mi Boutique Online"
             required
+            hint={nombreHintVisible ? 'El carácter "-" no está permitido en el nombre de la tienda.' : undefined}
           />
 
           <div className={styles.twoCol}>
@@ -260,11 +273,11 @@ export default function CrearTiendaView() {
 
           <div className={styles.twoCol}>
             <Input id="ct-firstname" label="Nombre" name="first_name" value={form.first_name} onChange={handleChange} placeholder="Tu nombre" required />
-            <Input id="ct-lastname"  label="Apellido" name="last_name" value={form.last_name} onChange={handleChange} placeholder="Tu apellido" required />
+            <Input id="ct-lastname" label="Apellido" name="last_name" value={form.last_name} onChange={handleChange} placeholder="Tu apellido" required />
           </div>
 
           <Input id="ct-email" label={<><Mail size={14} /> Correo Electrónico</>} type="email" name="email" value={form.email} onChange={handleChange} placeholder="ejemplo@correo.com" required />
-          <Input id="ct-pass"  label={<><Lock size={14} /> Contraseña</>} type="password" name="password" value={form.password} onChange={handleChange} placeholder="Mínimo 6 caracteres" required minLength={6} />
+          <Input id="ct-pass" label={<><Lock size={14} /> Contraseña</>} type="password" name="password" value={form.password} onChange={handleChange} placeholder="Mínimo 6 caracteres" required minLength={6} />
 
           <Button type="submit" fullWidth loading={status === 'loading'} style={{ marginTop: '8px' }}>
             Crear Mi Tienda Ahora
