@@ -166,6 +166,11 @@ class PagoViewSet(viewsets.ViewSet):
             print(traceback.format_exc())
             return Response({'error': str(e)}, status=500)
 
+    @action(detail=False, methods=['post'], url_path='confirm-payment', permission_classes=[IsAuthenticated])
+    def confirm_payment(self, request):
+        """Alias para confirm-success utilizado por la app Flutter"""
+        return self.confirm_success(request)
+
     @action(detail=False, methods=['post'], url_path='webhook', permission_classes=[AllowAny])
     def stripe_webhook(self, request):
         payload = request.body
