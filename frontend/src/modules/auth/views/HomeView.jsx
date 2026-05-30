@@ -132,7 +132,7 @@ export default function HomeView() {
           maxWidth: '1000px', margin: '0 auto', padding: '0 2rem'
         }}>
           {/* Vendedor App */}
-          <div className={styles.priceCard} style={{ flex: '1 1 300px', textAlign: 'center', background: 'var(--color-bg)' }}>
+          <div className={styles.featureCard} style={{ flex: '1 1 300px', textAlign: 'center', background: 'var(--color-bg)' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏢</div>
             <h3>App Vendedores</h3>
             <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
@@ -157,7 +157,7 @@ export default function HomeView() {
           </div>
 
           {/* Cliente App */}
-          <div className={styles.priceCard} style={{ flex: '1 1 300px', textAlign: 'center', background: 'var(--color-bg)' }}>
+          <div className={styles.featureCard} style={{ flex: '1 1 300px', textAlign: 'center', background: 'var(--color-bg)' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛍️</div>
             <h3>App Clientes</h3>
             <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
