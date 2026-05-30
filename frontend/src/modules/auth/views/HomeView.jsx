@@ -51,8 +51,10 @@ export default function HomeView() {
   const [appsData, setAppsData] = useState({ cliente: null, vendedor: null });
   const [loadingApps, setLoadingApps] = useState(true);
 
+  const backendBaseUrl = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/api\/?$/, '') : 'http://localhost:8001';
+
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8001'}/api/public/apps/latest/`)
+    fetch(`${backendBaseUrl}/api/public/apps/latest/`)
       .then(res => res.json())
       .then(data => {
         setAppsData(data);
@@ -142,7 +144,7 @@ export default function HomeView() {
               <div>
                 <p style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>Versión: <strong>v{appsData.vendedor.version}</strong></p>
                 <a 
-                  href={`${process.env.REACT_APP_API_URL || 'http://localhost:8001'}${appsData.vendedor.download_url}`}
+                  href={`${backendBaseUrl}${appsData.vendedor.download_url}`}
                   download
                   className={styles.btnPrimary} style={{ width: '100%', display: 'block', padding: '12px 0' }}
                 >
@@ -167,7 +169,7 @@ export default function HomeView() {
               <div>
                 <p style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>Versión: <strong>v{appsData.cliente.version}</strong></p>
                 <a 
-                  href={`${process.env.REACT_APP_API_URL || 'http://localhost:8001'}${appsData.cliente.download_url}`}
+                  href={`${backendBaseUrl}${appsData.cliente.download_url}`}
                   download
                   className={styles.btnSecondary} style={{ width: '100%', display: 'block', padding: '12px 0' }}
                 >
