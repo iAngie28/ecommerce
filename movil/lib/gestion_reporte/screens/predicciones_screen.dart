@@ -1,49 +1,67 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+
+// UI Kit
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/layout/app_dashboard_layout.dart';
 import '../../core/widgets/layout/app_sidebar.dart';
-import '../../core/widgets/buttons/app_button.dart';
-import '../../gestion_usuario/repositories/auth_repository.dart';
-import 'dart:convert';
 
-class ConfiguracionScreen extends StatefulWidget {
-  const ConfiguracionScreen({super.key});
+// Business Logic
+import '../../gestion_usuario/repositories/auth_repository.dart';
+
+// Widgets
+import '../widgets/prediccion_tab.dart';
+
+class PrediccionesScreen extends StatefulWidget {
+  const PrediccionesScreen({super.key});
 
   @override
-  State<ConfiguracionScreen> createState() => _ConfiguracionScreenState();
+  State<PrediccionesScreen> createState() => _PrediccionesScreenState();
 }
 
-class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
+class _PrediccionesScreenState extends State<PrediccionesScreen> with SingleTickerProviderStateMixin {
   String _storeName = 'Cargando...';
   String _userName = 'Admin';
-  String _userEmail = '';
   final AuthRepository _authRepository = AuthRepository();
+  
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {}); // Re-render to show correct tab
+      }
+    });
     _inicializar();
+  }
+  
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _inicializar() async {
     final schemaName = await _authRepository.getSchemaName();
     String decodedUser = 'Admin';
-    String decodedEmail = '';
     final token = await _authRepository.getAccessToken();
     if (token != null) {
       final payload = _decodeJwt(token);
       if (payload != null) {
         decodedUser = payload['full_name'] ?? payload['username'] ?? 'Admin';
-        decodedEmail = payload['email'] ?? '';
       }
     }
 
-    setState(() {
-      _storeName = _formatStoreName(schemaName ?? '');
-      _userName = decodedUser;
-      _userEmail = decodedEmail;
-    });
+    if (mounted) {
+      setState(() {
+        _storeName = _formatStoreName(schemaName ?? '');
+        _userName = decodedUser;
+      });
+    }
   }
 
   String _formatStoreName(String schema) {
@@ -91,6 +109,11 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           onTap: () => Navigator.pushReplacementNamed(context, '/categorias'),
         ),
         AppSidebarItem(
+          icon: Icons.list_alt,
+          label: 'Inventario',
+          onTap: () => Navigator.pushReplacementNamed(context, '/inventario'),
+        ),
+        AppSidebarItem(
           icon: Icons.shopping_cart,
           label: 'Ventas',
           onTap: () => Navigator.pushReplacementNamed(context, '/ventas'),
@@ -108,12 +131,12 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         AppSidebarItem(
           icon: Icons.trending_up,
           label: 'Predicciones',
+          isActive: true,
           onTap: () => Navigator.pushReplacementNamed(context, '/predicciones'),
         ),
         AppSidebarItem(
           icon: Icons.settings,
           label: 'Configuración',
-          isActive: true,
           onTap: () => Navigator.pushReplacementNamed(context, '/configuracion'),
         ),
         AppSidebarItem(
@@ -130,60 +153,57 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Configuración del Perfil', style: AppTextStyles.h1),
-          const SizedBox(height: 5),
-          Text(
-            'Gestiona tus datos personales y de la tienda',
-            style: AppTextStyles.subtitle,
+          // ── HEADER ──
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              if (isMobile) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Predicciones IA', style: AppTextStyles.h1.copyWith(fontSize: 28)),
+                    const SizedBox(height: 5),
+                    Text('Machine Learning para tu negocio.', style: AppTextStyles.subtitle),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Predicciones IA', style: AppTextStyles.h1),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Anticípate al futuro con estimaciones basadas en machine learning.',
+                    style: AppTextStyles.subtitle,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 30),
-          Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: AppColors.accentTeal.withOpacity(0.1),
-                      child: const Icon(Icons.person, size: 40, color: AppColors.accentTeal),
-                    ),
-                    const SizedBox(width: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_userName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                        Text(_userEmail, style: const TextStyle(color: AppColors.textMuted)),
-                      ],
-                    )
-                  ],
-                ),
-                const SizedBox(height: 30),
-                const Divider(),
-                const SizedBox(height: 20),
-                const Text('Información de la Tienda', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 10),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Nombre de la Tienda'),
-                  subtitle: Text(_storeName),
-                  leading: const Icon(Icons.storefront, color: AppColors.accentTeal),
-                ),
-                const SizedBox(height: 30),
-                AppButton.add(
-                  label: 'Guardar Cambios',
-                  icon: Icons.save,
-                  onPressed: () {},
-                ),
-              ],
-            ),
+
+          // ── TABS ──
+          TabBar(
+            controller: _tabController,
+            labelColor: AppColors.primaryDark,
+            unselectedLabelColor: AppColors.textMuted,
+            indicatorColor: AppColors.accentTeal,
+            isScrollable: MediaQuery.of(context).size.width < 500, // Permitir scroll horizontal en teléfonos muy estrechos
+            tabs: const [
+              Tab(icon: Icon(Icons.attach_money), text: 'Ventas Totales'),
+              Tab(icon: Icon(Icons.inventory_2), text: 'Por Producto'),
+              Tab(icon: Icon(Icons.category), text: 'Por Categoría'),
+            ],
           ),
+          const SizedBox(height: 20),
+          
+          // ── CONTENIDO TABS ──
+          if (_tabController.index == 0)
+            const PrediccionTab(key: ValueKey('tab0'), endpoint: '', title: 'Ventas')
+          else if (_tabController.index == 1)
+            const PrediccionTab(key: ValueKey('tab1'), endpoint: 'productos', title: 'Productos')
+          else if (_tabController.index == 2)
+            const PrediccionTab(key: ValueKey('tab2'), endpoint: 'categorias', title: 'Categorías'),
         ],
       ),
     );
