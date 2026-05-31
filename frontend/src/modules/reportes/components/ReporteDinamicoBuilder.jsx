@@ -6,11 +6,40 @@ import { exportToPDF, exportToExcel } from 'utils/exportUtils';
 import { Download, Table, Settings2 } from 'lucide-react';
 import styles from './ReportesEstaticos.module.css'; // Reusing static styles
 
+const MODEL_OPTIONS = {
+    pedidos: {
+        defaultMetrica: 'total',
+        defaultAgruparPor: 'mes',
+        metricas: [
+            { value: 'total', label: 'Suma Total ($)' },
+            { value: 'conteo', label: 'Cantidad de Pedidos' }
+        ],
+        agrupaciones: [
+            { value: 'mes', label: 'Mes' },
+            { value: 'dia', label: 'Día' },
+            { value: 'estado', label: 'Estado del Pedido' },
+            { value: 'ninguno', label: 'Ninguno' }
+        ]
+    },
+    productos: {
+        defaultMetrica: 'stock',
+        defaultAgruparPor: 'categoria',
+        metricas: [
+            { value: 'stock', label: 'Suma de Stock' },
+            { value: 'conteo', label: 'Cantidad de Productos' }
+        ],
+        agrupaciones: [
+            { value: 'categoria', label: 'Categoría' },
+            { value: 'ninguno', label: 'Ninguno' }
+        ]
+    }
+};
+
 const ReporteDinamicoBuilder = () => {
     const [config, setConfig] = useState({
         modelo: 'pedidos',
-        metrica: 'total',
-        agrupar_por: 'mes',
+        metrica: MODEL_OPTIONS.pedidos.defaultMetrica,
+        agrupar_por: MODEL_OPTIONS.pedidos.defaultAgruparPor,
         filtros: {}
     });
     const [data, setData] = useState([]);
@@ -19,6 +48,16 @@ const ReporteDinamicoBuilder = () => {
 
     const handleChange = (field, value) => {
         setConfig(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleModeloChange = (modelo) => {
+        const options = MODEL_OPTIONS[modelo];
+        setConfig({
+            modelo,
+            metrica: options.defaultMetrica,
+            agrupar_por: options.defaultAgruparPor,
+            filtros: {}
+        });
     };
 
     const handleAnalizar = async () => {
@@ -62,7 +101,7 @@ const ReporteDinamicoBuilder = () => {
                     <label>Origen de Datos:</label>
                     <select 
                         value={config.modelo} 
-                        onChange={(e) => handleChange('modelo', e.target.value)}
+                        onChange={(e) => handleModeloChange(e.target.value)}
                         className={styles.select}
                     >
                         <option value="pedidos">Pedidos / Ventas</option>
@@ -76,17 +115,9 @@ const ReporteDinamicoBuilder = () => {
                         onChange={(e) => handleChange('metrica', e.target.value)}
                         className={styles.select}
                     >
-                        {config.modelo === 'pedidos' ? (
-                            <>
-                                <option value="total">Suma Total ($)</option>
-                                <option value="conteo">Cantidad de Pedidos</option>
-                            </>
-                        ) : (
-                            <>
-                                <option value="stock">Suma de Stock</option>
-                                <option value="conteo">Cantidad de Productos</option>
-                            </>
-                        )}
+                        {MODEL_OPTIONS[config.modelo].metricas.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                     </select>
                 </div>
                 <div className={styles.formGroup}>
@@ -96,18 +127,9 @@ const ReporteDinamicoBuilder = () => {
                         onChange={(e) => handleChange('agrupar_por', e.target.value)}
                         className={styles.select}
                     >
-                        {config.modelo === 'pedidos' ? (
-                            <>
-                                <option value="mes">Mes</option>
-                                <option value="dia">Día</option>
-                                <option value="estado">Estado del Pedido</option>
-                            </>
-                        ) : (
-                            <>
-                                <option value="categoria">Categoría</option>
-                                <option value="ninguno">Ninguno</option>
-                            </>
-                        )}
+                        {MODEL_OPTIONS[config.modelo].agrupaciones.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                     </select>
                 </div>
                 <Button 

@@ -5,16 +5,18 @@ from apps.negocio.catalogo.models.producto import Producto
 from apps.customers.clientes.models.cliente import Cliente
 from .registry import ReportRegistry
 
+ESTADOS_VENTA_COBRADA = ['PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']
+
 @ReportRegistry.register_estatico('ventas_mensuales', 'Ventas Mensuales')
 def ventas_mensuales():
-    return Pedido.objects.filter(estado='COMPLETADO').annotate(
+    return Pedido.objects.filter(estado__in=ESTADOS_VENTA_COBRADA).annotate(
         mes=TruncMonth('fecha_creacion')
     ).values('mes').annotate(
         total_ventas=Sum(
             F('carrito__items__producto__precio') * F('carrito__items__cantidad'),
             output_field=DecimalField()
         ),
-        cantidad_pedidos=Count('id')
+        cantidad_pedidos=Count('id', distinct=True)
     ).order_by('-mes')[:12]
 
 @ReportRegistry.register_estatico('top_productos', 'Top Productos por Stock')
@@ -24,7 +26,7 @@ def top_productos():
 @ReportRegistry.register_estatico('nuevos_clientes', 'Nuevos Clientes por Mes')
 def nuevos_clientes():
     return Cliente.objects.annotate(
-        mes=TruncMonth('creado_en')
+        mes=TruncMonth('fecha_registro')
     ).values('mes').annotate(
         total=Count('id')
     ).order_by('-mes')[:12]
