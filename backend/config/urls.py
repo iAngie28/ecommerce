@@ -88,6 +88,7 @@ urlpatterns = [
     path('api/public/apps/<str:app_type>/version/<str:version>/download/', DownloadSpecificReleaseView.as_view(), name='apps_version_download'),
     path('api/public/apps/upload/', UploadMobileReleaseView.as_view(), name='apps_upload'),
 
+    path('api/reportes/', include('apps.negocio.reportes.api.urls')),
     path('api/', include(router.urls)),
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
