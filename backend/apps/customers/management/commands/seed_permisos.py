@@ -41,6 +41,11 @@ class Command(BaseCommand):
                 # Módulo Configuración
                 {'codigo': 'CONFIGURACION_TIENDA', 'nombre': 'Configuración de Tienda', 'modulo': 'Configuración', 'es_basico': True, 'desc': 'Permite editar la información de la tienda, logo y colores'},
                 {'codigo': 'CONFIGURACION_PAGOS', 'nombre': 'Configuración de Pagos', 'modulo': 'Configuración', 'es_basico': False, 'desc': 'Permite vincular métodos de pago avanzados (Stripe, Paypal)'},
+
+                # Módulo Reportes
+                {'codigo': 'REP_ESTATICO', 'nombre': 'Reportes Estáticos', 'modulo': 'Reportes', 'es_basico': True, 'desc': 'Permite generar y descargar reportes predefinidos'},
+                {'codigo': 'REP_DINAMICO', 'nombre': 'Reportes Dinámicos', 'modulo': 'Reportes', 'es_basico': False, 'desc': 'Permite armar reportes personalizados con métricas y agrupaciones'},
+                {'codigo': 'REP_AUDIO', 'nombre': 'Reportes con IA (Voz)', 'modulo': 'Reportes', 'es_basico': False, 'desc': 'Permite realizar consultas al sistema mediante voz o lenguaje natural'},
             ]
 
             creados = 0
