@@ -1,5 +1,5 @@
 from django.db.models import Sum, Count, F, DecimalField, Value, CharField
-from django.db.models.functions import TruncMonth, TruncDay
+from django.db.models.functions import TruncYear, TruncMonth, TruncDay
 from apps.negocio.ordenes.models.pedido import Pedido
 from apps.negocio.catalogo.models.producto import Producto
 from .registry import ReportRegistry
@@ -61,6 +61,7 @@ class PedidoReportBuilder(ModelReportBuilder):
         'conteo': Count('id', distinct=True)
     }
     agrupaciones = {
+        'año': TruncYear('fecha_creacion'),
         'mes': TruncMonth('fecha_creacion'),
         'dia': TruncDay('fecha_creacion'),
         'estado': F('estado')

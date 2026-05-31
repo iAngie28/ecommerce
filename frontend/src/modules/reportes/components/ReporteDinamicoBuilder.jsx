@@ -4,6 +4,8 @@ import DataTable from 'shared/widgets/DataTable/DataTable';
 import { Button, Alert, Spinner } from 'shared/components';
 import { exportToPDF, exportToExcel } from 'utils/exportUtils';
 import { Download, Table, Settings2 } from 'lucide-react';
+import ReportChart from './ReportChart';
+import { formatReportData } from 'utils/formatters';
 import styles from './ReportesEstaticos.module.css'; // Reusing static styles
 
 const MODEL_OPTIONS = {
@@ -15,6 +17,7 @@ const MODEL_OPTIONS = {
             { value: 'conteo', label: 'Cantidad de Pedidos' }
         ],
         agrupaciones: [
+            { value: 'año', label: 'Año' },
             { value: 'mes', label: 'Mes' },
             { value: 'dia', label: 'Día' },
             { value: 'estado', label: 'Estado del Pedido' },
@@ -65,7 +68,7 @@ const ReporteDinamicoBuilder = () => {
         setError(null);
         try {
             const response = await api.post('reportes/builder/', config);
-            setData(response.data);
+            setData(formatReportData(response.data));
         } catch (err) {
             console.error('Error in dynamic report builder:', err);
             setError(err.response?.data?.error || 'Error al construir el reporte dinámico.');
@@ -162,6 +165,8 @@ const ReporteDinamicoBuilder = () => {
                             PDF
                         </Button>
                     </div>
+                    
+                    <ReportChart data={data} title="Gráfico del Reporte Dinámico" />
                     
                     <div className={styles.tableWrapper}>
                         <DataTable
