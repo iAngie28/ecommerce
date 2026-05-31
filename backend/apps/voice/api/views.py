@@ -7,11 +7,15 @@ from rest_framework import status
 from django.db import connection
 from ..services.query_service import VoiceQueryService
 from ..models import VoiceTask
+from apps.core.permissions import HasPermiso
 import logging
 
 logger = logging.getLogger(__name__)
 
 class VoiceQueryView(APIView):
+    permission_classes = [HasPermiso]
+    required_permiso = 'REP_AUDIO'
+    
     def post(self, request):
         logger.info("VoiceQueryView: Received request")
         audio_file = request.FILES.get('audio')
@@ -53,6 +57,9 @@ class VoiceQueryView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VoiceTaskStatusView(APIView):
+    permission_classes = [HasPermiso]
+    required_permiso = 'REP_AUDIO'
+
     def get(self, request, task_id):
         try:
             task = VoiceTask.objects.get(id=task_id)

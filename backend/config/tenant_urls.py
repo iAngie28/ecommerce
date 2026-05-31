@@ -75,6 +75,9 @@ urlpatterns = [
     # Notificaciones
     path('api/notificaciones/', NotificacionViewSet.as_view({'get': 'list', 'put': 'update', 'patch': 'partial_update'}), name='notificacion-list'),
     path('api/notificaciones/marcar-todas-leidas/', NotificacionViewSet.as_view({'post': 'marcar_todas_leidas'}), name='notificacion-marcar-todas'),
+
+    # Reportes
+    path('api/reportes/', include('apps.negocio.reportes.api.urls')),
 ]
 
 from django.conf import settings
