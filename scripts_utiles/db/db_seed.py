@@ -118,7 +118,7 @@ class DatabaseSeeder:
                 ("Cliente", 3, ["CLIENT_BUY", "CLIENT_HISTORY"]),
             ]
             for nombre_rol, nivel, codigos in roles_data:
-                rol, _ = Rol.objects.get_or_create(nombre=nombre_rol, defaults={'nivel': nivel, 'activo': True})
+                rol, _ = Rol.objects.get_or_create(nombre=nombre_rol, tenant=None, defaults={'nivel': nivel, 'activo': True})
                 rol.permisos.set([permisos_obj[c] for c in codigos if c in permisos_obj])
 
             print("💳 3. Configurando Planes SaaS y sus Reportes...")
@@ -142,7 +142,7 @@ class DatabaseSeeder:
             plan_medio.permisos.set([permisos_obj['REP_ESTATICO'], permisos_obj['REP_DINAMICO']])
             
             # Roles globales (aunque en este sistema multi-tenant los roles se crean por tenant)
-            rol_admin = Rol.objects.get(nombre='Administrador')
+            rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
 
         # 1. Nuevas Tiendas
         if n_tiendas > 0:
