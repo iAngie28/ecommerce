@@ -74,8 +74,30 @@ class PedidoService(BaseService):
             raise ValueError(f"Estado inválido. Válidos: {estados_validos}")
         
         pedido = self.obtener(pedido_id)
+        estado_anterior = pedido.estado
         pedido.estado = nuevo_estado
         pedido.save()
+        
+        # Notificar al cliente si el estado cambia a algo relevante (PROCESADO, ENVIADO, ENTREGADO, CANCELADO)
+        if estado_anterior != nuevo_estado and nuevo_estado in ['PROCESADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO']:
+            try:
+                from apps.negocio.notificaciones.services.notification_service import send_notification
+                mensajes = {
+                    'PROCESADO': 'ha sido procesado y está siendo preparado.',
+                    'ENVIADO': 'ha sido enviado y está en camino hacia tu dirección.',
+                    'ENTREGADO': 'ha sido entregado con éxito. ¡Gracias por tu compra!',
+                    'CANCELADO': 'ha sido cancelado.'
+                }
+                
+                send_notification(
+                    cliente=pedido.carrito.cliente,
+                    titulo=f"Actualización de Pedido #{pedido.id}",
+                    mensaje=f"Tu pedido {mensajes.get(nuevo_estado, 'ha cambiado de estado.')}",
+                    tipo="PEDIDO"
+                )
+            except Exception as e:
+                print(f" Error al notificar cambio de estado: {str(e)}")
+                
         return pedido
     
     def obtener_por_cliente(self, cliente_id):

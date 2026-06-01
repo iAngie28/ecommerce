@@ -2,6 +2,7 @@ import 'dart:convert';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/storage/secure_storage.dart';
+import '../../core/services/push_notification_service.dart';
 import '../models/auth_tokens.dart';
 
 class AuthRepository {
@@ -34,6 +35,12 @@ class AuthRepository {
         await _storage.saveTenantInfo(tokens.schemaName, tokens.subdomain);
 
         print('🟢 LOGIN: Éxito. Tenant=${tokens.subdomain}, Schema=${tokens.schemaName}');
+        
+        final token = await PushNotificationService.getToken();
+        if (token != null) {
+          await PushNotificationService.registerTokenWithBackend(token);
+        }
+        
         return true;
       }
       print('🔴 LOGIN: Falló con status ${response.statusCode}');
