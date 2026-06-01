@@ -21,13 +21,19 @@ class DeviceTokenRegisterView(APIView):
 
         # Detectar si es cliente (app móvil) o vendedor (app vendedor)
         auth_payload = getattr(request, 'auth', {})
-        role = auth_payload.get('role') if isinstance(auth_payload, dict) else None
+        role = None
+        if hasattr(auth_payload, 'get'):
+            role = auth_payload.get('role')
+        elif hasattr(auth_payload, 'payload'):
+            role = auth_payload.payload.get('role')
 
         cliente_id = None
         usuario_id = None
 
         if role == 'CLIENTE':
-            cliente_id = auth_payload.get('cliente_id') or auth_payload.get('user_id')
+            cliente_id = auth_payload.get('cliente_id') if hasattr(auth_payload, 'get') else auth_payload.payload.get('cliente_id')
+            if not cliente_id:
+                cliente_id = auth_payload.get('user_id') if hasattr(auth_payload, 'get') else auth_payload.payload.get('user_id')
             print(f"👤 Identificado como CLIENTE. ID: {cliente_id}")
         else:
             # Es vendedor (Usuario)
