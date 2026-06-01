@@ -37,7 +37,11 @@ class PushNotificationService {
   static Future<void> registerTokenWithBackend(String token) async {
     try {
       final apiClient = ApiClient();
-      await apiClient.post('${ApiConstants.mainBaseUrl}/device-token/', {'token': token});
+      await apiClient.post(
+        '${ApiConstants.mainBaseUrl}/device-token/', 
+        {'token': token},
+        requiresAuth: true,
+      );
       log("Token registrado en el backend exitosamente.");
     } catch (e) {
       log("Error al registrar token en el backend: $e");

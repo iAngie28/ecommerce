@@ -1,7 +1,4 @@
 from rest_framework import serializers
-from apps.customers.users.models.device_token import DeviceToken
 
-class DeviceTokenSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DeviceToken
-        fields = ['token']
+class DeviceTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=255)
