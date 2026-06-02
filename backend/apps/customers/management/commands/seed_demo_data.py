@@ -6,7 +6,8 @@ from django.utils import timezone
 from django.conf import settings
 from django_tenants.utils import schema_context
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
-from apps.negocio.models import Categoria, Producto, Pedido, Factura
+from datetime import timedelta
+from apps.negocio.models import Categoria, Producto, Pedido, Factura, Carrito, CarritoItem, DetalleFactura, TipoPago
 
 class Command(BaseCommand):
     help = 'Genera datos de prueba procedurales: Tiendas, Productos, Clientes y Pedidos.'
@@ -130,30 +131,69 @@ class Command(BaseCommand):
                     if c_created:
                         cliente.set_password('cliente123')
 
-                    # 4. Crear Pedidos Completados para este cliente
+                    # 4. Crear Historial de Pedidos para este cliente
                     if random.choice([True, False]): # Solo algunos tienen pedidos
-                        num_pedidos = random.randint(1, 3)
+                        num_pedidos = random.randint(3, 8)
                         for i in range(num_pedidos):
-                            pedido = Pedido.objects.create(
-                                cliente=cliente,
-                                total=0,
-                                estado='ENTREGADO',
-                                direccion_envio='Dirección de prueba #123'
-                            )
-                            # Añadir 1 o 2 productos al pedido
-                            p1 = random.choice(prod_objs)
-                            pedido.total += p1.precio
-                            # Aquí se asume que hay una relación o lógica de Items, 
-                            # por simplicidad actualizamos el total.
-                            pedido.save()
+                            # Fecha aleatoria entre 1 y 150 días atrás (para tener varios periodos)
+                            dias_atras = random.randint(1, 150)
+                            fake_date = timezone.now() - timedelta(days=dias_atras)
 
-                            # Crear factura asociada
-                            Factura.objects.create(
-                                pedido=pedido,
-                                nro_factura=f"F-{random.randint(1000, 9999)}",
-                                total=pedido.total,
-                                estado='PAGADA'
+                            # 4.1 Carrito
+                            carrito = Carrito.objects.create(
+                                cliente=cliente,
+                                estado='CERRADO'
                             )
+                            Carrito.objects.filter(id=carrito.id).update(fecha_creacion=fake_date)
+
+                            # 4.2 Items del Carrito
+                            num_items = random.randint(1, 3)
+                            total_pedido = 0
+                            items_creados = []
+                            for _ in range(num_items):
+                                prod = random.choice(prod_objs)
+                                cant = random.randint(1, 3)
+                                total_item = prod.precio * cant
+                                total_pedido += total_item
+                                item = CarritoItem.objects.create(
+                                    carrito=carrito,
+                                    producto=prod,
+                                    cantidad=cant
+                                )
+                                items_creados.append((item, prod, cant, prod.precio, total_item))
+
+                            # 4.3 Pedido
+                            pedido = Pedido.objects.create(
+                                carrito=carrito,
+                                estado='ENTREGADO',
+                                observaciones='Pedido histórico generado'
+                            )
+                            Pedido.objects.filter(id=pedido.id).update(fecha_creacion=fake_date)
+
+                            # 4.4 Tipo Pago
+                            tipo_pago, _ = TipoPago.objects.get_or_create(nombre='EFECTIVO', defaults={'estado': 'ACTIVO'})
+
+                            # 4.5 Factura
+                            nro_fact = f"F-{random.randint(10000, 99999)}"
+                            factura = Factura.objects.create(
+                                nro=nro_fact,
+                                pedido=pedido,
+                                cliente=cliente,
+                                tipo_pago=tipo_pago,
+                                monto_total=total_pedido,
+                                estado='VIGENTE'
+                            )
+                            Factura.objects.filter(nro=nro_fact).update(fecha=fake_date.date(), hora=fake_date.time())
+
+                            # 4.6 Detalles de Factura
+                            for item, prod, cant, p_unitario, t_item in items_creados:
+                                DetalleFactura.objects.create(
+                                    factura=factura,
+                                    producto=prod,
+                                    cantidad=cant,
+                                    precio_unitario=p_unitario,
+                                    total=t_item
+                                )
 
         self.stdout.write(self.style.SUCCESS('--- Seeder Finalizado Exitosamente ---'))
         self.stdout.write("Acceso Vendedores: admin123")
