@@ -33,7 +33,7 @@ except ImportError:
 from django_tenants.utils import tenant_context, schema_context
 from django.utils import timezone
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
-from apps.negocio.models import Producto, Categoria, Pedido, Factura, Carrito, CarritoItem, TipoPago
+from apps.negocio.models import Producto, Categoria, Pedido, Factura, Carrito, CarritoItem, TipoPago, DetalleFactura
 
 fake = Faker(['es_ES', 'es_MX'])
 
@@ -285,6 +285,14 @@ class DatabaseSeeder:
                                 monto_total=p.precio * item.cantidad,
                                 estado='VIGENTE'
                             )
+                            
+                            DetalleFactura.objects.create(
+                                factura=factura,
+                                producto=p,
+                                cantidad=item.cantidad,
+                                precio_unitario=p.precio,
+                                total=p.precio * item.cantidad
+                            )
 
                             Carrito.objects.filter(pk=carrito.pk).update(
                                 fecha_creacion=fecha_pedido,
@@ -308,7 +316,7 @@ def main():
         nc = int(input("Â¿Clientes nuevos? [0]: ") or 0)
         pp = int(input("Â¿Productos A AÑADIR por tienda? [10]: ") or 10)
         op = int(input("Â¿Pedidos A GENERAR por cliente? [2]: ") or 2)
-        periodo = input("¿Rango de fechas para pedidos? [1m]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1m'
+        periodo = input("¿Rango de fechas para pedidos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
         seeder.ejecutar_sincronizacion(nt, nc, pp, op, periodo)
     except KeyboardInterrupt: pass
     except Exception as e: print(f"Error: {e}"); import traceback; traceback.print_exc()
