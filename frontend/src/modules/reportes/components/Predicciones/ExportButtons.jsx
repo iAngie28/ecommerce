@@ -11,9 +11,8 @@ export default function ExportButtons({ data, prediccionConfig }) {
     setExportingExcel(true);
     try {
       const title = `Predicción ${prediccionConfig?.tipo === 'ventas_totales' ? 'Global' : (prediccionConfig?.tipo || '')}`;
-      await generateExcel('prediccion', null, { 
-        title: title, 
-        data: data 
+      await generateExcel('prediccion', data, { 
+        title: title
       });
     } finally {
       setExportingExcel(false);
@@ -25,9 +24,8 @@ export default function ExportButtons({ data, prediccionConfig }) {
     setExportingPDF(true);
     try {
       const title = `Predicción ${prediccionConfig?.tipo === 'ventas_totales' ? 'Global' : (prediccionConfig?.tipo || '')}`;
-      await generatePDF('prediccion', null, { 
-        title: title, 
-        data: data 
+      await generatePDF('prediccion', data, { 
+        title: title
       });
     } finally {
       setExportingPDF(false);

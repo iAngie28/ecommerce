@@ -165,8 +165,8 @@ class VoiceQueryService:
 11. SORTING (ORDER BY): NEVER return an unordered result set. Every query MUST have an ORDER BY clause. For reports, default to ordering by date descending, then by primary key descending. NEVER use '.id' unless 'id' is explicitly a column in the table. For 'app_negocio_factura', order by f.fecha DESC, f.nro DESC — NOT f.fecha_creacion.
 12. DATES & TIME: For "this month", strictly use: date_column >= DATE_TRUNC('month', CURRENT_DATE) AND date_column < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'. For formatting outputs, use TO_CHAR(date_column, 'YYYY-MM-DD') to ensure consistent reading.
 16. EXACT COLUMN NAMES PER TABLE (CRITICAL — never invent column names):
-    - app_negocio_factura: nro [PK], fecha (DateField), hora (TimeField), pedido_id, cliente_id, tipo_pago_id, monto_total, moneda, cuf, estado. THERE IS NO 'fecha_creacion' column.
-    - app_negocio_pedido: use app_negocio_factura.fecha for date filtering when joining.
+    - app_negocio_factura: nro [PK], fecha (DateField), hora (TimeField), pedido_id (FK->app_negocio_pedido.id), cliente_id, tipo_pago_id, monto_total, moneda, cuf, estado. THERE IS NO 'fecha_creacion' column.
+    - app_negocio_pedido: id [PK], carrito_id (FK->app_negocio_carrito.id), estado, tracking_code.
     - app_negocio_producto: id [PK], nombre, descripcion, precio, costo, stock, categoria_id, activo.
     - app_negocio_detalle_factura: id [PK], factura_id (FK->app_negocio_factura.nro), producto_id, cantidad, precio_unitario, total.
     - app_negocio_categoria: id [PK], nombre, descripcion, fecha_creacion.
