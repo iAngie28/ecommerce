@@ -198,7 +198,12 @@ class DatabaseSeeder:
         if n_clientes > 0:
             with schema_context('public'):
                 for _ in range(n_clientes):
-                    c, created = Cliente.objects.get_or_create(correo=fake.unique.email(), defaults={'nombre': fake.name()})
+                    nombre_cliente = fake.name()
+                    nombre_limpio = re.sub(r'[^a-z0-9]', '', nombre_cliente.lower().split()[0])
+                    dominio_limpio = random.choice(['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'mail.com'])
+                    sufijo = random.randint(10, 9999)
+                    correo_cliente = f"{nombre_limpio}{sufijo}@{dominio_limpio}"
+                    c, created = Cliente.objects.get_or_create(correo=correo_cliente, defaults={'nombre': nombre_cliente})
                     if created: c.set_password(BusinessGenerator.PASSWORD_STANDAR); c.save()
 
         # 3. Poblar TODAS (OG + Nuevas)
