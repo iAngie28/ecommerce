@@ -2,6 +2,7 @@ import 'dart:convert';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/storage/secure_storage.dart';
+import '../../core/services/push_notification_service.dart';
 import '../models/auth_tokens.dart';
 
 class AuthRepository {
@@ -23,6 +24,11 @@ class AuthRepository {
           tokens.schemaName, 
           tokens.subdomain
         );
+        
+        final token = await PushNotificationService.getToken();
+        if (token != null) {
+          await PushNotificationService.registerTokenWithBackend(token);
+        }
         return true;
       }
       return false;
@@ -38,6 +44,11 @@ class AuthRepository {
       if (response.statusCode == 201) {
         final tokens = AuthTokens.fromJson(jsonDecode(response.body));
         await _storage.saveTokens(tokens.access, tokens.refresh);
+        
+        final token = await PushNotificationService.getToken();
+        if (token != null) {
+          await PushNotificationService.registerTokenWithBackend(token);
+        }
         return true;
       }
       return false;

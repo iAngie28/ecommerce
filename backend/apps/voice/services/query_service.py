@@ -162,8 +162,15 @@ class VoiceQueryService:
     - 'Ganancia Potencial' = (COALESCE(p.precio, 0) - COALESCE(p.costo, 0)) * COALESCE(p.stock, 0).
     - 'Ventas Totales' = Must list details of sales first, then the sum.
     - 'Rentabilidad' = ((p.precio - p.costo) / NULLIF(p.precio, 0)) * 100. Round this to 2 decimal places using ROUND(..., 2).
-11. SORTING (ORDER BY): NEVER return an unordered result set. Every query MUST have an ORDER BY clause. For reports, default to ordering by date descending (fecha DESC), then by primary key descending. NEVER use '.id' unless 'id' is explicitly a column in the table. For example, for 'app_negocio_factura', order by f.fecha DESC, f.nro DESC, NOT f.id DESC.
-12. DATES & TIME: For "this month", strictly use: date_column >= DATE_TRUNC('month', CURRENT_DATE) AND date_column < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'. For formatting outputs, use TO_CHAR(date_column, 'YYYY-MM-DD HH24:MI') to ensure consistent reading.
+11. SORTING (ORDER BY): NEVER return an unordered result set. Every query MUST have an ORDER BY clause. For reports, default to ordering by date descending, then by primary key descending. NEVER use '.id' unless 'id' is explicitly a column in the table. For 'app_negocio_factura', order by f.fecha DESC, f.nro DESC — NOT f.fecha_creacion.
+12. DATES & TIME: For "this month", strictly use: date_column >= DATE_TRUNC('month', CURRENT_DATE) AND date_column < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'. For formatting outputs, use TO_CHAR(date_column, 'YYYY-MM-DD') to ensure consistent reading.
+16. EXACT COLUMN NAMES PER TABLE (CRITICAL — never invent column names):
+    - app_negocio_factura: nro [PK], fecha (DateField), hora (TimeField), pedido_id (FK->app_negocio_pedido.id), cliente_id, tipo_pago_id, monto_total, moneda, cuf, estado. THERE IS NO 'fecha_creacion' column.
+    - app_negocio_pedido: id [PK], carrito_id (FK->app_negocio_carrito.id), estado, tracking_code.
+    - app_negocio_producto: id [PK], nombre, descripcion, precio, costo, stock, categoria_id, activo.
+    - app_negocio_detalle_factura: id [PK], factura_id (FK->app_negocio_factura.nro), producto_id, cantidad, precio_unitario, total.
+    - app_negocio_categoria: id [PK], nombre, descripcion, fecha_creacion.
+    - customers_cliente: id [PK], nombre, apellido, email, telefono, fecha_creacion.
 13. SMART ANALYTICS: When requested for top items, rankings, or performance over time, utilize Window Functions (RANK(), SUM() OVER()) to provide deep insights without losing row-level context.
 14. MULTI-TENANCY: Do not use schema prefixes. Just use the exact table names provided in the schema (e.g. use 'customers_cliente', NEVER invent 'app_negocio_cliente').
 15. SECURITY: Only SELECT queries are allowed. Never generate INSERT, UPDATE, DELETE, DROP, or ALTER.
@@ -237,9 +244,36 @@ class VoiceQueryService:
             raise Exception("No se pudo conectar con el servicio de IA.")
 
     @staticmethod
+    def _serialize_row(row: dict) -> dict:
+        """
+        Converts non-JSON-serializable types (date, datetime, Decimal, UUID, etc.)
+        to their string equivalents so results can be stored in a JSONField.
+        """
+        import datetime
+        from decimal import Decimal
+        import uuid
+
+        serialized = {}
+        for key, value in row.items():
+            if isinstance(value, (datetime.date, datetime.datetime)):
+                serialized[key] = value.isoformat()
+            elif isinstance(value, datetime.time):
+                serialized[key] = value.isoformat()
+            elif isinstance(value, Decimal):
+                serialized[key] = float(value)
+            elif isinstance(value, uuid.UUID):
+                serialized[key] = str(value)
+            elif isinstance(value, memoryview):
+                serialized[key] = bytes(value).hex()
+            else:
+                serialized[key] = value
+        return serialized
+
+    @staticmethod
     def execute_query(sql):
         """
         Executes the SQL query and returns the result as a list of dictionaries.
+        All values are JSON-serializable (dates → ISO strings, Decimal → float, etc.)
         """
         from django.db import connection
         if not sql:
@@ -255,7 +289,7 @@ class VoiceQueryService:
                     
                 columns = [col[0] for col in cursor.description]
                 results = [
-                    dict(zip(columns, row))
+                    VoiceQueryService._serialize_row(dict(zip(columns, row)))
                     for row in cursor.fetchall()
                 ]
                 logger.info(f"Query executed successfully. Rows returned: {len(results)}")

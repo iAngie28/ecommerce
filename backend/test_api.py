@@ -1,24 +1,26 @@
-﻿import os
+import os
 import django
-from django.test import RequestFactory
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from apps.customers.models import Cliente
-from apps.negocio.ordenes.api.pedido_views import PedidoViewSet
-from rest_framework.test import force_authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+from apps.customers.users.models.usuario import Usuario
+import requests
 
-factory = RequestFactory()
-request = factory.get('/api/pedidos/global-list/')
-cliente = Cliente.objects.first()
-if not cliente:
-    print("Cliente not found")
-else:
-    request.user = cliente 
-    request.user.email = cliente.correo
-    view = PedidoViewSet.as_view({'get': 'global_list'})
-    force_authenticate(request, user=cliente)
-    response = view(request)
-    print(response.status_code)
-    print(response.data)
+# Generar token para el primer usuario
+user = Usuario.objects.first()
+refresh = RefreshToken.for_user(user)
+token = str(refresh.access_token)
+
+url = "http://192.168.100.244:8001/api/pedidos/33/cambiar-estado/"
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Host": "tecno",
+    "Content-Type": "application/json"
+}
+data = {"estado": "ENTREGADO"}
+
+print("Realizando petición a:", url)
+response = requests.post(url, headers=headers, json=data)
+print("Status:", response.status_code)
+print("Response:", response.text)
