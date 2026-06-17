@@ -96,7 +96,13 @@ class CustomerBehaviorService:
                     'monetario': 'mean'
                 })
                 
-                # Score simple para rankear clusters: frecuencia + monetario_normalizado - recencia_normalizada
+                # Score para rankear clusters:
+                # - Recencia en dias: MENOS dias = MEJOR (cliente reciente). Penalizamos x3.
+                # - Frecuencia: MAS compras = MEJOR. Premiamos x2.
+                # - Monetario: MAS gasto = MEJOR. Premiamos x2.
+                # La recencia tiene el mayor peso negativo para que un cliente
+                # con 124+ dias de inactividad NO pueda ser clasificado como Fiel,
+                # sin importar cuantas compras haya hecho en el pasado.
                 max_rec = cluster_stats['recencia'].max() or 1
                 max_freq = cluster_stats['frecuencia'].max() or 1
                 max_mon = cluster_stats['monetario'].max() or 1
@@ -104,7 +110,7 @@ class CustomerBehaviorService:
                 cluster_stats['score'] = (
                     (cluster_stats['frecuencia'] / max_freq) * 2 +
                     (cluster_stats['monetario'] / max_mon) * 2 -
-                    (cluster_stats['recencia'] / max_rec)
+                    (cluster_stats['recencia'] / max_rec) * 3
                 )
                 
                 # Ordenar clusters por score descendente
@@ -153,7 +159,11 @@ class CustomerBehaviorService:
             })
 
         # 5. ALGORITMO APRIORI NATIVO PARA ASOCIACIÓN DE PRODUCTOS
-        reglas_asociacion = cls._calcular_apriori(min_support=0.03, min_confidence=0.25)
+        # Umbrales ajustados para catálogos con variedad de productos.
+        # Con muchos productos distintos, la probabilidad de que un par específico
+        # supere el 3% es matemáticamente muy baja. 1% de soporte es suficiente
+        # para detectar patrones reales sin requerir concentración artificial.
+        reglas_asociacion = cls._calcular_apriori(min_support=0.01, min_confidence=0.15)
 
         return {
             "tasa_repeticion": round(tasa_repeticion, 2),

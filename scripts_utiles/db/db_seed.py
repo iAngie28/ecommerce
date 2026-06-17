@@ -276,34 +276,48 @@ class DatabaseSeeder:
                             estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
 
                             # FLUJO REAL: Carrito -> Pedido -> Factura
+                            # Elegir entre 1 y 3 productos DISTINTOS por carrito
+                            # (pesos: 40% solo 1 producto, 40% dos, 20% tres)
+                            n_prods = random.choices([1, 2, 3], weights=[40, 40, 20])[0]
+                            prods_pedido = random.sample(prods, min(n_prods, len(prods)))
+
                             carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
-                            p = random.choice(prods)
-                            item = CarritoItem.objects.create(carrito=carrito, producto=p, cantidad=random.randint(1, 4))
-                            
+
+                            items_creados = []
+                            monto_total = 0
+                            for p in prods_pedido:
+                                cantidad = random.randint(1, 3)
+                                item = CarritoItem.objects.create(
+                                    carrito=carrito, producto=p, cantidad=cantidad
+                                )
+                                items_creados.append((item, p, cantidad))
+                                monto_total += p.precio * cantidad
+
                             pedido = Pedido.objects.create(carrito=carrito, estado=estado_pedido)
-                            
+
                             factura = Factura.objects.create(
                                 nro=f"FAC-{get_random_string(10).upper()}",
                                 pedido=pedido,
                                 cliente=cliente,
                                 tipo_pago=TipoPago.objects.first(),
-                                monto_total=p.precio * item.cantidad,
+                                monto_total=monto_total,
                                 estado='VIGENTE'
                             )
-                            
-                            DetalleFactura.objects.create(
-                                factura=factura,
-                                producto=p,
-                                cantidad=item.cantidad,
-                                precio_unitario=p.precio,
-                                total=p.precio * item.cantidad
-                            )
+
+                            for item, p, cantidad in items_creados:
+                                DetalleFactura.objects.create(
+                                    factura=factura,
+                                    producto=p,
+                                    cantidad=cantidad,
+                                    precio_unitario=p.precio,
+                                    total=p.precio * cantidad
+                                )
+                                CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
 
                             Carrito.objects.filter(pk=carrito.pk).update(
                                 fecha_creacion=fecha_pedido,
                                 fecha_actualizacion=fecha_pedido
                             )
-                            CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
                             Pedido.objects.filter(pk=pedido.pk).update(
                                 fecha_creacion=fecha_pedido,
                                 fecha_actualizacion=fecha_pedido
