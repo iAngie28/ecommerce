@@ -104,9 +104,13 @@ def ejecutar():
             ("Ver Historial", "CLIENT_HISTORY", "Tienda", True, "Ver sus pedidos anteriores"),
 
             # Funcionalidades SaaS (Reportes)
-            ("Reportes Estáticos", "REP_ESTATICO", "Reportes", True, "Permite generar y descargar reportes predefinidos"),
+            ("Reportes Estáticos", "REP_ESTATICO", "Reportes", False, "Permite generar y descargar reportes predefinidos"),
             ("Reportes Dinámicos", "REP_DINAMICO", "Reportes", False, "Permite armar reportes personalizados con métricas"),
             ("Reportes con IA (Voz)", "REP_AUDIO", "Reportes", False, "Permite realizar consultas mediante voz"),
+            ("Dashboard Avanzado", "VER_DASHBOARD_AVANZADO", "Reportes", False, "Métricas avanzadas y predicciones"),
+            ("Exportar Clientes", "EXPORTAR_CLIENTES", "Clientes", False, "Permite descargar padrón de clientes"),
+            ("Configurar Pagos", "CONFIGURACION_PAGOS", "Configuración", False, "Vincular pasarelas de pago"),
+
         ]
 
         permisos_obj = {}
@@ -141,19 +145,24 @@ def ejecutar():
         print("3. Configurando Planes de Suscripción...")
         planes_config = [
             {
-                "nombre": "Básico", "precio_mensual": 29.0, "precio_anual": 290.0, 
-                "max_usuarios": 2, "max_productos": 50,
+                "nombre": "Gratis", "precio_mensual": 0.0, "precio_anual": 0.0, 
+                "max_usuarios": 2, "max_productos": 50, "facturacion_max": 1000.0,
+                "permisos": []
+            },
+            {
+                "nombre": "Standard", "precio_mensual": 29.0, "precio_anual": 290.0, 
+                "max_usuarios": 5, "max_productos": 500, "facturacion_max": 10000.0,
                 "permisos": ["REP_ESTATICO"]
             },
             {
-                "nombre": "Medio", "precio_mensual": 59.0, "precio_anual": 590.0, 
-                "max_usuarios": 5, "max_productos": 500,
-                "permisos": ["REP_ESTATICO", "REP_DINAMICO"]
+                "nombre": "Gold", "precio_mensual": 69.0, "precio_anual": 690.0, 
+                "max_usuarios": 15, "max_productos": 5000, "facturacion_max": 500000.0, # Límite muy alto para Gold
+                "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS"]
             },
             {
                 "nombre": "Profesional", "precio_mensual": 99.0, "precio_anual": 990.0, 
-                "max_usuarios": 20, "max_productos": 5000,
-                "permisos": ["REP_ESTATICO", "REP_DINAMICO", "REP_AUDIO"]
+                "max_usuarios": 0, "max_productos": 0, "facturacion_max": None,
+                "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS", "REP_DINAMICO", "REP_AUDIO"]
             }
         ]
 
@@ -166,7 +175,15 @@ def ejecutar():
                     'precio_anual': p_data['precio_anual'],
                     'max_usuarios': p_data['max_usuarios'],
                     'max_productos': p_data['max_productos'],
+                    'facturacion_max': p_data.get('facturacion_max', None),
                 }
+            )
+            # Actualizar valores si ya existía el plan
+            Plan.objects.filter(id=plan.id).update(
+                precio_mensual=p_data['precio_mensual'],
+                max_usuarios=p_data['max_usuarios'],
+                max_productos=p_data['max_productos'],
+                facturacion_max=p_data.get('facturacion_max', None)
             )
             plan.permisos.set([permisos_obj[c] for c in p_data['permisos'] if c in permisos_obj])
             planes_obj[plan.nombre] = plan
@@ -176,8 +193,8 @@ def ejecutar():
         # ---------------------------------------------------------
         print("\n4. Configurando Tiendas de Ejemplo...")
         config_tiendas = [
-            {'schema': 'tecno', 'nombre': 'Tecno Smart', 'cat': 'Electrónica', 'plan': planes_obj['Básico']},
-            {'schema': 'moda', 'nombre': 'Moda Express', 'cat': 'Ropa', 'plan': planes_obj['Medio']},
+            {'schema': 'tecno', 'nombre': 'Tecno Smart', 'cat': 'Electrónica', 'plan': planes_obj['Gratis']},
+            {'schema': 'moda', 'nombre': 'Moda Express', 'cat': 'Ropa', 'plan': planes_obj['Standard']},
             {'schema': 'hogar', 'nombre': 'Hogar & Deco', 'cat': 'Hogar', 'plan': planes_obj['Profesional']}
         ]
 
