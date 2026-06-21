@@ -260,10 +260,17 @@ class DatabaseSeeder:
 
             plan_profesional, _ = Plan.objects.get_or_create(
                 nombre='Profesional', 
-                defaults={'precio_mensual': 99.0, 'precio_anual': 990.0, 'max_usuarios': 0, 'max_productos': 0, 'facturacion_max': None}
+                defaults={'precio_mensual': 99.0, 'precio_anual': 990.0, 'max_usuarios': 999999, 'max_productos': 999999, 'facturacion_max': None}
             )
             plan_profesional.permisos.set([permisos_obj['REP_ESTATICO'], permisos_obj['REP_DINAMICO'], permisos_obj['REP_AUDIO']])
             
+            # Fuerza a actualizar los límites en la base de datos por si get_or_create encontró un plan viejo con 0
+            Plan.objects.filter(id=plan_gratis.id).update(max_usuarios=2, max_productos=50)
+            Plan.objects.filter(id=plan_standard.id).update(max_usuarios=5, max_productos=500)
+            Plan.objects.filter(id=plan_gold.id).update(max_usuarios=15, max_productos=5000)
+            Plan.objects.filter(id=plan_profesional.id).update(max_usuarios=999999, max_productos=999999)
+            
+            todos_los_planes = [plan_gratis, plan_standard, plan_gold, plan_profesional]
             # Roles globales (aunque en este sistema multi-tenant los roles se crean por tenant)
             rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
 
@@ -273,11 +280,12 @@ class DatabaseSeeder:
                 nombre = fake.company()
                 with schema_context('public'):
                     schema = BusinessGenerator.schema_tienda_seguro()
+                    plan_aleatorio = random.choice(todos_los_planes)
                     tenant, _ = self.get_or_create_tenant(
                         schema,
                         {
                             'name': nombre,
-                            'plan': plan_profesional,
+                            'plan': plan_aleatorio,
                             'nombre_comercial': nombre,
                             'categoria_tienda': fake.job(),
                         },
