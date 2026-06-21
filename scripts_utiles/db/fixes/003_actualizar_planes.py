@@ -33,7 +33,7 @@ def run():
             },
             {
                 "nombre": "Profesional", "precio_mensual": 99.0, "precio_anual": 990.0, 
-                "max_usuarios": 0, "max_productos": 0, "facturacion_max": None,
+                "max_usuarios": 999999, "max_productos": 999999, "facturacion_max": None,
                 "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS", "REP_DINAMICO", "REP_AUDIO"]
             }
         ]
