@@ -18,6 +18,8 @@ class PedidoService(BaseService):
         
         if carrito.cantidad_items == 0:
             raise ValueError("No se puede crear un pedido de un carrito vacío")
+            
+        self._verificar_limite_facturacion(carrito.total)
         
         # Crear pedido
         pedido = Pedido.objects.create(
@@ -60,6 +62,8 @@ class PedidoService(BaseService):
                     producto=producto,
                     cantidad=cantidad_solicitada
                 )
+                
+            self._verificar_limite_facturacion(carrito.total)
             
             pedido = Pedido.objects.create(
                 carrito=carrito,
@@ -108,3 +112,35 @@ class PedidoService(BaseService):
     def obtener_por_estado(self, estado):
         """Obtiene pedidos por estado."""
         return Pedido.objects.filter(estado=estado).order_by('-fecha_creacion')
+
+    def _verificar_limite_facturacion(self, total_nuevo_pedido):
+        from django.db import connection
+        from apps.customers.models import Client
+        from django.utils.timezone import now
+        from rest_framework.exceptions import ValidationError
+
+        schema = connection.schema_name
+        if schema == 'public':
+            return
+            
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+        except Client.DoesNotExist:
+            return
+            
+        if not tenant.plan or tenant.plan.facturacion_max is None:
+            return
+
+        current_month = now().month
+        current_year = now().year
+        
+        pedidos_mes = Pedido.objects.filter(
+            fecha_creacion__year=current_year,
+            fecha_creacion__month=current_month,
+            estado__in=['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']
+        )
+        
+        total_facturado = sum(p.carrito.total for p in pedidos_mes)
+        
+        if (float(total_facturado) + float(total_nuevo_pedido)) > float(tenant.plan.facturacion_max):
+            raise ValidationError({"limite_alcanzado": f"Has superado el límite de facturación mensual de tu plan ({tenant.plan.nombre}): ${tenant.plan.facturacion_max}. Has facturado ${total_facturado} este mes. Este pedido es de ${total_nuevo_pedido}. Por favor mejora tu suscripción."})

@@ -109,6 +109,7 @@ export const APP_MODULES = [
     group: 'negocio',
     roles: ['vendedor'],
     requireOwner: true,
+    permissions: ['GESTIONAR_USUARIOS'],
   },
   {
     id: 'productos',
@@ -164,6 +165,7 @@ export const APP_MODULES = [
     inSidebar: true,
     group: 'analisis',
     roles: ['vendedor'],
+    permissions: ['REP_ESTATICO'],
   },
   {
     id: 'predicciones',
@@ -175,6 +177,7 @@ export const APP_MODULES = [
     inSidebar: true,
     group: 'analisis',
     roles: ['vendedor'],
+    permissions: ['VER_DASHBOARD_AVANZADO'],
   },
   {
     id: 'recordatorios',
@@ -296,12 +299,20 @@ export const getSidebarGroups = (user) => {
   if (!user) return {};
   const userRole = user.role;
   const isOwner = user.is_staff || user.is_superuser;
+  const userPermissions = user.permisos_efectivos || [];
 
   const sidebarItems = APP_MODULES.filter(
     (m) => {
       if (!m.inSidebar) return false;
       if (!m.roles?.includes(userRole)) return false;
       if (m.requireOwner && !isOwner) return false;
+      
+      // Filter by permissions if route demands it
+      if (m.permissions && m.permissions.length > 0) {
+        const hasPerm = m.permissions.some(p => userPermissions.includes(p));
+        if (!hasPerm) return false;
+      }
+      
       return true;
     }
   );

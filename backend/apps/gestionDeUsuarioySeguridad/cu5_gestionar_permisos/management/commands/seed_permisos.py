@@ -27,23 +27,23 @@ class Command(BaseCommand):
 
                 # Módulo Ventas / Pedidos
                 {'codigo': 'VER_PEDIDOS', 'nombre': 'Ver Pedidos', 'modulo': 'Ventas', 'es_basico': True, 'desc': 'Permite listar y ver el detalle de pedidos'},
-                {'codigo': 'PROCESAR_PEDIDOS', 'nombre': 'Procesar Pedidos', 'modulo': 'Ventas', 'es_basico': True, 'desc': 'Permite cambiar el estado de los pedidos y registrar envíos'},
-                {'codigo': 'EMITIR_FACTURA', 'nombre': 'Emitir Facturas', 'modulo': 'Ventas', 'es_basico': True, 'desc': 'Generación de facturas para ventas'},
+                {'codigo': 'PROCESAR_PEDIDOS', 'nombre': 'Procesar Pedidos', 'modulo': 'Ventas', 'es_basico': False, 'desc': 'Permite cambiar el estado de los pedidos y registrar envíos'},
+                {'codigo': 'EMITIR_FACTURA', 'nombre': 'Emitir Facturas', 'modulo': 'Ventas', 'es_basico': False, 'desc': 'Generación de facturas para ventas'},
 
                 # Módulo Clientes
                 {'codigo': 'VER_CLIENTES', 'nombre': 'Ver Clientes', 'modulo': 'Clientes', 'es_basico': True, 'desc': 'Acceso al listado de clientes de la tienda'},
                 {'codigo': 'EXPORTAR_CLIENTES', 'nombre': 'Exportar Clientes', 'modulo': 'Clientes', 'es_basico': False, 'desc': 'Permite descargar el padrón de clientes (Feature Premium)'},
 
                 # Módulo Usuarios y Roles (Dueño de la tienda)
-                {'codigo': 'GESTIONAR_USUARIOS', 'nombre': 'Gestionar Personal', 'modulo': 'Usuarios', 'es_basico': True, 'desc': 'Permite crear, editar o eliminar empleados/vendedores'},
-                {'codigo': 'GESTIONAR_ROLES', 'nombre': 'Gestionar Roles', 'modulo': 'Usuarios', 'es_basico': True, 'desc': 'Permite configurar roles y permisos de los empleados'},
+                {'codigo': 'GESTIONAR_USUARIOS', 'nombre': 'Gestionar Personal', 'modulo': 'Usuarios', 'es_basico': False, 'desc': 'Permite crear, editar o eliminar empleados/vendedores'},
+                {'codigo': 'GESTIONAR_ROLES', 'nombre': 'Gestionar Roles', 'modulo': 'Usuarios', 'es_basico': False, 'desc': 'Permite configurar roles y permisos de los empleados'},
 
                 # Módulo Configuración
                 {'codigo': 'CONFIGURACION_TIENDA', 'nombre': 'Configuración de Tienda', 'modulo': 'Configuración', 'es_basico': True, 'desc': 'Permite editar la información de la tienda, logo y colores'},
                 {'codigo': 'CONFIGURACION_PAGOS', 'nombre': 'Configuración de Pagos', 'modulo': 'Configuración', 'es_basico': False, 'desc': 'Permite vincular métodos de pago avanzados (Stripe, Paypal)'},
 
                 # Módulo Reportes
-                {'codigo': 'REP_ESTATICO', 'nombre': 'Reportes Estáticos', 'modulo': 'Reportes', 'es_basico': True, 'desc': 'Permite generar y descargar reportes predefinidos'},
+                {'codigo': 'REP_ESTATICO', 'nombre': 'Reportes Estáticos', 'modulo': 'Reportes', 'es_basico': False, 'desc': 'Permite generar y descargar reportes predefinidos'},
                 {'codigo': 'REP_DINAMICO', 'nombre': 'Reportes Dinámicos', 'modulo': 'Reportes', 'es_basico': False, 'desc': 'Permite armar reportes personalizados con métricas y agrupaciones'},
                 {'codigo': 'REP_AUDIO', 'nombre': 'Reportes con IA (Voz)', 'modulo': 'Reportes', 'es_basico': False, 'desc': 'Permite realizar consultas al sistema mediante voz o lenguaje natural'},
             ]
@@ -91,17 +91,18 @@ class Command(BaseCommand):
 
             # 3. Reparar los Planes
             from apps.customers.tenants.models.plan import Plan
-            plan_basico = Plan.objects.filter(nombre__iexact='Básico').first()
-            if plan_basico:
-                plan_basico.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO']))
             
-            plan_medio = Plan.objects.filter(nombre__iexact='Medio').first()
-            if plan_medio:
-                plan_medio.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO', 'REP_DINAMICO']))
+            plan_standard = Plan.objects.filter(nombre__iexact='Standard').first()
+            if plan_standard:
+                plan_standard.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO', 'PROCESAR_PEDIDOS', 'EMITIR_FACTURA', 'GESTIONAR_USUARIOS', 'GESTIONAR_ROLES']))
+            
+            plan_gold = Plan.objects.filter(nombre__iexact='Gold').first()
+            if plan_gold:
+                plan_gold.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO', 'PROCESAR_PEDIDOS', 'EMITIR_FACTURA', 'GESTIONAR_USUARIOS', 'GESTIONAR_ROLES', 'VER_DASHBOARD_AVANZADO', 'EXPORTAR_CLIENTES', 'CONFIGURACION_PAGOS']))
                 
             plan_profesional = Plan.objects.filter(nombre__iexact='Profesional').first()
             if plan_profesional:
-                plan_profesional.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO', 'REP_DINAMICO', 'REP_AUDIO']))
+                plan_profesional.permisos.add(*Permiso.objects.filter(codigo__in=['REP_ESTATICO', 'PROCESAR_PEDIDOS', 'EMITIR_FACTURA', 'GESTIONAR_USUARIOS', 'GESTIONAR_ROLES', 'VER_DASHBOARD_AVANZADO', 'EXPORTAR_CLIENTES', 'CONFIGURACION_PAGOS', 'REP_DINAMICO', 'REP_AUDIO']))
 
         for tenant in Client.objects.exclude(schema_name='public'):
             with schema_context(tenant.schema_name):
