@@ -4,16 +4,23 @@ import django
 import random
 import socket
 from django.utils.crypto import get_random_string
+from django.core.management import call_command
+from django.db import connection
 
 # 1. Configuración de Django
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from django_tenants.utils import schema_context
-from apps.negocio.models import Categoria, Producto, Pedido, Factura, DetalleFactura, TipoPago
+from django_tenants.utils import schema_context, schema_exists
+from apps.gestionDeProductoYCatalogo.cu7_gestionar_productos.models.producto import Producto
+from apps.gestionDeProductoYCatalogo.cu9_gestionar_categorias.models.categoria import Categoria
 from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito import Carrito
 from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito_item import CarritoItem
+from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.models.tipo_pago import TipoPago
+from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.factura import Factura
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente, Permiso
 
 def obtener_ip_dominio():
@@ -28,6 +35,49 @@ def obtener_ip_dominio():
         except Exception:
             return "localhost"
     return base_domain
+
+def sync_tenant_schema(tenant):
+    if not schema_exists(tenant.schema_name):
+        with connection.cursor() as cursor:
+            cursor.execute(f'CREATE SCHEMA {connection.ops.quote_name(tenant.schema_name)}')
+        connection.set_schema_to_public()
+    call_command(
+        'migrate_schemas',
+        tenant=True,
+        schema_name=tenant.schema_name,
+        run_syncdb=True,
+        interactive=False,
+        verbosity=0,
+    )
+
+def get_or_create_tenant(schema_name, defaults):
+    tenant = Client.objects.filter(schema_name=schema_name).first()
+    created = tenant is None
+    if created:
+        tenant = Client(schema_name=schema_name, **defaults)
+        tenant.auto_create_schema = False
+        tenant.save()
+    else:
+        for field, value in defaults.items():
+            setattr(tenant, field, value)
+        tenant.auto_create_schema = False
+        tenant.save()
+
+    sync_tenant_schema(tenant)
+    return tenant, created
+
+def ensure_tenant_admin(tenant, rol_admin):
+    user, created = Usuario.objects.get_or_create(
+        email=f"admin@{tenant.schema_name}.local",
+        defaults={'tenant': tenant, 'is_staff': True},
+    )
+    if created:
+        user.set_password('Password123!')
+    user.tenant = tenant
+    user.is_staff = True
+    user.save()
+    user.roles.add(rol_admin)
+    return user
 
 def ejecutar():
     print("--- Iniciando Sincronización Maestra (Seeder Principal) ---")
@@ -83,6 +133,7 @@ def ejecutar():
                 defaults={'nivel': nivel, 'descripcion': f"Rol {nombre_rol}", 'activo': True}
             )
             rol.permisos.set([permisos_obj[c] for c in codigos if c in permisos_obj])
+        rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
 
         # ---------------------------------------------------------
         # 3. PLANES SAAS
@@ -155,14 +206,14 @@ def ejecutar():
         ]
 
         for conf in config_tiendas:
-            tenant, created = Client.objects.get_or_create(
-                schema_name=conf['schema'],
-                defaults={
+            tenant, created = get_or_create_tenant(
+                conf['schema'],
+                {
                     'name': conf['nombre'],
                     'plan': conf['plan'],
                     'nombre_comercial': conf['nombre'],
                     'categoria_tienda': conf['cat']
-                }
+                },
             )
             # Aseguramos que tenga el plan correcto (por si ya existía)
             tenant.plan = conf['plan']
@@ -170,6 +221,7 @@ def ejecutar():
 
             domain_url = f"{conf['schema']}.{base_domain}" if base_domain != 'localhost' else f"{conf['schema']}.localhost"
             Domain.objects.get_or_create(domain=domain_url, tenant=tenant, defaults={'is_primary': True})
+            ensure_tenant_admin(tenant, rol_admin)
             print(f"   -> Tienda {conf['nombre']} ({conf['schema']}) en Plan {conf['plan'].nombre}")
 
     # ---------------------------------------------------------
@@ -178,13 +230,13 @@ def ejecutar():
     for conf in config_tiendas:
         with schema_context(conf['schema']):
             # Limpieza segura para evitar duplicados en pruebas repetidas
-            Producto.objects.all().delete()
-            Categoria.objects.all().delete()
-            Factura.objects.all().delete()
             DetalleFactura.objects.all().delete()
+            Factura.objects.all().delete()
             Pedido.objects.all().delete()
             CarritoItem.objects.all().delete()
             Carrito.objects.all().delete()
+            Producto.objects.all().delete()
+            Categoria.objects.all().delete()
             TipoPago.objects.all().delete()
 
             cat_obj, _ = Categoria.objects.get_or_create(nombre=conf['cat'])

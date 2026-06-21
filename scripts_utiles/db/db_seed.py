@@ -12,6 +12,8 @@ import re
 from datetime import timedelta
 from pathlib import Path
 from django.utils.crypto import get_random_string
+from django.core.management import call_command
+from django.db import connection
 
 # Configuración de Rutas
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -30,10 +32,17 @@ except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "faker"])
     from faker import Faker
 
-from django_tenants.utils import tenant_context, schema_context
+from django_tenants.utils import tenant_context, schema_context, schema_exists
 from django.utils import timezone
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
-from apps.negocio.models import Producto, Categoria, Pedido, Factura, Carrito, CarritoItem, TipoPago, DetalleFactura
+from apps.gestionDeProductoYCatalogo.cu7_gestionar_productos.models.producto import Producto
+from apps.gestionDeProductoYCatalogo.cu9_gestionar_categorias.models.categoria import Categoria
+from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito import Carrito
+from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito_item import CarritoItem
+from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.models.tipo_pago import TipoPago
+from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.factura import Factura
 
 fake = Faker(['es_ES', 'es_MX'])
 
@@ -143,6 +152,49 @@ class DatabaseSeeder:
     def __init__(self):
         self.base_domain = BusinessGenerator.obtener_ip_dominio()
 
+    def sync_tenant_schema(self, tenant):
+        if not schema_exists(tenant.schema_name):
+            with connection.cursor() as cursor:
+                cursor.execute(f'CREATE SCHEMA {connection.ops.quote_name(tenant.schema_name)}')
+            connection.set_schema_to_public()
+        call_command(
+            'migrate_schemas',
+            tenant=True,
+            schema_name=tenant.schema_name,
+            run_syncdb=True,
+            interactive=False,
+            verbosity=0,
+        )
+
+    def get_or_create_tenant(self, schema, defaults):
+        tenant = Client.objects.filter(schema_name=schema).first()
+        created = tenant is None
+        if created:
+            tenant = Client(schema_name=schema, **defaults)
+            tenant.auto_create_schema = False
+            tenant.save()
+        else:
+            for field, value in defaults.items():
+                setattr(tenant, field, value)
+            tenant.auto_create_schema = False
+            tenant.save()
+
+        self.sync_tenant_schema(tenant)
+        return tenant, created
+
+    def ensure_tenant_admin(self, tenant, rol_admin):
+        user, created = Usuario.objects.get_or_create(
+            email=f"admin@{tenant.schema_name}.local",
+            defaults={'tenant': tenant, 'is_staff': True},
+        )
+        if created:
+            user.set_password(BusinessGenerator.PASSWORD_STANDAR)
+        user.tenant = tenant
+        user.is_staff = True
+        user.save()
+        user.roles.add(rol_admin)
+        return user
+
     def ejecutar_sincronizacion(self, n_tiendas, n_clientes, p_por_tienda, o_por_cliente, periodo_pedidos='1m'):
         print(f"\n--- ⚡ Motor Especializado V5.4 ---")
         fecha_inicio, fecha_fin = BusinessGenerator.parse_rango_fechas(periodo_pedidos)
@@ -210,10 +262,17 @@ class DatabaseSeeder:
                 nombre = fake.company()
                 with schema_context('public'):
                     schema = BusinessGenerator.schema_tienda_seguro()
-                    tenant, _ = Client.objects.get_or_create(schema_name=schema, defaults={'name': nombre, 'plan': plan_profesional, 'nombre_comercial': nombre, 'categoria_tienda': fake.job()})
+                    tenant, _ = self.get_or_create_tenant(
+                        schema,
+                        {
+                            'name': nombre,
+                            'plan': plan_profesional,
+                            'nombre_comercial': nombre,
+                            'categoria_tienda': fake.job(),
+                        },
+                    )
                     Domain.objects.get_or_create(domain=f"{schema}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema}.localhost", tenant=tenant, defaults={'is_primary': True})
-                    user = Usuario.objects.create_user(email=f"admin@{schema}.local", password=BusinessGenerator.PASSWORD_STANDAR, tenant=tenant, is_staff=True)
-                    user.roles.add(rol_admin)
+                    self.ensure_tenant_admin(tenant, rol_admin)
 
         # 2. Nuevos Clientes
         if n_clientes > 0:
@@ -230,6 +289,10 @@ class DatabaseSeeder:
         # 3. Poblar TODAS (OG + Nuevas)
         todas = list(Client.objects.exclude(schema_name='public'))
         all_cat_names = list(BusinessGenerator.KEYWORDS_POR_CATEGORIA.keys())
+
+        for tenant in todas:
+            self.sync_tenant_schema(tenant)
+            self.ensure_tenant_admin(tenant, rol_admin)
 
         for tenant in todas:
             with tenant_context(tenant):
@@ -264,6 +327,8 @@ class DatabaseSeeder:
 
         for t_destino in todas:
             with tenant_context(t_destino):
+                if o_por_cliente <= 0:
+                    continue
                 prods = list(Producto.objects.filter(activo=True))
                 if not prods:
                     continue
