@@ -66,6 +66,11 @@ export default function UsersView() {
     useEffect(() => { fetchData(); }, []);
 
     const handleSave = async () => {
+        if (formData.roles.length === 0) {
+            alert('Debe seleccionar al menos un rol para el usuario.');
+            return;
+        }
+
         // Validación de contraseña fuerte
         if (!editingId || formData.password) {
             const pass = formData.password;
@@ -211,7 +216,9 @@ export default function UsersView() {
                 actions={
                     <Button onClick={() => { 
                         setEditingId(null); 
-                        setFormData({ email: '', first_name: '', last_name: '', password: '', is_active: true, is_staff: false, is_superuser: false, tenant: '', roles: [] }); 
+                        const vendedorRole = roles.find(r => r.nombre.toLowerCase() === 'vendedor');
+                        const defaultRoles = vendedorRole ? [vendedorRole.id] : [];
+                        setFormData({ email: '', first_name: '', last_name: '', password: '', is_active: true, is_staff: false, is_superuser: false, tenant: '', roles: defaultRoles }); 
                         setIsModalOpen(true); 
                     }}>
                         <Plus size={18} style={{ marginRight: '8px' }} /> Nuevo Usuario
@@ -267,7 +274,7 @@ export default function UsersView() {
                         </div>
                     )}
 
-                    <div style={{ padding: '16px', background: 'var(--color-bg-alt, #f8fafc)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ padding: '16px', background: 'var(--color-surface-2)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
                         <label style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '12px', display: 'block' }}>Configuración de Acceso</label>
                         
                         <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
@@ -301,8 +308,8 @@ export default function UsersView() {
                                         padding: '6px 12px',
                                         borderRadius: '20px',
                                         border: `1px solid ${formData.roles.includes(r.id) ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                        background: formData.roles.includes(r.id) ? 'var(--color-primary-light, #eef2ff)' : 'white',
-                                        color: formData.roles.includes(r.id) ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                                        background: formData.roles.includes(r.id) ? 'var(--color-primary-ghost)' : 'var(--color-surface-2)',
+                                        color: formData.roles.includes(r.id) ? 'var(--color-primary-light)' : 'var(--color-text-muted)',
                                         fontSize: '11px',
                                         fontWeight: '600',
                                         cursor: 'pointer'

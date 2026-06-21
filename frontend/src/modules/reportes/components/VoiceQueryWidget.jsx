@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import api from 'core/services/api';
 import DataTable from 'shared/widgets/DataTable/DataTable';
 import { generatePDF, generateExcel } from 'utils/exports/exportOrchestrator';
-import { Download, Mic, Square, Loader2, Table } from 'lucide-react';
+import { Download, Mic, Square, Loader2, Table, Lightbulb, MessageSquare } from 'lucide-react';
 import { Button, Alert } from 'shared/components';
 import styles from './VoiceQueryWidget.module.css';
 
@@ -227,11 +227,11 @@ const VoiceQueryWidget = () => {
             
             {!result && !loading && !error && (
                 <div className={styles.helperText}>
-                    <span>Sugerencias:</span>
+                    <span><Lightbulb size={16} /> Sugerencias:</span>
                     <ul>
-                        <li>"Muéstrame las ventas de este mes"</li>
-                        <li>"¿Cuáles son los productos con menos de 10 unidades en stock?"</li>
-                        <li>"Lista los 5 clientes que más han comprado"</li>
+                        <li><MessageSquare size={14} className={styles.suggestionIcon} /> "Muéstrame las ventas de este mes"</li>
+                        <li><MessageSquare size={14} className={styles.suggestionIcon} /> "¿Cuáles son los productos con menos de 10 unidades en stock?"</li>
+                        <li><MessageSquare size={14} className={styles.suggestionIcon} /> "Lista los 5 clientes que más han comprado"</li>
                     </ul>
                 </div>
             )}

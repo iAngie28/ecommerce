@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import styles from '../../styles/Predicciones.module.css';
 import { generatePDF, generateExcel } from 'utils/exports/exportOrchestrator';
+import { Button } from 'shared/components';
+import { FileText, Table } from 'lucide-react';
 
 export default function ExportButtons({ data, prediccionConfig }) {
   const [exportingExcel, setExportingExcel] = useState(false);
@@ -33,28 +35,24 @@ export default function ExportButtons({ data, prediccionConfig }) {
   };
 
   return (
-    <div className={styles.exportButtons}>
-      <button 
+    <div className={styles.exportButtons} style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+      <Button 
+        variant="danger"
         onClick={handleDownloadPDF}
         disabled={exportingPDF || exportingExcel}
-        style={{
-          background: '#ef4444', color: 'white', padding: '8px 16px', 
-          borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold'
-        }}
+        leftIcon={<FileText size={18} />}
       >
-        {exportingPDF ? 'Exportando...' : '📄 Descargar Reporte PDF'}
-      </button>
+        {exportingPDF ? 'Exportando...' : 'PDF'}
+      </Button>
       
-      <button 
+      <Button 
+        variant="success"
         onClick={handleDownloadExcel}
         disabled={exportingExcel || exportingPDF}
-        style={{
-          background: '#10b981', color: 'white', padding: '8px 16px', 
-          borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold'
-        }}
+        leftIcon={<Table size={18} />}
       >
-        {exportingExcel ? 'Exportando...' : '📥 Descargar Excel Analítico'}
-      </button>
+        {exportingExcel ? 'Exportando...' : 'Excel'}
+      </Button>
     </div>
   );
 }

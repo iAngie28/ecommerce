@@ -69,15 +69,7 @@ const AppShell = () => {
         {/* Footer */}
         <div className={styles.sidebarFooter}>
           <div className={styles.divider} />
-          <NavLink
-            to="/configuracion"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <Settings size={18} />
-            <span>Configuración</span>
-          </NavLink>
+
           <button
             className={`${styles.navItem} ${styles.navLogout}`}
             onClick={logout}

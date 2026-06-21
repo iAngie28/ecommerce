@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, Package, AlertTriangle } from 'lucide-react';
 import AppView   from 'shared/widgets/AppView/AppView';
 import StatCard  from 'shared/widgets/StatCard/StatCard';
@@ -123,6 +124,7 @@ function SalesMonthCard({ facturas }) {
 
 export default function PanelView() {
   const tenant = useTenant();
+  const navigate = useNavigate();
   const [products,  setProducts]  = useState([]);
   const [facturas,  setFacturas]  = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -158,7 +160,7 @@ export default function PanelView() {
       title={`Bienvenido, ${tenant}`}
       subtitle="Resumen del inventario y actividad de tu tienda."
       actions={
-        <Button leftIcon={<Plus size={16} />}>
+        <Button leftIcon={<Plus size={16} />} onClick={() => navigate('/productos')}>
           Nuevo Producto
         </Button>
       }
