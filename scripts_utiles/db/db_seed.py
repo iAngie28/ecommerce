@@ -188,7 +188,7 @@ class DatabaseSeeder:
 
     def ensure_tenant_admin(self, tenant, rol_admin):
         user, created = Usuario.objects.get_or_create(
-            email=f"admin@{tenant.schema_name}.com",
+            email=f"admin@{tenant.schema_name.lower()}.com",
             defaults={'tenant': tenant, 'is_staff': True},
         )
         if created:
@@ -290,7 +290,8 @@ class DatabaseSeeder:
                             'categoria_tienda': fake.job(),
                         },
                     )
-                    Domain.objects.get_or_create(domain=f"{schema}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema}.localhost", tenant=tenant, defaults={'is_primary': True})
+                    domain_str = f"{schema.lower()}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema.lower()}.localhost"
+                    Domain.objects.get_or_create(domain=domain_str, tenant=tenant, defaults={'is_primary': True})
                     self.ensure_tenant_admin(tenant, rol_admin)
 
         # 2. Nuevos Clientes
