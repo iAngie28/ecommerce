@@ -120,6 +120,12 @@ class UpgradeSuscripcionView(APIView):
                     tenant.save()
                     return Response({'success': True, 'message': 'Plan actualizado a Gratuito.'}, status=status.HTTP_200_OK)
 
+                if not stripe.api_key:
+                    # MODO SIMULACIÓN: Si no hay clave de Stripe, aprobamos directamente
+                    tenant.plan = nuevo_plan
+                    tenant.save()
+                    return Response({'success': True, 'message': 'Modo Prueba: Plan actualizado sin cobro.'}, status=status.HTTP_200_OK)
+
                 intent = stripe.PaymentIntent.create(
                     amount=amount,
                     currency='usd',
