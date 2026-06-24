@@ -26,10 +26,16 @@ django.setup()
 
 try:
     from faker import Faker
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+    from rich.console import Console
 except ImportError:
     import subprocess
-    subprocess.run([sys.executable, "-m", "pip", "install", "faker"])
+    subprocess.run([sys.executable, "-m", "pip", "install", "faker", "rich"])
     from faker import Faker
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+    from rich.console import Console
+
+console = Console()
 
 from django_tenants.utils import tenant_context, schema_context, schema_exists
 from django.utils import timezone
@@ -120,8 +126,7 @@ class BusinessGenerator:
                 d1, m1, y1, d2, m2, y2 = map(int, partes)
                 return timezone.make_aware(datetime(y1, m1, d1)), timezone.make_aware(datetime(y2, m2, d2, 23, 59, 59))
         except Exception as e:
-            print(f"  [i] Error al parsear fecha ({e}). Usando 1m por defecto.")
-        
+            pass
         return ahora - timedelta(days=30), ahora
 
     @staticmethod
@@ -198,171 +203,185 @@ class DatabaseSeeder:
         return user
 
     def ejecutar_sincronizacion(self, n_tiendas, n_clientes, p_por_tienda, o_por_cliente, periodo_pedidos='1m'):
-        print(f"\n--- [INFO] Motor Especializado Comercial ---")
+        console.print(f"\n[bold magenta]--- [INFO] Motor Especializado Comercial ---[/bold magenta]")
         fecha_inicio, fecha_fin = BusinessGenerator.parse_rango_fechas(periodo_pedidos)
 
         with schema_context('public'):
-            print("\n  1. Obteniendo Planes y Roles existentes...")
             todos_los_planes = list(Plan.objects.all())
             if not todos_los_planes:
-                print("  [!] Error: No hay planes en la base de datos. Asegúrate de tener la estructura inicial.")
+                console.print("[bold red][!] Error: No hay planes en la base de datos.[/bold red]")
                 return
-            
             try:
                 rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
             except Rol.DoesNotExist:
-                print("  [!] Error: No existe el rol Administrador global. Asegúrate de tener la estructura inicial.")
+                console.print("[bold red][!] Error: No existe el rol Administrador global.[/bold red]")
                 return
 
-        # 1. Nuevas Tiendas
-        if n_tiendas > 0:
-            for _ in range(n_tiendas):
-                nombre = fake.company()
+        # Animación de carga usando Rich
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(bar_width=None, complete_style="green", finished_style="bold green"),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            TextColumn("[yellow]{task.completed}/{task.total}")
+        ) as progress:
+            
+            task_main = progress.add_task("[bold magenta]Progreso Global...", total=4)
+
+            # Fase 1: Tiendas
+            progress.update(task_main, description="[bold magenta]Fase 1/4: Generando Tiendas...")
+            if n_tiendas > 0:
+                task_t = progress.add_task("[cyan]  -> Creando Tiendas...", total=n_tiendas)
+                for _ in range(n_tiendas):
+                    nombre = fake.company()
+                    with schema_context('public'):
+                        schema = BusinessGenerator.schema_tienda_seguro()
+                        plan_aleatorio = random.choice(todos_los_planes)
+                        tenant, _ = self.get_or_create_tenant(
+                            schema,
+                            {
+                                'name': nombre,
+                                'plan': plan_aleatorio,
+                                'nombre_comercial': nombre,
+                                'categoria_tienda': fake.job(),
+                            },
+                        )
+                        domain_str = f"{schema.lower()}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema.lower()}.localhost"
+                        Domain.objects.get_or_create(domain=domain_str, tenant=tenant, defaults={'is_primary': True})
+                        self.ensure_tenant_admin(tenant, rol_admin)
+                    progress.advance(task_t)
+            progress.advance(task_main)
+
+            # Fase 2: Clientes
+            progress.update(task_main, description="[bold magenta]Fase 2/4: Generando Clientes...")
+            if n_clientes > 0:
+                task_c = progress.add_task("[yellow]  -> Registrando Clientes...", total=n_clientes)
                 with schema_context('public'):
-                    schema = BusinessGenerator.schema_tienda_seguro()
-                    plan_aleatorio = random.choice(todos_los_planes)
-                    tenant, _ = self.get_or_create_tenant(
-                        schema,
-                        {
-                            'name': nombre,
-                            'plan': plan_aleatorio,
-                            'nombre_comercial': nombre,
-                            'categoria_tienda': fake.job(),
-                        },
-                    )
-                    domain_str = f"{schema.lower()}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema.lower()}.localhost"
-                    Domain.objects.get_or_create(domain=domain_str, tenant=tenant, defaults={'is_primary': True})
+                    for _ in range(n_clientes):
+                        nombre_cliente = fake.name()
+                        nombre_limpio = re.sub(r'[^a-z0-9]', '', nombre_cliente.lower().split()[0])
+                        dominio_limpio = random.choice(['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'mail.com'])
+                        sufijo = random.randint(10, 9999)
+                        correo_cliente = f"{nombre_limpio}{sufijo}@{dominio_limpio}"
+                        c, created = Cliente.objects.get_or_create(correo=correo_cliente, defaults={'nombre': nombre_cliente})
+                        if created: c.set_password(BusinessGenerator.PASSWORD_STANDAR); c.save()
+                        progress.advance(task_c)
+            progress.advance(task_main)
+
+            # Fase 3: Productos
+            progress.update(task_main, description="[bold magenta]Fase 3/4: Generando Productos...")
+            todas = list(Client.objects.exclude(schema_name='public'))
+            all_cat_names = list(BusinessGenerator.KEYWORDS_POR_CATEGORIA.keys())
+
+            if p_por_tienda > 0 and todas:
+                total_prods = len(todas) * p_por_tienda
+                task_p = progress.add_task("[green]  -> Añadiendo Productos...", total=total_prods)
+                
+                for tenant in todas:
+                    self.sync_tenant_schema(tenant)
                     self.ensure_tenant_admin(tenant, rol_admin)
 
-        # 2. Nuevos Clientes
-        if n_clientes > 0:
-            with schema_context('public'):
-                for _ in range(n_clientes):
-                    nombre_cliente = fake.name()
-                    nombre_limpio = re.sub(r'[^a-z0-9]', '', nombre_cliente.lower().split()[0])
-                    dominio_limpio = random.choice(['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'mail.com'])
-                    sufijo = random.randint(10, 9999)
-                    correo_cliente = f"{nombre_limpio}{sufijo}@{dominio_limpio}"
-                    c, created = Cliente.objects.get_or_create(correo=correo_cliente, defaults={'nombre': nombre_cliente})
-                    if created: c.set_password(BusinessGenerator.PASSWORD_STANDAR); c.save()
+                for tenant in todas:
+                    with tenant_context(tenant):
+                        tienda_cats = random.sample(all_cat_names, random.randint(1, 3))
+                        cat_objects = [Categoria.objects.get_or_create(nombre=cn)[0] for cn in tienda_cats]
+                        for _ in range(p_por_tienda):
+                            try:
+                                Producto.objects.create(**BusinessGenerator.random_product_data(random.choice(cat_objects)))
+                            except Exception:
+                                pass
+                            progress.advance(task_p)
+                        TipoPago.objects.get_or_create(nombre='Efectivo')
+            progress.advance(task_main)
 
-        # 3. Poblar TODAS (OG + Nuevas)
-        todas = list(Client.objects.exclude(schema_name='public'))
-        all_cat_names = list(BusinessGenerator.KEYWORDS_POR_CATEGORIA.keys())
-
-        for tenant in todas:
-            self.sync_tenant_schema(tenant)
-            self.ensure_tenant_admin(tenant, rol_admin)
-
-        for tenant in todas:
-            with tenant_context(tenant):
-                # Especialización
-                tienda_cats = random.sample(all_cat_names, random.randint(1, 3))
-                cat_objects = [Categoria.objects.get_or_create(nombre=cn)[0] for cn in tienda_cats]
-                creados = 0
-                for _ in range(p_por_tienda):
-                    try:
-                        Producto.objects.create(**BusinessGenerator.random_product_data(random.choice(cat_objects)))
-                        creados += 1
-                    except Exception as e:
-                        print(f"  [!] Producto omitido en '{tenant.schema_name}' (posible límite de plan): {e}")
-                        break
+            # Fase 4: Pedidos
+            progress.update(task_main, description="[bold magenta]Fase 4/4: Generando Pedidos...")
+            if o_por_cliente > 0 and todas:
+                todos_clientes = list(Cliente.objects.all())
+                total_orders = len(todas) * len(todos_clientes) * o_por_cliente
+                task_o = progress.add_task("[orange3]  -> Procesando Transacciones...", total=total_orders)
                 
-                # Asegurar TipoPago
-                tp, _ = TipoPago.objects.get_or_create(nombre='Efectivo')
-                print(f"  [OK] {tenant.schema_name}: +{creados} productos.")
+                from django.db import transaction
 
-        # 4. Pedidos Globales
-        if o_por_cliente > 0 and not todas:
-            print("  [i] No hay tiendas disponibles. Se omite generación de pedidos.")
-            print(f"\n Sincronización Finalizada.")
-            return
+                for t_destino in todas:
+                    with tenant_context(t_destino):
+                        prods = list(Producto.objects.filter(activo=True))
+                        if not prods:
+                            progress.advance(task_o, len(todos_clientes) * o_por_cliente)
+                            continue
+                        
+                        for cliente in todos_clientes:
+                            with transaction.atomic():
+                                for _ in range(o_por_cliente):
+                                    fecha_pedido = BusinessGenerator.fecha_aleatoria_rango(fecha_inicio, fecha_fin)
+                                    estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
 
-        if o_por_cliente > 0:
-            print(f"\n 4. Generando {o_por_cliente} pedidos por cliente EN CADA TIENDA entre {fecha_inicio.strftime('%d/%m/%Y')} y {fecha_fin.strftime('%d/%m/%Y')}...")
-            print(f"  Estados posibles: {', '.join(BusinessGenerator.ESTADOS_PEDIDO_VENTA)}")
+                                    n_prods = random.choices([1, 2, 3], weights=[40, 40, 20])[0]
+                                    prods_pedido = random.sample(prods, min(n_prods, len(prods)))
 
-        todos_clientes = list(Cliente.objects.all())
-        from django.db import transaction
+                                    carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
+                                    items_creados = []
+                                    monto_total = 0
+                                    
+                                    for p in prods_pedido:
+                                        cantidad = random.randint(1, 3)
+                                        item = CarritoItem.objects.create(
+                                            carrito=carrito, producto=p, cantidad=cantidad
+                                        )
+                                        items_creados.append((item, p, cantidad))
+                                        monto_total += p.precio * cantidad
 
-        for t_destino in todas:
-            with tenant_context(t_destino):
-                if o_por_cliente <= 0:
-                    continue
-                prods = list(Producto.objects.filter(activo=True))
-                if not prods:
-                    continue
-                
-                print(f"  -> {t_destino.schema_name}: Generando transacciones para {len(todos_clientes)} clientes...")
-                for cliente in todos_clientes:
-                    with transaction.atomic():
-                        for _ in range(o_por_cliente):
-                            fecha_pedido = BusinessGenerator.fecha_aleatoria_rango(fecha_inicio, fecha_fin)
-                            estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
+                                    pedido = Pedido.objects.create(carrito=carrito, estado=estado_pedido)
 
-                            n_prods = random.choices([1, 2, 3], weights=[40, 40, 20])[0]
-                            prods_pedido = random.sample(prods, min(n_prods, len(prods)))
+                                    factura = Factura.objects.create(
+                                        nro=f"FAC-{get_random_string(10).upper()}",
+                                        pedido=pedido,
+                                        cliente=cliente,
+                                        tipo_pago=TipoPago.objects.first(),
+                                        monto_total=monto_total,
+                                        estado='VIGENTE'
+                                    )
 
-                            carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
+                                    for item, p, cantidad in items_creados:
+                                        DetalleFactura.objects.create(
+                                            factura=factura,
+                                            producto=p,
+                                            cantidad=cantidad,
+                                            precio_unitario=p.precio,
+                                            total=p.precio * cantidad
+                                        )
+                                        CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
 
-                            items_creados = []
-                            monto_total = 0
-                            for p in prods_pedido:
-                                cantidad = random.randint(1, 3)
-                                item = CarritoItem.objects.create(
-                                    carrito=carrito, producto=p, cantidad=cantidad
-                                )
-                                items_creados.append((item, p, cantidad))
-                                monto_total += p.precio * cantidad
-
-                            pedido = Pedido.objects.create(carrito=carrito, estado=estado_pedido)
-
-                            factura = Factura.objects.create(
-                                nro=f"FAC-{get_random_string(10).upper()}",
-                                pedido=pedido,
-                                cliente=cliente,
-                                tipo_pago=TipoPago.objects.first(),
-                                monto_total=monto_total,
-                                estado='VIGENTE'
-                            )
-
-                            for item, p, cantidad in items_creados:
-                                DetalleFactura.objects.create(
-                                    factura=factura,
-                                    producto=p,
-                                    cantidad=cantidad,
-                                    precio_unitario=p.precio,
-                                    total=p.precio * cantidad
-                                )
-                                CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
-
-                            Carrito.objects.filter(pk=carrito.pk).update(
-                                fecha_creacion=fecha_pedido,
-                                fecha_actualizacion=fecha_pedido
-                            )
-                            Pedido.objects.filter(pk=pedido.pk).update(
-                                fecha_creacion=fecha_pedido,
-                                fecha_actualizacion=fecha_pedido
-                            )
-                            Factura.objects.filter(pk=factura.pk).update(
-                                fecha=fecha_pedido.date(),
-                                hora=fecha_pedido.time()
-                            )
-        print(f"\n  [OK] Sincronización Finalizada.")
+                                    Carrito.objects.filter(pk=carrito.pk).update(
+                                        fecha_creacion=fecha_pedido,
+                                        fecha_actualizacion=fecha_pedido
+                                    )
+                                    Pedido.objects.filter(pk=pedido.pk).update(
+                                        fecha_creacion=fecha_pedido,
+                                        fecha_actualizacion=fecha_pedido
+                                    )
+                                    Factura.objects.filter(pk=factura.pk).update(
+                                        fecha=fecha_pedido.date(),
+                                        hora=fecha_pedido.time()
+                                    )
+                                    
+                                    progress.advance(task_o)
+            progress.advance(task_main)
+            progress.update(task_main, description="[bold green]¡Sincronización Finalizada con Éxito!")
 
 def main():
     seeder = DatabaseSeeder()
     try:
-        print("\n========================================================")
-        print("  POBLADOR COMERCIAL DE DATOS (Solo Negocio)")
-        print("========================================================")
-        nt = int(input("¿Tiendas (Tenants) nuevas a crear? [10]: ") or 10)
-        nc = int(input("¿Clientes globales nuevos a registrar? [100]: ") or 100)
-        pp = int(input("¿Productos A AÑADIR por cada tienda? [50]: ") or 50)
-        op = int(input("¿Pedidos A GENERAR por cliente en CADA tienda? [5]: ") or 5)
-        periodo = input("¿Rango de fechas para los pedidos históricos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
+        console.print("\n[bold cyan]========================================================[/bold cyan]")
+        console.print("[bold yellow]  POBLADOR COMERCIAL DE DATOS (Solo Negocio)[/bold yellow]")
+        console.print("[bold cyan]========================================================[/bold cyan]")
+        nt = int(console.input("¿Tiendas (Tenants) nuevas a crear? [10]: ") or 10)
+        nc = int(console.input("¿Clientes globales nuevos a registrar? [100]: ") or 100)
+        pp = int(console.input("¿Productos A AÑADIR por cada tienda? [50]: ") or 50)
+        op = int(console.input("¿Pedidos A GENERAR por cliente en CADA tienda? [5]: ") or 5)
+        periodo = console.input("¿Rango de fechas para los pedidos históricos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
         seeder.ejecutar_sincronizacion(nt, nc, pp, op, periodo)
     except KeyboardInterrupt: pass
-    except Exception as e: print(f"Error: {e}"); import traceback; traceback.print_exc()
+    except Exception as e: console.print(f"[bold red]Error: {e}[/bold red]"); import traceback; traceback.print_exc()
 
 if __name__ == '__main__': main()
