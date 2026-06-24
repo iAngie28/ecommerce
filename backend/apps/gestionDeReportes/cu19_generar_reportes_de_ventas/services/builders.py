@@ -18,17 +18,20 @@ def get_report_metadata():
                     {"id": "id", "nombre": "Código de Pedido", "tipo": "number"},
                     {"id": "fecha_creacion", "nombre": "Fecha de Creación", "tipo": "date"},
                     {"id": "estado", "nombre": "Estado", "tipo": "string", "opciones": ["PENDIENTE", "PAGADO", "ENVIADO", "ENTREGADO", "CANCELADO"]},
+                    {"id": "carrito__cliente__nombre", "nombre": "Cliente", "tipo": "string"},
                     {"id": "total_calculado", "nombre": "Total Calculado", "tipo": "number", "is_virtual": True}
                 ],
                 "metricas": [
                     {"id": "total", "nombre": "Suma Total ($)", "tipo": "sum"},
-                    {"id": "conteo", "nombre": "Cantidad de Pedidos", "tipo": "count"}
+                    {"id": "conteo", "nombre": "Cantidad de Pedidos", "tipo": "count"},
+                    {"id": "productos_vendidos", "nombre": "Unidades Vendidas", "tipo": "sum"}
                 ],
                 "agrupaciones": [
                     {"id": "año", "nombre": "Año"},
                     {"id": "mes", "nombre": "Mes"},
                     {"id": "dia", "nombre": "Día"},
-                    {"id": "estado", "nombre": "Estado"}
+                    {"id": "estado", "nombre": "Estado"},
+                    {"id": "cliente", "nombre": "Cliente"}
                 ]
             },
             {
@@ -44,11 +47,14 @@ def get_report_metadata():
                 ],
                 "metricas": [
                     {"id": "stock", "nombre": "Suma de Stock", "tipo": "sum"},
-                    {"id": "conteo", "nombre": "Cantidad de Productos", "tipo": "count"}
+                    {"id": "conteo", "nombre": "Cantidad de Productos", "tipo": "count"},
+                    {"id": "ventas", "nombre": "Unidades Vendidas", "tipo": "sum"},
+                    {"id": "ingresos", "nombre": "Ingresos Generados ($)", "tipo": "sum"}
                 ],
                 "agrupaciones": [
                     {"id": "categoria", "nombre": "Categoría"},
-                    {"id": "activo", "nombre": "Activo (Sí/No)"}
+                    {"id": "activo", "nombre": "Activo (Sí/No)"},
+                    {"id": "producto", "nombre": "Producto"}
                 ]
             },
             {
@@ -222,15 +228,17 @@ class PedidoReportBuilder(ModelReportBuilder):
     model = Pedido
     metricas = {
         'total': Sum(F('carrito__items__producto__precio') * F('carrito__items__cantidad'), output_field=DecimalField()),
-        'conteo': Count('id', distinct=True)
+        'conteo': Count('id', distinct=True),
+        'productos_vendidos': Sum('carrito__items__cantidad')
     }
     agrupaciones = {
         'año': TruncYear('fecha_creacion'),
         'mes': TruncMonth('fecha_creacion'),
         'dia': TruncDay('fecha_creacion'),
-        'estado': F('estado')
+        'estado': F('estado'),
+        'cliente': F('carrito__cliente__nombre')
     }
-    filtros_permitidos = ['estado', 'fecha_creacion', 'id']
+    filtros_permitidos = ['estado', 'fecha_creacion', 'id', 'carrito__cliente__nombre']
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -246,11 +254,14 @@ class ProductoReportBuilder(ModelReportBuilder):
     model = Producto
     metricas = {
         'stock': Sum('stock'),
-        'conteo': Count('id', distinct=True)
+        'conteo': Count('id', distinct=True),
+        'ventas': Sum('en_carritos__cantidad', filter=Q(en_carritos__carrito__pedido__estado__in=ESTADOS_VENTA_COBRADA)),
+        'ingresos': Sum(F('en_carritos__cantidad') * F('precio'), filter=Q(en_carritos__carrito__pedido__estado__in=ESTADOS_VENTA_COBRADA), output_field=DecimalField())
     }
     agrupaciones = {
         'categoria': F('categoria__nombre'),
-        'activo': F('activo')
+        'activo': F('activo'),
+        'producto': F('nombre')
     }
     filtros_permitidos = ['activo', 'categoria__nombre', 'stock', 'precio', 'nombre', 'id']
 
