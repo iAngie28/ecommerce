@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/cards/app_create_store_card.dart';
 import '../../core/constants/api_constants.dart';
 import '../repositories/auth_repository.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class CrearTiendaScreen extends StatefulWidget {
   const CrearTiendaScreen({super.key});
@@ -30,12 +31,33 @@ class _CrearTiendaScreenState extends State<CrearTiendaScreen> {
   bool _isSuccess = false;
   String? _successDomain;
   String? _successEmail;
+  
+  List<Map<String, dynamic>> _availablePlans = [];
+  String? _selectedPlan;
 
   @override
   void initState() {
     super.initState();
     // Escuchar cambios en el nombre de la tienda para generar slug y dominio
     _storeNameController.addListener(_updateSlugAndDomain);
+    _loadPlanes();
+  }
+
+  Future<void> _loadPlanes() async {
+    final planes = await _authRepository.fetchPlanes();
+    if (mounted) {
+      setState(() {
+        _availablePlans = planes;
+        if (_availablePlans.isNotEmpty) {
+          // Select free plan by default
+          final freePlan = _availablePlans.firstWhere(
+            (p) => double.tryParse(p['precio_mensual'].toString()) == 0,
+            orElse: () => _availablePlans.first,
+          );
+          _selectedPlan = freePlan['nombre'];
+        }
+      });
+    }
   }
 
   @override
@@ -106,9 +128,79 @@ class _CrearTiendaScreenState extends State<CrearTiendaScreen> {
       "last_name": _lastNameController.text.trim(),
       "email": _emailController.text.trim(),
       "password": _passwordController.text,
+      if (_selectedPlan != null) "plan": _selectedPlan,
     };
 
-    final result = await _authRepository.createStore(payload);
+    // Determine if it's free
+    final planData = _availablePlans.firstWhere(
+      (p) => p['nombre'] == _selectedPlan,
+      orElse: () => <String, dynamic>{},
+    );
+    final bool isFree = (double.tryParse(planData['precio_mensual']?.toString() ?? '0') ?? 0) == 0;
+
+    Map<String, dynamic> result;
+
+    if (isFree) {
+      result = await _authRepository.createStore(payload);
+    } else {
+      // 1. Initialize intent
+      final checkoutResult = await _authRepository.checkoutSuscripcion(payload);
+      if (!checkoutResult['success']) {
+        setState(() {
+          _errorMessage = checkoutResult['error'];
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final clientSecret = checkoutResult['data']['clientSecret'];
+      final publishableKey = checkoutResult['data']['publishableKey'];
+      
+      if (clientSecret == null || publishableKey == null) {
+         setState(() {
+          _errorMessage = 'Faltan credenciales de pago desde el servidor.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 2. Setup Stripe
+      Stripe.publishableKey = publishableKey;
+      
+      try {
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'MiQhatu SaaS',
+            appearance: const PaymentSheetAppearance(
+              colors: PaymentSheetAppearanceColors(
+                primary: AppColors.primaryDark,
+              ),
+            ),
+          ),
+        );
+        
+        // 3. Present Sheet
+        await Stripe.instance.presentPaymentSheet();
+      } catch (e) {
+        if (e is StripeException) {
+          setState(() {
+            _errorMessage = 'Pago cancelado o fallido: ${e.error.localizedMessage}';
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'Error inesperado al pagar: $e';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      // 4. Create store after successful payment
+      payload['payment_intent'] = clientSecret.split('_secret')[0]; 
+      result = await _authRepository.createStoreWithPayment(payload);
+    }
 
     if (!mounted) return;
 
@@ -163,6 +255,13 @@ class _CrearTiendaScreenState extends State<CrearTiendaScreen> {
             isSuccess: _isSuccess,
             successDomain: _successDomain,
             successEmail: _successEmail,
+            availablePlans: _availablePlans,
+            selectedPlan: _selectedPlan,
+            onPlanSelected: (plan) {
+              setState(() {
+                _selectedPlan = plan;
+              });
+            },
             onSubmit: _handleCreateStore,
             onGoToStore: () {
                // Redirigir al inicio o pantalla de login principal

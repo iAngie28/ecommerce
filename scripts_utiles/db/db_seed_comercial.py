@@ -362,62 +362,107 @@ class DatabaseSeeder:
                             progress.advance(task_o, len(todos_clientes) * o_por_cliente)
                             continue
                         
+                        tipo_pago = TipoPago.objects.first()
+                        
+                        # Generar lista de órdenes a crear
+                        orders_to_process = []
                         for cliente in todos_clientes:
+                            orders_to_process.extend([cliente] * o_por_cliente)
+                            
+                        batch_size = 3000
+                        
+                        for i in range(0, len(orders_to_process), batch_size):
+                            chunk = orders_to_process[i : i + batch_size]
+                            
+                            carritos_to_create = []
+                            pedidos_data = []
+                            
+                            for cliente in chunk:
+                                fecha_pedido = BusinessGenerator.fecha_aleatoria_rango(fecha_inicio, fecha_fin)
+                                estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
+                                
+                                n_prods = random.choices([1, 2, 3], weights=[40, 40, 20])[0]
+                                prods_pedido = random.sample(prods, min(n_prods, len(prods)))
+                                
+                                items_info = []
+                                monto_total = 0
+                                for p in prods_pedido:
+                                    cant = random.randint(1, 3)
+                                    items_info.append((p, cant))
+                                    monto_total += p.precio * cant
+                                    
+                                carrito = Carrito(cliente=cliente, estado='CERRADO', fecha_creacion=fecha_pedido, fecha_actualizacion=fecha_pedido)
+                                carritos_to_create.append(carrito)
+                                
+                                pedidos_data.append({
+                                    'cliente': cliente,
+                                    'fecha': fecha_pedido,
+                                    'estado': estado_pedido,
+                                    'monto': monto_total,
+                                    'items': items_info
+                                })
+                                
                             with transaction.atomic():
-                                for _ in range(o_por_cliente):
-                                    fecha_pedido = BusinessGenerator.fecha_aleatoria_rango(fecha_inicio, fecha_fin)
-                                    estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
-
-                                    n_prods = random.choices([1, 2, 3], weights=[40, 40, 20])[0]
-                                    prods_pedido = random.sample(prods, min(n_prods, len(prods)))
-
-                                    carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
-                                    items_creados = []
-                                    monto_total = 0
+                                # 1. Bulk Create Carritos (Retorna IDs en PostgreSQL)
+                                created_carritos = Carrito.objects.bulk_create(carritos_to_create)
+                                
+                                carrito_items_to_create = []
+                                pedidos_to_create = []
+                                
+                                for idx, carrito in enumerate(created_carritos):
+                                    pdata = pedidos_data[idx]
                                     
-                                    for p in prods_pedido:
-                                        cantidad = random.randint(1, 3)
-                                        item = CarritoItem.objects.create(
-                                            carrito=carrito, producto=p, cantidad=cantidad
+                                    for p, cant in pdata['items']:
+                                        carrito_items_to_create.append(
+                                            CarritoItem(carrito=carrito, producto=p, cantidad=cant, fecha_agregado=pdata['fecha'])
                                         )
-                                        items_creados.append((item, p, cantidad))
-                                        monto_total += p.precio * cantidad
-
-                                    pedido = Pedido.objects.create(carrito=carrito, estado=estado_pedido)
-
-                                    factura = Factura.objects.create(
-                                        nro=f"FAC-{get_random_string(10).upper()}",
-                                        pedido=pedido,
-                                        cliente=cliente,
-                                        tipo_pago=TipoPago.objects.first(),
-                                        monto_total=monto_total,
-                                        estado='VIGENTE'
-                                    )
-
-                                    for item, p, cantidad in items_creados:
-                                        DetalleFactura.objects.create(
-                                            factura=factura,
-                                            producto=p,
-                                            cantidad=cantidad,
-                                            precio_unitario=p.precio,
-                                            total=p.precio * cantidad
-                                        )
-                                        CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
-
-                                    Carrito.objects.filter(pk=carrito.pk).update(
-                                        fecha_creacion=fecha_pedido,
-                                        fecha_actualizacion=fecha_pedido
-                                    )
-                                    Pedido.objects.filter(pk=pedido.pk).update(
-                                        fecha_creacion=fecha_pedido,
-                                        fecha_actualizacion=fecha_pedido
-                                    )
-                                    Factura.objects.filter(pk=factura.pk).update(
-                                        fecha=fecha_pedido.date(),
-                                        hora=fecha_pedido.time()
+                                        
+                                    pedidos_to_create.append(
+                                        Pedido(carrito=carrito, estado=pdata['estado'], tracking_code="", fecha_creacion=pdata['fecha'], fecha_actualizacion=pdata['fecha'])
                                     )
                                     
-                                    progress.advance(task_o)
+                                # 2. Bulk Create Items & Pedidos
+                                CarritoItem.objects.bulk_create(carrito_items_to_create)
+                                created_pedidos = Pedido.objects.bulk_create(pedidos_to_create)
+                                
+                                facturas_to_create = []
+                                for idx, pedido in enumerate(created_pedidos):
+                                    pdata = pedidos_data[idx]
+                                    facturas_to_create.append(
+                                        Factura(
+                                            nro=f"FAC-{get_random_string(10).upper()}",
+                                            pedido=pedido,
+                                            cliente=pdata['cliente'],
+                                            tipo_pago=tipo_pago,
+                                            monto_total=pdata['monto'],
+                                            estado='VIGENTE',
+                                            fecha=pdata['fecha'].date(),
+                                            hora=pdata['fecha'].time()
+                                        )
+                                    )
+                                    
+                                # 3. Bulk Create Facturas
+                                created_facturas = Factura.objects.bulk_create(facturas_to_create)
+                                
+                                detalles_to_create = []
+                                for idx, factura in enumerate(created_facturas):
+                                    pdata = pedidos_data[idx]
+                                    for p, cant in pdata['items']:
+                                        detalles_to_create.append(
+                                            DetalleFactura(
+                                                factura=factura,
+                                                producto=p,
+                                                cantidad=cant,
+                                                precio_unitario=p.precio,
+                                                total=p.precio * cant
+                                            )
+                                        )
+                                        
+                                # 4. Bulk Create Detalles
+                                DetalleFactura.objects.bulk_create(detalles_to_create)
+                                
+                            progress.advance(task_o, len(chunk))
+                            
             progress.advance(task_main)
             progress.update(task_main, description="[bold green]¡Sincronización Finalizada con Éxito!")
 

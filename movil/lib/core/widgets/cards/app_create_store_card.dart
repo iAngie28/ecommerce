@@ -27,6 +27,10 @@ class AppCreateStoreCard extends StatelessWidget {
   final String? successEmail;
   final VoidCallback? onGoToStore;
 
+  final List<Map<String, dynamic>>? availablePlans;
+  final String? selectedPlan;
+  final Function(String)? onPlanSelected;
+
   const AppCreateStoreCard({
     super.key,
     this.formKey,
@@ -44,6 +48,9 @@ class AppCreateStoreCard extends StatelessWidget {
     this.successDomain,
     this.successEmail,
     this.onGoToStore,
+    this.availablePlans,
+    this.selectedPlan,
+    this.onPlanSelected,
   });
 
   @override
@@ -194,6 +201,49 @@ class AppCreateStoreCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text('Únete a cientos de emprendedores que ya usan MiQhatu.', style: AppTextStyles.body.copyWith(color: Colors.grey.shade600)),
           
+          if (availablePlans != null && availablePlans!.isNotEmpty) ...[
+            _buildSectionTitle(Icons.credit_card, 'Plan de Suscripción'),
+            Row(
+              children: availablePlans!.map((p) {
+                final bool isSelected = selectedPlan == p['nombre'];
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => onPlanSelected?.call(p['nombre']),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.accentTeal.withOpacity(0.1) : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected ? AppColors.accentTeal : Colors.grey.shade300,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            p['nombre'] ?? '',
+                            style: AppTextStyles.h2.copyWith(
+                              fontSize: 16,
+                              color: isSelected ? AppColors.accentTeal : AppColors.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '\$${p['precio_mensual']}/mes',
+                            style: AppTextStyles.bodySm.copyWith(color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+          ],
+
           _buildSectionTitle(Icons.storefront, 'Datos de la Tienda'),
           AppInput(
             label: 'Nombre de la Tienda',
