@@ -83,6 +83,7 @@ urlpatterns = [
     path('api/pagos/create-checkout-session/', PagoViewSet.as_view({'post': 'create_checkout_session'}), name='pago-stripe-session'),
     path('api/pagos/webhook/', PagoViewSet.as_view({'post': 'stripe_webhook'}), name='pago-stripe-webhook'),
     path('api/pagos/confirm-success/', PagoViewSet.as_view({'post': 'confirm_success'}), name='pago-confirm-success'),
+    path('api/pagos/confirm-payment/', PagoViewSet.as_view({'post': 'confirm_payment'}), name='pago-confirm-payment'),
 
     # Categorías
     path('api/categorias/', CategoriaViewSet.as_view({'get': 'list', 'post': 'create'}), name='categoria-list'),
