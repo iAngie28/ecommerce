@@ -200,11 +200,11 @@ class DatabaseSeeder:
         return user
 
     def ejecutar_sincronizacion(self, n_tiendas, n_clientes, p_por_tienda, o_por_cliente, periodo_pedidos='1m'):
-        print(f"\n--- ⚡ Motor Especializado V5.4 ---")
+        print(f"\n--- [INFO] Motor Especializado V5.4 ---")
         fecha_inicio, fecha_fin = BusinessGenerator.parse_rango_fechas(periodo_pedidos)
 
         with schema_context('public'):
-            print("\n🔑 1. Configurando Permisos Maestros y de Reportes...")
+            print("\n  1. Configurando Permisos Maestros y de Reportes...")
             permisos_data = [
                 ("Acceso Total Sistema", "SYS_ALL", "Sistema", True, "Acceso irrestricto"),
                 ("Gestionar Tenants", "SYS_TENANTS", "Sistema", True, "Crear y eliminar tiendas"),
@@ -227,7 +227,7 @@ class DatabaseSeeder:
                 )
                 permisos_obj[codigo] = p
 
-            print("👥 2. Configurando Roles y asginando Permisos...")
+            print(" 2. Configurando Roles y asginando Permisos...")
             roles_data = [
                 ("Administrador", 1, ["SYS_ALL", "SYS_TENANTS", "STORE_PRODUCTS", "STORE_SALES", "STORE_REPORTS", "REP_ESTATICO", "REP_DINAMICO", "REP_AUDIO"]),
                 ("Vendedor", 2, ["STORE_PRODUCTS", "STORE_SALES", "STORE_REPORTS", "REP_ESTATICO", "REP_DINAMICO", "REP_AUDIO"]),
@@ -237,7 +237,7 @@ class DatabaseSeeder:
                 rol, _ = Rol.objects.get_or_create(nombre=nombre_rol, tenant=None, defaults={'nivel': nivel, 'activo': True})
                 rol.permisos.set([permisos_obj[c] for c in codigos if c in permisos_obj])
 
-            print("💳 3. Configurando Planes SaaS y sus Reportes...")
+            print(" 3. Configurando Planes SaaS y sus Reportes...")
             # 1. Crear o asegurar los 4 nuevos planes oficiales
             plan_gratis, _ = Plan.objects.get_or_create(
                 nombre='Gratis', 
@@ -330,16 +330,16 @@ class DatabaseSeeder:
                 
                 # Asegurar TipoPago
                 tp, _ = TipoPago.objects.get_or_create(nombre='Efectivo')
-                print(f"  ✅ {tenant.schema_name}: +{creados} productos.")
+                print(f"  [OK] {tenant.schema_name}: +{creados} productos.")
 
         # 4. Pedidos Globales
         if o_por_cliente > 0 and not todas:
             print("  [i] No hay tiendas disponibles. Se omite generación de pedidos.")
-            print(f"\n✨ Sincronización Finalizada.")
+            print(f"\n Sincronización Finalizada.")
             return
 
         if o_por_cliente > 0:
-            print(f"\n🧾 4. Generando {o_por_cliente} pedidos por cliente EN CADA TIENDA entre {fecha_inicio.strftime('%d/%m/%Y')} y {fecha_fin.strftime('%d/%m/%Y')}...")
+            print(f"\n 4. Generando {o_por_cliente} pedidos por cliente EN CADA TIENDA entre {fecha_inicio.strftime('%d/%m/%Y')} y {fecha_fin.strftime('%d/%m/%Y')}...")
             print(f"  Estados posibles: {', '.join(BusinessGenerator.ESTADOS_PEDIDO_VENTA)}")
 
         todos_clientes = list(Cliente.objects.all())
@@ -411,16 +411,19 @@ class DatabaseSeeder:
                                 fecha=fecha_pedido.date(),
                                 hora=fecha_pedido.time()
                             )
-        print(f"\nâœ¨ Sincronización Finalizada.")
+        print(f"\n  [OK] Sincronización Finalizada.")
 
 def main():
     seeder = DatabaseSeeder()
     try:
-        nt = int(input("Â¿Tiendas nuevas? [0]: ") or 0)
-        nc = int(input("Â¿Clientes nuevos? [0]: ") or 0)
-        pp = int(input("Â¿Productos A AÑADIR por tienda? [10]: ") or 10)
-        op = int(input("Â¿Pedidos A GENERAR por cliente? [2]: ") or 2)
-        periodo = input("¿Rango de fechas para pedidos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
+        print("\n========================================================")
+        print("  SÚPER POBLADOR DE DATOS SAAS (Presiona Enter para valores masivos)")
+        print("========================================================")
+        nt = int(input("¿Tiendas (Tenants) nuevas a crear? [10]: ") or 10)
+        nc = int(input("¿Clientes globales nuevos a registrar? [100]: ") or 100)
+        pp = int(input("¿Productos A AÑADIR por cada tienda? [50]: ") or 50)
+        op = int(input("¿Pedidos A GENERAR por cliente en CADA tienda? [5]: ") or 5)
+        periodo = input("¿Rango de fechas para los pedidos históricos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
         seeder.ejecutar_sincronizacion(nt, nc, pp, op, periodo)
     except KeyboardInterrupt: pass
     except Exception as e: print(f"Error: {e}"); import traceback; traceback.print_exc()

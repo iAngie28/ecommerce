@@ -258,7 +258,7 @@ class TenantListView(APIView):
         return Response(serializer.data)
 
 
-# --- Utilidades y RecuperaciÃ³n de ContraseÃ±a ---
+# --- Utilidades y Recuperacion de Contraseña ---
 
 def send_email_ssl(to_email, subject, body):
     from django.core.mail import send_mail

@@ -21,6 +21,17 @@ class PedidoService(BaseService):
             
         self._verificar_limite_facturacion(carrito.total)
         
+        # Descontar stock de los items y notificar stock bajo si aplica
+        for item in carrito.items.all():
+            producto = item.producto
+            if producto.stock >= item.cantidad:
+                producto.stock -= item.cantidad
+                producto.save()
+                if producto.stock <= 6:
+                    self._notificar_stock_bajo(producto)
+            else:
+                raise ValueError(f"Stock insuficiente para {producto.nombre}.")
+
         # Crear pedido
         pedido = Pedido.objects.create(
             carrito=carrito,
@@ -30,6 +41,9 @@ class PedidoService(BaseService):
         # Cerrar carrito
         carrito.estado = 'CERRADO'
         carrito.save()
+        
+        # Notificar nueva venta
+        self._notificar_nueva_venta(pedido)
         
         return pedido
 
@@ -57,6 +71,10 @@ class PedidoService(BaseService):
                 producto.stock -= cantidad_solicitada
                 producto.save()
                 
+                # Low Stock Notification
+                if producto.stock <= 6:
+                    self._notificar_stock_bajo(producto)
+                
                 CarritoItem.objects.create(
                     carrito=carrito,
                     producto=producto,
@@ -69,7 +87,55 @@ class PedidoService(BaseService):
                 carrito=carrito,
                 estado='PENDIENTE'
             )
+            
+            # Notificar nueva venta al vendedor
+            self._notificar_nueva_venta(pedido)
+            
             return pedido
+
+    def _notificar_stock_bajo(self, producto):
+        from apps.gestionDeReportes.cu18_gestionar_notificaciones.services.notification_service import send_notification
+        from django.db import connection
+        from apps.customers.models import Client
+        from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.usuario import Usuario
+        
+        schema = connection.schema_name
+        if schema == 'public': return
+        
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+            vendedores = Usuario.objects.filter(tenant=tenant, is_active=True)
+            for vendedor in vendedores:
+                send_notification(
+                    usuario=vendedor,
+                    titulo="⚠️ Alerta de Stock Bajo",
+                    mensaje=f"El producto '{producto.nombre}' tiene solo {producto.stock} unidades disponibles.",
+                    tipo="STOCK_BAJO"
+                )
+        except Exception as e:
+            print(f"Error al enviar notificacion de stock bajo: {str(e)}")
+
+    def _notificar_nueva_venta(self, pedido):
+        from apps.gestionDeReportes.cu18_gestionar_notificaciones.services.notification_service import send_notification
+        from django.db import connection
+        from apps.customers.models import Client
+        from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.usuario import Usuario
+        
+        schema = connection.schema_name
+        if schema == 'public': return
+        
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+            vendedores = Usuario.objects.filter(tenant=tenant, is_active=True)
+            for vendedor in vendedores:
+                send_notification(
+                    usuario=vendedor,
+                    titulo="💰 ¡Nueva Venta Registrada!",
+                    mensaje=f"Se ha registrado un nuevo pedido (#{pedido.id}) por un total de Bs. {pedido.carrito.total}.",
+                    tipo="NUEVA_VENTA"
+                )
+        except Exception as e:
+            print(f"Error al enviar notificacion de nueva venta: {str(e)}")
 
     def cambiar_estado(self, pedido_id, nuevo_estado):
         """Cambia el estado de un pedido."""

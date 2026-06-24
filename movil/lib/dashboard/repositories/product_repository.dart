@@ -35,7 +35,14 @@ class ProductRepository {
           : decoded;
       return data.map((json) => ProductModel.fromJson(json)).toList();
     } else {
-      throw Exception('Error al cargar productos: ${response.statusCode}');
+      String errMsg = 'Error al cargar productos: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -44,10 +51,17 @@ class ProductRepository {
     if (url == null) throw Exception('No hay tenant configurado.');
     final response = await _apiClient.post(url, product.toJson(), requiresAuth: true, includeTenantHost: true);
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 201 || response.statusCode == 200) {
       return ProductModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al crear producto: ${response.body}');
+      String errMsg = 'Error al crear producto: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -59,7 +73,14 @@ class ProductRepository {
     if (response.statusCode == 200) {
       return ProductModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al actualizar producto: ${response.body}');
+      String errMsg = 'Error al actualizar producto: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 

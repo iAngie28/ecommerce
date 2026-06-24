@@ -3,9 +3,12 @@ import sys
 import django
 import random
 import socket
+import datetime
 from django.utils.crypto import get_random_string
 from django.core.management import call_command
 from django.db import connection
+from django.utils import timezone
+from datetime import timedelta
 
 # 1. Configuración de Django
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,14 +44,19 @@ def sync_tenant_schema(tenant):
         with connection.cursor() as cursor:
             cursor.execute(f'CREATE SCHEMA {connection.ops.quote_name(tenant.schema_name)}')
         connection.set_schema_to_public()
-    call_command(
-        'migrate_schemas',
-        tenant=True,
-        schema_name=tenant.schema_name,
-        run_syncdb=True,
-        interactive=False,
-        verbosity=0,
-    )
+    try:
+        call_command(
+            'migrate_schemas',
+            tenant=True,
+            schema_name=tenant.schema_name,
+            run_syncdb=True,
+            interactive=False,
+            verbosity=0,
+        )
+    except Exception as e:
+        print(f"     [!] Aviso al migrar {tenant.schema_name}: {e}")
+    finally:
+        connection.set_schema_to_public()
 
 def get_or_create_tenant(schema_name, defaults):
     tenant = Client.objects.filter(schema_name=schema_name).first()
@@ -79,38 +87,33 @@ def ensure_tenant_admin(tenant, rol_admin):
     user.roles.add(rol_admin)
     return user
 
+def generar_datos_prueba():
+    nombres = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Carlos", "Laura", "Sofia", "Diego", "Lucia", "Jorge", "Marta", "Elena", "Miguel", "Paula", "Andres", "Camila", "Fernanda", "Gabriel", "Hugo", "Isabella", "Jose", "Karen", "Lucas", "Manuel", "Natalia", "Oscar", "Patricia", "Roberto", "Sara"]
+    apellidos = ["Garcia", "Perez", "Rodriguez", "Fernandez", "Lopez", "Martinez", "Sanchez", "Gomez", "Martin", "Jimenez", "Ruiz", "Hernandez", "Diaz", "Moreno", "Alvarez", "Romero", "Alonso", "Gutierrez", "Navarro", "Torres", "Dominguez", "Vazquez", "Ramos", "Gil", "Ramirez", "Serrano", "Blanco", "Molina", "Morales", "Suarez"]
+    return nombres, apellidos
+
 def ejecutar():
     print("--- Iniciando Sincronización Maestra (Seeder Principal) ---")
     base_domain = obtener_ip_dominio()
     print(f"Dominio Base detectado: {base_domain}")
 
     with schema_context('public'):
-        # ---------------------------------------------------------
         # 1. PERMISOS DEL SISTEMA Y REPORTES
-        # ---------------------------------------------------------
         print("\n1. Configurando Permisos...")
         permisos_data = [
-            # Super Usuario
             ("Acceso Total Sistema", "SYS_ALL", "Sistema", True, "Acceso irrestricto a todo el SaaS"),
             ("Gestionar Tenants", "SYS_TENANTS", "Sistema", True, "Crear y eliminar tiendas"),
-            
-            # Vendedor
             ("Gestionar Productos", "STORE_PRODUCTS", "Inventario", True, "Crear, editar y eliminar productos"),
             ("Gestionar Ventas", "STORE_SALES", "Ventas", True, "Ver y procesar facturas"),
             ("Ver Reportes", "STORE_REPORTS", "Análisis", True, "Ver métricas de la tienda"),
-            
-            # Cliente
             ("Realizar Compras", "CLIENT_BUY", "Tienda", True, "Añadir al carrito y pagar"),
             ("Ver Historial", "CLIENT_HISTORY", "Tienda", True, "Ver sus pedidos anteriores"),
-
-            # Funcionalidades SaaS (Reportes)
             ("Reportes Estáticos", "REP_ESTATICO", "Reportes", False, "Permite generar y descargar reportes predefinidos"),
             ("Reportes Dinámicos", "REP_DINAMICO", "Reportes", False, "Permite armar reportes personalizados con métricas"),
             ("Reportes con IA (Voz)", "REP_AUDIO", "Reportes", False, "Permite realizar consultas mediante voz"),
             ("Dashboard Avanzado", "VER_DASHBOARD_AVANZADO", "Reportes", False, "Métricas avanzadas y predicciones"),
             ("Exportar Clientes", "EXPORTAR_CLIENTES", "Clientes", False, "Permite descargar padrón de clientes"),
             ("Configurar Pagos", "CONFIGURACION_PAGOS", "Configuración", False, "Vincular pasarelas de pago"),
-
         ]
 
         permisos_obj = {}
@@ -121,9 +124,7 @@ def ejecutar():
             )
             permisos_obj[codigo] = p
 
-        # ---------------------------------------------------------
         # 2. ROLES
-        # ---------------------------------------------------------
         print("2. Configurando Roles...")
         roles_data = [
             ("Administrador", 1, ["SYS_ALL", "SYS_TENANTS", "STORE_PRODUCTS", "STORE_SALES", "STORE_REPORTS"]),
@@ -139,31 +140,13 @@ def ejecutar():
             rol.permisos.set([permisos_obj[c] for c in codigos if c in permisos_obj])
         rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
 
-        # ---------------------------------------------------------
         # 3. PLANES SAAS
-        # ---------------------------------------------------------
         print("3. Configurando Planes de Suscripción...")
         planes_config = [
-            {
-                "nombre": "Gratis", "precio_mensual": 0.0, "precio_anual": 0.0, 
-                "max_usuarios": 2, "max_productos": 50, "facturacion_max": 1000.0,
-                "permisos": []
-            },
-            {
-                "nombre": "Standard", "precio_mensual": 29.0, "precio_anual": 290.0, 
-                "max_usuarios": 5, "max_productos": 500, "facturacion_max": 10000.0,
-                "permisos": ["REP_ESTATICO"]
-            },
-            {
-                "nombre": "Gold", "precio_mensual": 69.0, "precio_anual": 690.0, 
-                "max_usuarios": 15, "max_productos": 5000, "facturacion_max": 500000.0, # Límite muy alto para Gold
-                "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS"]
-            },
-            {
-                "nombre": "Profesional", "precio_mensual": 99.0, "precio_anual": 990.0, 
-                "max_usuarios": 999999, "max_productos": 999999, "facturacion_max": None,
-                "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS", "REP_DINAMICO", "REP_AUDIO"]
-            }
+            {"nombre": "Gratis", "precio_mensual": 0.0, "precio_anual": 0.0, "max_usuarios": 2, "max_productos": 50, "facturacion_max": 1000.0, "permisos": []},
+            {"nombre": "Standard", "precio_mensual": 29.0, "precio_anual": 290.0, "max_usuarios": 5, "max_productos": 500, "facturacion_max": 10000.0, "permisos": ["REP_ESTATICO"]},
+            {"nombre": "Gold", "precio_mensual": 69.0, "precio_anual": 690.0, "max_usuarios": 15, "max_productos": 5000, "facturacion_max": 500000.0, "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS"]},
+            {"nombre": "Profesional", "precio_mensual": 99.0, "precio_anual": 990.0, "max_usuarios": 999999, "max_productos": 999999, "facturacion_max": None, "permisos": ["REP_ESTATICO", "VER_DASHBOARD_AVANZADO", "EXPORTAR_CLIENTES", "CONFIGURACION_PAGOS", "REP_DINAMICO", "REP_AUDIO"]}
         ]
 
         planes_obj = {}
@@ -178,7 +161,6 @@ def ejecutar():
                     'facturacion_max': p_data.get('facturacion_max', None),
                 }
             )
-            # Actualizar valores si ya existía el plan
             Plan.objects.filter(id=plan.id).update(
                 precio_mensual=p_data['precio_mensual'],
                 max_usuarios=p_data['max_usuarios'],
@@ -188,39 +170,33 @@ def ejecutar():
             plan.permisos.set([permisos_obj[c] for c in p_data['permisos'] if c in permisos_obj])
             planes_obj[plan.nombre] = plan
 
-        # ---------------------------------------------------------
         # 4. TIENDAS (TENANTS)
-        # ---------------------------------------------------------
-        print("\n4. Configurando Tiendas de Ejemplo...")
+        print("\n4. Configurando Múltiples Tiendas de Ejemplo (Super Población)...")
         config_tiendas = [
             {'schema': 'tecno', 'nombre': 'Tecno Smart', 'cat': 'Electrónica', 'plan': planes_obj['Gratis']},
             {'schema': 'moda', 'nombre': 'Moda Express', 'cat': 'Ropa', 'plan': planes_obj['Standard']},
-            {'schema': 'hogar', 'nombre': 'Hogar & Deco', 'cat': 'Hogar', 'plan': planes_obj['Profesional']}
+            {'schema': 'hogar', 'nombre': 'Hogar & Deco', 'cat': 'Hogar', 'plan': planes_obj['Profesional']},
+            {'schema': 'deportes', 'nombre': 'Sports Life', 'cat': 'Deportes', 'plan': planes_obj['Standard']},
+            {'schema': 'salud', 'nombre': 'Salud 360', 'cat': 'Salud y Belleza', 'plan': planes_obj['Profesional']},
+            {'schema': 'mascotas', 'nombre': 'Pet Shop', 'cat': 'Mascotas', 'plan': planes_obj['Gratis']},
+            {'schema': 'libros', 'nombre': 'Ateneo Literario', 'cat': 'Librería', 'plan': planes_obj['Profesional']},
+            {'schema': 'juguetes', 'nombre': 'Kids World', 'cat': 'Juguetes', 'plan': planes_obj['Standard']},
+            {'schema': 'ferreteria', 'nombre': 'Ferretería Central', 'cat': 'Ferretería', 'plan': planes_obj['Gold']},
+            {'schema': 'autos', 'nombre': 'Motor Parts', 'cat': 'Autopartes', 'plan': planes_obj['Profesional']},
         ]
 
         datos_productos = {
-            'Electrónica': [
-                ("Laptop Pro 14", 8500, "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500"),
-                ("Smartphone Z", 4200, "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500"),
-                ("Audífonos BT", 800, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500")
-            ],
-            'Ropa': [
-                ("Chaqueta Jean", 350, "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=500"),
-                ("Tenis Runner", 550, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500"),
-                ("Gorra Classic", 120, "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500")
-            ],
-            'Hogar': [
-                ("Silla Ergonómica", 1200, "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500"),
-                ("Lámpara Minimal", 250, "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500"),
-                ("Mesa de Centro", 800, "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=500")
-            ]
+            'Electrónica': [("Laptop Pro 14", 8500), ("Smartphone Z", 4200), ("Audífonos BT", 800), ("Monitor 27", 2500), ("Teclado Mecánico", 600), ("Mouse Inalámbrico", 300), ("Tablet 10", 3200), ("Smartwatch", 1500), ("Cámara Web", 450), ("Altavoz Inteligente", 1200)],
+            'Ropa': [("Chaqueta Jean", 350), ("Tenis Runner", 550), ("Gorra Classic", 120), ("Camiseta Básica", 80), ("Pantalón Chino", 200), ("Sudadera con Capucha", 280), ("Zapatos de Vestir", 650), ("Bufanda Invierno", 90), ("Calcetines Pack", 50), ("Cinturón Cuero", 150)],
+            'Hogar': [("Silla Ergonómica", 1200), ("Lámpara Minimal", 250), ("Mesa de Centro", 800), ("Sofá 3 Cuerpos", 4500), ("Estantería", 600), ("Cuadro Abstracto", 350), ("Alfombra Sala", 400), ("Set de Cubiertos", 180), ("Sartén Antiadherente", 220), ("Cafetera", 380)],
+            'Deportes': [("Balón de Fútbol", 150), ("Raqueta Tenis", 450), ("Pesas 5kg", 200), ("Bicicleta Montaña", 3500), ("Botella Agua", 50), ("Esterilla Yoga", 120), ("Zapatillas Trail", 700), ("Guantes Gimnasio", 80), ("Cuerda Saltar", 60), ("Bolsa Deporte", 250)],
+            'Salud y Belleza': [("Crema Hidratante", 150), ("Perfume Floral", 450), ("Set Maquillaje", 300), ("Secador de Pelo", 250), ("Máquina Afeitar", 180), ("Vitaminas", 120), ("Protector Solar", 100), ("Cepillo Eléctrico", 350), ("Plancha de Pelo", 400), ("Mascarilla Facial", 40)],
+            'Mascotas': [("Alimento Perro 15kg", 400), ("Juguete Gato", 50), ("Cama Mascota", 250), ("Correa Extensible", 120), ("Rascador Gato", 350), ("Champú Perro", 80), ("Collar Antipulgas", 150), ("Comedero Automático", 450), ("Transportín", 300), ("Snacks Premium", 60)],
+            'Librería': [("Novela Bestseller", 120), ("Libro Programación", 250), ("Agenda 2024", 80), ("Set Bolígrafos", 50), ("Cuaderno Notas", 40), ("Mochila Escolar", 350), ("Libro Infantil", 90), ("Marcadores Colores", 110), ("Calculadora Científica", 180), ("Diccionario Inglés", 150)],
+            'Juguetes': [("Lego Set", 600), ("Muñeca Articulada", 150), ("Coche Radiocontrol", 350), ("Juego de Mesa", 250), ("Rompecabezas 1000", 120), ("Oso Peluche", 180), ("Pistola Agua", 80), ("Set Herramientas Niño", 200), ("Plastilina Pack", 60), ("Triciclo", 450)],
+            'Ferretería': [("Taladro Percutor", 550), ("Set Destornilladores", 120), ("Caja Herramientas", 300), ("Sierra Circular", 800), ("Martillo", 80), ("Cinta Métrica", 40), ("Alicates", 60), ("Llave Inglesa", 90), ("Tornillos Pack", 30), ("Pegamento Industrial", 50)],
+            'Autopartes': [("Aceite Motor 5L", 250), ("Batería 12V", 850), ("Juego Pastillas Freno", 350), ("Filtro de Aire", 80), ("Bujías x4", 120), ("Lámpara Halógena", 50), ("Neumático R15", 950), ("Amortiguador", 600), ("Correa Distribución", 450), ("Líquido Refrigerante", 90)]
         }
-
-        clientes_data = [
-            ("Juan Perez", "juan@gmail.com"),
-            ("Maria Garcia", "maria@gmail.com"),
-            ("Pedro Pascal", "pedro@gmail.com")
-        ]
 
         for conf in config_tiendas:
             tenant, created = get_or_create_tenant(
@@ -232,7 +208,6 @@ def ejecutar():
                     'categoria_tienda': conf['cat']
                 },
             )
-            # Aseguramos que tenga el plan correcto (por si ya existía)
             tenant.plan = conf['plan']
             tenant.save()
 
@@ -241,81 +216,126 @@ def ejecutar():
             ensure_tenant_admin(tenant, rol_admin)
             print(f"   -> Tienda {conf['nombre']} ({conf['schema']}) en Plan {conf['plan'].nombre}")
 
-    # ---------------------------------------------------------
-    # 5. POBLAR CADA TIENDA
-    # ---------------------------------------------------------
+    # 5. POBLAR CADA TIENDA CON MASIVOS DATOS (Super Población)
+    nombres_base, apellidos_base = generar_datos_prueba()
+    
     for conf in config_tiendas:
+        print(f"\n   --- Poblando masivamente tenant: {conf['nombre']} ---")
         with schema_context(conf['schema']):
-            # Limpieza segura para evitar duplicados en pruebas repetidas
-            DetalleFactura.objects.all().delete()
-            Factura.objects.all().delete()
-            Pedido.objects.all().delete()
-            CarritoItem.objects.all().delete()
-            Carrito.objects.all().delete()
-            Producto.objects.all().delete()
-            Categoria.objects.all().delete()
-            TipoPago.objects.all().delete()
+            # Limpieza para evitar duplicados en pruebas repetidas (con manejo de excepciones por migraciones desincronizadas)
+            try:
+                DetalleFactura.objects.all().delete()
+                Factura.objects.all().delete()
+                Pedido.objects.all().delete()
+                CarritoItem.objects.all().delete()
+                Carrito.objects.all().delete()
+                Producto.objects.all().delete()
+                Categoria.objects.all().delete()
+                Cliente.objects.all().delete()
+                TipoPago.objects.all().delete()
+            except Exception as e:
+                print("     [!] Aviso al limpiar datos: No se pudieron borrar algunos registros antiguos. Se agregarán nuevos datos sin borrar los anteriores.")
 
             cat_obj, _ = Categoria.objects.get_or_create(nombre=conf['cat'])
 
+            # Crear Productos
             prods_creados = []
-            for nom, precio, img in datos_productos.get(conf['cat'], []):
+            for nom, precio in datos_productos.get(conf['cat'], []):
+                img = f"https://ui-avatars.com/api/?name={nom.replace(' ', '+')}&background=random&size=500"
                 p = Producto.objects.create(
-                    nombre=nom, precio=precio, stock=random.randint(10, 100),
+                    nombre=nom, precio=precio, stock=random.randint(50, 500),
                     categoria=cat_obj, imagen_url=img,
                     sku=f"SKU-{get_random_string(5).upper()}", activo=True
                 )
                 prods_creados.append(p)
 
-            tipo_pago, _ = TipoPago.objects.get_or_create(nombre='EFECTIVO', defaults={'estado': 'ACTIVO'})
+            tipo_pago_efec, _ = TipoPago.objects.get_or_create(nombre='EFECTIVO', defaults={'estado': 'ACTIVO'})
+            tipo_pago_tarj, _ = TipoPago.objects.get_or_create(nombre='TARJETA', defaults={'estado': 'ACTIVO'})
+            tipo_pago_trans, _ = TipoPago.objects.get_or_create(nombre='TRANSFERENCIA', defaults={'estado': 'ACTIVO'})
+            tipos_pago = [tipo_pago_efec, tipo_pago_tarj, tipo_pago_trans]
 
-            for c_nom, c_email in clientes_data:
-                cliente, _ = Cliente.objects.get_or_create(correo=c_email, defaults={'nombre': c_nom})
+            # Crear Clientes Masivos (50 clientes por tenant)
+            clientes_creados = []
+            for _ in range(50):
+                nombre_random = random.choice(nombres_base)
+                apellido_random = random.choice(apellidos_base)
+                email_random = f"{nombre_random.lower()}.{apellido_random.lower()}.{get_random_string(4).lower()}@gmail.com"
                 
-                # Crear pedidos históricos para la predicción (1 a 5 meses atrás)
-                from datetime import timedelta
-                from django.utils import timezone
-                
-                num_pedidos = random.randint(3, 8)
-                for _ in range(num_pedidos):
-                    p = random.choice(prods_creados)
-                    cant = random.randint(1, 3)
-                    
-                    dias_atras = random.randint(1, 150)
+                cliente = Cliente.objects.create(
+                    nombre=f"{nombre_random} {apellido_random}",
+                    correo=email_random
+                )
+                clientes_creados.append(cliente)
+
+            # Crear Pedidos Históricos Masivos (alrededor de 300-500 facturas por tenant)
+            num_pedidos_totales = random.randint(300, 500)
+            
+            # Para optimizar inserciones en Django
+            from django.db import transaction
+            
+            with transaction.atomic():
+                for _ in range(num_pedidos_totales):
+                    cliente = random.choice(clientes_creados)
+                    dias_atras = random.randint(1, 365)
                     fake_date = timezone.now() - timedelta(days=dias_atras)
                     
                     carrito = Carrito.objects.create(cliente=cliente, estado='CERRADO')
                     Carrito.objects.filter(id=carrito.id).update(fecha_creacion=fake_date)
                     
-                    item = CarritoItem.objects.create(carrito=carrito, producto=p, cantidad=cant)
+                    # Cantidad de items por carrito (1 a 4)
+                    cant_items = random.randint(1, 4)
+                    productos_seleccionados = random.sample(prods_creados, cant_items) if len(prods_creados) >= cant_items else prods_creados
+                    
+                    subtotal_carrito = 0
+                    items_a_crear = []
+                    for prod in productos_seleccionados:
+                        cant = random.randint(1, 3)
+                        subtotal = cant * prod.precio
+                        subtotal_carrito += subtotal
+                        
+                        items_a_crear.append(CarritoItem(
+                            carrito=carrito, 
+                            producto=prod, 
+                            cantidad=cant
+                        ))
+                    
+                    # Guardar items
+                    for it in items_a_crear:
+                        it.save() 
                     
                     pedido = Pedido.objects.create(
                         carrito=carrito,
-                        estado='ENTREGADO'
+                        estado=random.choices(['ENTREGADO', 'EN_CAMINO', 'PENDIENTE', 'CANCELADO'], weights=[80, 10, 5, 5])[0]
                     )
                     Pedido.objects.filter(id=pedido.id).update(fecha_creacion=fake_date)
                     
-                    nro_fact = f"FAC-{random.randint(10000, 99999)}"
-                    factura = Factura.objects.create(
-                        nro=nro_fact,
-                        pedido=pedido,
-                        cliente=cliente,
-                        tipo_pago=tipo_pago,
-                        monto_total=item.subtotal,
-                        estado='VIGENTE'
-                    )
-                    Factura.objects.filter(nro=nro_fact).update(fecha=fake_date.date(), hora=fake_date.time())
-                    
-                    DetalleFactura.objects.create(
-                        factura=factura,
-                        producto=p,
-                        cantidad=cant,
-                        precio_unitario=p.precio,
-                        total=item.subtotal
-                    )
+                    if pedido.estado != 'CANCELADO':
+                        nro_fact = f"FAC-{conf['schema'][:3].upper()}-{get_random_string(8).upper()}"
+                        factura = Factura.objects.create(
+                            nro=nro_fact,
+                            pedido=pedido,
+                            cliente=cliente,
+                            tipo_pago=random.choice(tipos_pago),
+                            monto_total=subtotal_carrito,
+                            estado='VIGENTE'
+                        )
+                        Factura.objects.filter(nro=nro_fact).update(fecha=fake_date.date(), hora=fake_date.time())
+                        
+                        detalles_a_crear = []
+                        for it in items_a_crear:
+                            detalles_a_crear.append(DetalleFactura(
+                                factura=factura,
+                                producto=it.producto,
+                                cantidad=it.cantidad,
+                                precio_unitario=it.producto.precio,
+                                total=it.cantidad * it.producto.precio
+                            ))
+                        DetalleFactura.objects.bulk_create(detalles_a_crear)
+
+            print(f"   [OK] {len(prods_creados)} Productos, {len(clientes_creados)} Clientes, {num_pedidos_totales} Pedidos generados.")
 
     print("\nSEEDER MAESTRO EJECUTADO CON ÉXITO.")
-    print("   El sistema está listo con roles, permisos, planes, reportes y datos de prueba.")
+    print("   El sistema está SUPER POBLADO y listo con múltiples tenants, planes, reportes y muchísimos datos de prueba.")
 
 if __name__ == "__main__":
     ejecutar()
