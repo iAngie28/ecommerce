@@ -67,6 +67,12 @@ class HasPermiso(permissions.BasePermission):
                             detail="Función Premium. Mejora tu plan para acceder a esta característica.", 
                             code="upgrade_required"
                         )
+                    
+                    # Si el plan incluye la funcionalidad y el usuario es dueño/admin de la tienda (is_staff),
+                    # otorgamos acceso directo sin necesidad de que el rol lo tenga explícitamente.
+                    if getattr(request.user, 'is_staff', False):
+                        return True
+                        
             except Permiso.DoesNotExist:
                 return False
             except Client.DoesNotExist:

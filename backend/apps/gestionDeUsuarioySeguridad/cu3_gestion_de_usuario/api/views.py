@@ -169,7 +169,11 @@ class MiPerfilView(APIView):
                         if usuario.is_superuser:
                             permisos_efectivos_premium = permisos_premium
                         else:
-                            permisos_efectivos_premium = permisos_premium & plan_permisos
+                            # Si el usuario es staff (dueño/admin de tienda), recibe todos los permisos premium del plan
+                            if getattr(usuario, 'is_staff', False):
+                                permisos_efectivos_premium = plan_permisos
+                            else:
+                                permisos_efectivos_premium = permisos_premium & plan_permisos
                     else:
                         permisos_efectivos_premium = permisos_premium if usuario.is_superuser else set()
                 except Client.DoesNotExist:
