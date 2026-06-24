@@ -62,7 +62,7 @@ export default function RequirePremium({ locked = false, title = "Función Premi
 
           <Button 
             fullWidth 
-            onClick={() => window.location.href = '/dashboard/perfil?tab=suscripcion'}
+            onClick={() => window.location.href = '/perfil?tab=suscripcion'}
           >
             <ArrowUpCircle size={18} style={{ marginRight: '8px' }} />
             Mejorar Plan Ahora

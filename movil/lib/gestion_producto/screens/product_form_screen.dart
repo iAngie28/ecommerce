@@ -52,6 +52,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecciona una categoría'), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {

@@ -24,7 +24,14 @@ class OrderRepository {
       final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => OrderModel.fromJson(json)).toList();
     } else {
-      throw Exception('Error al cargar pedidos');
+      String errMsg = 'Error al cargar pedidos: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -39,7 +46,14 @@ class OrderRepository {
       final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => OrderModel.fromJson(json)).toList();
     } else {
-      return [];
+      String errMsg = 'Error al cargar pedidos globales: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -52,7 +66,14 @@ class OrderRepository {
     if (response.statusCode == 200) {
       return OrderModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al cargar detalle del pedido');
+      String errMsg = 'Error al cargar detalle del pedido: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 }

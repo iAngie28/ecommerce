@@ -16,13 +16,13 @@ BACKEND_DIR = PROJECT_ROOT / 'backend'
 def confirm_destructive():
     """Pide confirmación para operación destructiva"""
     print("\n" + "="*60)
-    print("âš ï¸  OPERACIÓN DESTRUCTIVA - Se eliminará la base de datos")
+    print(" OPERACIÓN DESTRUCTIVA - Se eliminará la base de datos")
     print("="*60)
     print("\nEsto eliminará:")
-    print("  âœ— Todos los datos de la BD")
-    print("  âœ— Todos los tenants")
-    print("  âœ— Todos los usuarios")
-    print("  âœ— Todas las tablas")
+    print("  — Todos los datos de la BD")
+    print("  — Todos los tenants")
+    print("  — Todos los usuarios")
+    print("  — Todas las tablas")
     print("\n")
     
     confirm = input("Escribe 'ELIMINAR' en mayúsculas para confirmar: ").strip()

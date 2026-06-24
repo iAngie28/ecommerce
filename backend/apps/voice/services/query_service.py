@@ -50,36 +50,32 @@ class VoiceQueryService:
             'customers_cliente'  # Shared client customer table
         }
 
-        for app_label in target_apps:
-            try:
-                app_config = apps.get_app_config(app_label)
-                app_models = app_config.get_models()
+        for model in apps.get_models():
+            table_name = model._meta.db_table
+            if table_name not in allowed_tables:
+                continue
                 
-                for model in app_models:
-                    table_name = model._meta.db_table
-                    if table_name not in allowed_tables:
-                        continue
-                        
-                    fields = []
-                    pk_field = model._meta.pk.name
+            try:
+                fields = []
+                pk_field = model._meta.pk.name
+                
+                for field in model._meta.fields:
+                    is_pk = field.name == pk_field
+                    pk_indicator = " [PRIMARY KEY]" if is_pk else ""
                     
-                    for field in model._meta.fields:
-                        is_pk = field.name == pk_field
-                        pk_indicator = " [PRIMARY KEY]" if is_pk else ""
-                        
-                        col_name = field.get_attname()
-                        col_type = field.get_internal_type()
-                        
-                        if col_type == 'ForeignKey' or col_type == 'OneToOneField':
-                            related_model = field.related_model._meta.db_table
-                            related_pk = field.related_model._meta.pk.name
-                            fields.append(f"{col_name} (FK -> {related_model}.{related_pk})")
-                        else:
-                            fields.append(f"{col_name} ({col_type}){pk_indicator}")
+                    col_name = field.get_attname()
+                    col_type = field.get_internal_type()
                     
-                    schema_description.append(f"TABLE: {table_name}\nCOLUMNS: {', '.join(fields)}")
+                    if col_type == 'ForeignKey' or col_type == 'OneToOneField':
+                        related_model = field.related_model._meta.db_table
+                        related_pk = field.related_model._meta.pk.name
+                        fields.append(f"{col_name} (FK -> {related_model}.{related_pk})")
+                    else:
+                        fields.append(f"{col_name} ({col_type}){pk_indicator}")
+                
+                schema_description.append(f"TABLE: {table_name}\nCOLUMNS: {', '.join(fields)}")
             except Exception as e:
-                logger.warning(f"Could not load schema for app {app_label}: {str(e)}")
+                logger.warning(f"Could not load schema for model {model.__name__}: {str(e)}")
         
         return "\n\n".join(schema_description)
 

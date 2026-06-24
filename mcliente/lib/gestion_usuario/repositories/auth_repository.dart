@@ -20,10 +20,6 @@ class AuthRepository {
       if (response.statusCode == 200) {
         final tokens = AuthTokens.fromJson(jsonDecode(response.body));
         await _storage.saveTokens(tokens.access, tokens.refresh);
-        await _storage.saveTenantInfo(
-          tokens.schemaName, 
-          tokens.subdomain
-        );
         
         final token = await PushNotificationService.getToken();
         if (token != null) {

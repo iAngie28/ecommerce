@@ -120,6 +120,12 @@ class UpgradeSuscripcionView(APIView):
                     tenant.save()
                     return Response({'success': True, 'message': 'Plan actualizado a Gratuito.'}, status=status.HTTP_200_OK)
 
+                if not stripe.api_key:
+                    # MODO SIMULACIÓN: Si no hay clave de Stripe, aprobamos directamente
+                    tenant.plan = nuevo_plan
+                    tenant.save()
+                    return Response({'success': True, 'message': 'Modo Prueba: Plan actualizado sin cobro.'}, status=status.HTTP_200_OK)
+
                 intent = stripe.PaymentIntent.create(
                     amount=amount,
                     currency='usd',
@@ -252,7 +258,7 @@ class TenantListView(APIView):
         return Response(serializer.data)
 
 
-# --- Utilidades y RecuperaciÃ³n de ContraseÃ±a ---
+# --- Utilidades y Recuperacion de Contraseña ---
 
 def send_email_ssl(to_email, subject, body):
     from django.core.mail import send_mail
