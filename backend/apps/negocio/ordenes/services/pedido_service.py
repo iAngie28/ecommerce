@@ -25,7 +25,6 @@ class PedidoService(BaseService):
             estado='PENDIENTE'
         )
         
-        # Cerrar carrito
         carrito.estado = 'CERRADO'
         carrito.save()
         

@@ -19,7 +19,7 @@ class PedidoService(BaseService):
         if carrito.cantidad_items == 0:
             raise ValueError("No se puede crear un pedido de un carrito vacío")
             
-        self._verificar_limite_facturacion(carrito.total)
+        self._verificar_limite_facturacion(carrito.total_carrito)
         
         # Descontar stock de los items y notificar stock bajo si aplica
         for item in carrito.items.all():
@@ -81,7 +81,7 @@ class PedidoService(BaseService):
                     cantidad=cantidad_solicitada
                 )
                 
-            self._verificar_limite_facturacion(carrito.total)
+            self._verificar_limite_facturacion(carrito.total_carrito)
             
             pedido = Pedido.objects.create(
                 carrito=carrito,
@@ -131,7 +131,7 @@ class PedidoService(BaseService):
                 send_notification(
                     usuario=vendedor,
                     titulo="💰 ¡Nueva Venta Registrada!",
-                    mensaje=f"Se ha registrado un nuevo pedido (#{pedido.id}) por un total de Bs. {pedido.carrito.total}.",
+                    mensaje=f"Se ha registrado un nuevo pedido (#{pedido.id}) por un total de Bs. {pedido.carrito.total_carrito}.",
                     tipo="NUEVA_VENTA"
                 )
         except Exception as e:
@@ -206,7 +206,7 @@ class PedidoService(BaseService):
             estado__in=['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']
         )
         
-        total_facturado = sum(p.carrito.total for p in pedidos_mes)
+        total_facturado = sum(p.carrito.total_carrito for p in pedidos_mes)
         
         if (float(total_facturado) + float(total_nuevo_pedido)) > float(tenant.plan.facturacion_max):
             raise ValidationError({"limite_alcanzado": f"Has superado el límite de facturación mensual de tu plan ({tenant.plan.nombre}): ${tenant.plan.facturacion_max}. Has facturado ${total_facturado} este mes. Este pedido es de ${total_nuevo_pedido}. Por favor mejora tu suscripción."})
