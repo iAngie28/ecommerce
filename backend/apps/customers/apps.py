@@ -10,10 +10,10 @@ class CustomersConfig(AppConfig):
         # Evitar arrancar el scheduler en workers o comandos (como makemigrations)
         if os.environ.get('RUN_MAIN', None) == 'true':
             try:
-                from apps.core.services.scheduler import start_scheduler
+                from apps.gestionDeReportes.cu21_generar_backup.services.scheduler import start_scheduler
                 start_scheduler()
-            except ImportError:
-                pass
+            except ImportError as e:
+                print(f"Error importando scheduler: {e}")
                 
         # Registrar señales de tenants (límites de plan, etc)
         try:
