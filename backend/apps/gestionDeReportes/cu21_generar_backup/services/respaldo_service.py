@@ -145,10 +145,21 @@ class RespaldoService:
         try:
             logger.warning(f"⚠️ Iniciando RESTAURACIÓN desde {real_path}")
             
-            # Cerrar la conexión actual ANTES de pg_restore para evitar DEADLOCK
-            # pg_restore necesita un AccessExclusiveLock para hacer DROP. Si Django mantiene
-            # la conexión abierta mientras espera a pg_restore, se bloquean mutuamente.
+            # Matar todas las otras conexiones activas a la base de datos para garantizar
+            # que pg_restore obtenga el AccessExclusiveLock inmediatamente.
             from django.db import connection
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT pg_terminate_backend(pid) 
+                        FROM pg_stat_activity 
+                        WHERE datname = current_database() 
+                          AND pid <> pg_backend_pid();
+                    """)
+            except Exception as e:
+                logger.warning(f"No se pudieron terminar otras conexiones (quizás por permisos): {e}")
+
+            # Cerrar la conexión actual ANTES de pg_restore para evitar DEADLOCK
             connection.close()
 
             # Dejamos que pg_restore con -c haga la limpieza.
