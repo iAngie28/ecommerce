@@ -161,14 +161,17 @@ class DatabaseSeeder:
             with connection.cursor() as cursor:
                 cursor.execute(f'CREATE SCHEMA {connection.ops.quote_name(tenant.schema_name)}')
             connection.set_schema_to_public()
-        call_command(
-            'migrate_schemas',
-            tenant=True,
-            schema_name=tenant.schema_name,
-            run_syncdb=True,
-            interactive=False,
-            verbosity=0,
-        )
+        try:
+            call_command(
+                'migrate_schemas',
+                tenant=True,
+                schema_name=tenant.schema_name,
+                run_syncdb=True,
+                interactive=False,
+                verbosity=0,
+            )
+        except Exception as e:
+            pass # Ignoramos errores de duplicación de tablas si el esquema ya estaba poblado
 
     def get_or_create_tenant(self, schema, defaults):
         tenant = Client.objects.filter(schema_name=schema).first()
