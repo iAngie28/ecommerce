@@ -14,18 +14,23 @@ class ReportRepository {
     return ApiConstants.tenantBaseUrl(subdomain);
   }
 
-  Future<Map<String, dynamic>> sendVoiceQuery(String filePath, {void Function(String)? onProgress}) async {
+  Future<Map<String, dynamic>> sendVoiceQuery(String filePath, {void Function(String, [double?])? onProgress}) async {
     final baseUrl = await _buildUrl();
     if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = '$baseUrl${ApiConstants.vquery}';
     
-    onProgress?.call('Enviando audio...');
+    onProgress?.call('Enviando audio...', 0.0);
     final response = await _apiClient.multipartPost(
       url,
       filePath: filePath,
       fieldName: 'audio',
       requiresAuth: true,
       includeTenantHost: true,
+      onSendProgress: (sent, total) {
+        if (total > 0 && onProgress != null) {
+          onProgress('Enviando audio...', sent / total);
+        }
+      },
     );
 
     if (response.statusCode == 200) {
@@ -47,7 +52,7 @@ class ReportRepository {
     }
   }
 
-  Future<Map<String, dynamic>> _pollTaskStatus(String baseUrl, String taskId, {void Function(String)? onProgress}) async {
+  Future<Map<String, dynamic>> _pollTaskStatus(String baseUrl, String taskId, {void Function(String, [double?])? onProgress}) async {
     final url = '$baseUrl/vquery/status/$taskId/';
     while (true) {
       await Future.delayed(const Duration(seconds: 2));

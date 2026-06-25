@@ -102,6 +102,7 @@ class ApiClient {
     Map<String, String>? additionalFields,
     bool requiresAuth = false,
     bool includeTenantHost = false,
+    void Function(int sent, int total)? onSendProgress,
   }) async {
     final headers = await _getHeaders(
       requiresAuth: requiresAuth,
@@ -124,7 +125,27 @@ class ApiClient {
     request.files.add(file);
 
     try {
-      final streamedResponse = await request.send().timeout(
+      final byteStream = request.finalize();
+      final totalBytes = request.contentLength;
+      int bytesSent = 0;
+
+      final customRequest = http.StreamedRequest('POST', Uri.parse(url));
+      customRequest.headers.addAll(request.headers);
+      customRequest.contentLength = totalBytes;
+
+      byteStream.listen(
+        (data) {
+          customRequest.sink.add(data);
+          bytesSent += data.length;
+          if (onSendProgress != null) {
+            onSendProgress(bytesSent, totalBytes);
+          }
+        },
+        onDone: () => customRequest.sink.close(),
+        onError: (e, st) => customRequest.sink.addError(e, st),
+      );
+
+      final streamedResponse = await customRequest.send().timeout(
         const Duration(seconds: 120),
         onTimeout: () {
           throw Exception('Tiempo de espera agotado al subir el archivo (timeout).');
@@ -140,6 +161,7 @@ class ApiClient {
               additionalFields: additionalFields,
               requiresAuth: requiresAuth,
               includeTenantHost: includeTenantHost,
+              onSendProgress: onSendProgress,
             ));
       }
       return response;
