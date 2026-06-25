@@ -14,11 +14,12 @@ class ReportRepository {
     return ApiConstants.tenantBaseUrl(subdomain);
   }
 
-  Future<Map<String, dynamic>> sendVoiceQuery(String filePath) async {
+  Future<Map<String, dynamic>> sendVoiceQuery(String filePath, {void Function(String)? onProgress}) async {
     final baseUrl = await _buildUrl();
     if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = '$baseUrl${ApiConstants.vquery}';
     
+    onProgress?.call('Enviando audio...');
     final response = await _apiClient.multipartPost(
       url,
       filePath: filePath,
@@ -28,12 +29,14 @@ class ReportRepository {
     );
 
     if (response.statusCode == 200) {
+      onProgress?.call('¡Resultados listos!');
       return jsonDecode(response.body);
     } else if (response.statusCode == 202) {
       final data = jsonDecode(response.body);
       final taskId = data['task_id'];
       if (taskId != null) {
-        return await _pollTaskStatus(baseUrl, taskId);
+        onProgress?.call('Analizando con IA...');
+        return await _pollTaskStatus(baseUrl, taskId, onProgress: onProgress);
       }
       throw Exception('Error al procesar la consulta (sin task_id).');
     } else if (response.statusCode == 403) {
@@ -44,7 +47,7 @@ class ReportRepository {
     }
   }
 
-  Future<Map<String, dynamic>> _pollTaskStatus(String baseUrl, String taskId) async {
+  Future<Map<String, dynamic>> _pollTaskStatus(String baseUrl, String taskId, {void Function(String)? onProgress}) async {
     final url = '$baseUrl/vquery/status/$taskId/';
     while (true) {
       await Future.delayed(const Duration(seconds: 2));
@@ -57,11 +60,13 @@ class ReportRepository {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['status'] == 'SUCCESS') {
+          onProgress?.call('Procesando resultados...');
           return data;
         } else if (data['status'] == 'FAILURE') {
           throw Exception(data['error'] ?? 'La consulta por voz falló.');
         }
         // Si es PENDING o PROCESSING, continúa el bucle
+        onProgress?.call('Ejecutando consulta...');
       } else {
         throw Exception('Error al consultar el estado de la tarea.');
       }
