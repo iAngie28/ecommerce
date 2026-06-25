@@ -4,7 +4,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from apps.customers.models import Client
-from apps.customers.tenants.api.serializers import TiendaPublicSerializer
+from apps.customers.tenants.api.serializers import TiendaPublicSerializer, TenantCreateSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -206,7 +206,11 @@ class CheckoutSuscripcionView(APIView):
                 automatic_payment_methods={'enabled': True},
                 metadata={'plan_id': plan.id, 'nombre_tienda': request.data.get('nombre_tienda', '')}
             )
-            return Response({'clientSecret': intent.client_secret}, status=status.HTTP_200_OK)
+            from django.conf import settings
+            return Response({
+                'clientSecret': intent.client_secret,
+                'publishableKey': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', '')
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
