@@ -200,7 +200,10 @@ class VoiceQueryService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"User Request: {prompt}"}
                 ],
-                "temperature": 0.1
+                "temperature": 0.1,
+                "max_tokens": 500,
+                "frequency_penalty": 0.5,
+                "top_p": 0.9
             }
             
             try:
@@ -359,7 +362,10 @@ class VoiceQueryService:
                 upper_sql = sql.upper().strip()
                 if not (upper_sql.startswith('SELECT') or upper_sql.startswith('WITH')):
                     task.status = 'FAILURE'
-                    task.error_message = sql if sql else "La IA no pudo generar una consulta SQL válida para tu petición."
+                    error_msg = sql if sql else "La IA no pudo generar una consulta SQL válida para tu petición."
+                    if len(error_msg) > 150:
+                        error_msg = "La IA generó una respuesta inválida y no pudo entender tu petición. Por favor, intenta de nuevo."
+                    task.error_message = error_msg
                     task.save(update_fields=['status', 'error_message'])
                     return
 
