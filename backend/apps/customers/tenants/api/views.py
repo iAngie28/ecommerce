@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.conf import settings
 
 
 class DirectorioPagination(PageNumberPagination):
@@ -108,7 +109,6 @@ class UpgradeSuscripcionView(APIView):
             return Response({'error': 'Plan no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
         import stripe
-        from django.conf import settings
         stripe.api_key = settings.STRIPE_SECRET_KEY
 
         # Caso 1: Inicializar el intento de pago (devuelve clientSecret)
@@ -149,7 +149,7 @@ class UpgradeSuscripcionView(APIView):
                     automatic_payment_methods={'enabled': True},
                     metadata={'tenant_schema': tenant.schema_name, 'nuevo_plan_id': nuevo_plan.id}
                 )
-                from django.conf import settings
+                # Se usa settings global
                 return Response({
                     'clientSecret': intent.client_secret,
                     'publishableKey': settings.STRIPE_PUBLISHABLE_KEY
@@ -241,7 +241,7 @@ class CheckoutSuscripcionView(APIView):
                 automatic_payment_methods={'enabled': True},
                 metadata={'plan_id': plan.id, 'nombre_tienda': request.data.get('nombre_tienda', '')}
             )
-            from django.conf import settings
+            # Se usa settings global
             return Response({
                 'clientSecret': intent.client_secret,
                 'publishableKey': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', '')
