@@ -137,28 +137,8 @@ class RespaldoService:
         try:
             logger.warning(f"⚠️ Iniciando RESTAURACIÓN desde {respaldo.archivo_path}")
             
-            # Limpieza total para que pg_restore no falle por Foreign Keys
-            from django.db import connection
-            with connection.cursor() as cursor:
-                # 1. Dropear esquemas de tenants
-                cursor.execute("SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'public') AND schema_name NOT LIKE 'pg_toast%';")
-                schemas_to_drop = [row[0] for row in cursor.fetchall()]
-                for s in schemas_to_drop:
-                    cursor.execute(f'DROP SCHEMA IF EXISTS "{s}" CASCADE;')
-                
-                # 2. Dropear TODAS las tablas de public
-                cursor.execute("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_type = 'BASE TABLE'
-                """)
-                tables_to_drop = [row[0] for row in cursor.fetchall()]
-                if tables_to_drop:
-                    tables_list = ", ".join([f'"{t}"' for t in tables_to_drop])
-                    cursor.execute(f"DROP TABLE {tables_list} CASCADE;")
-            
-            logger.info("✅ Esquemas y tablas limpiados. Ejecutando pg_restore...")
+            # Dejamos que pg_restore con -c haga la limpieza, para no envenenar la conexión actual.
+            logger.info("Ejecutando pg_restore...")
             result = subprocess.run(
                 cmd, env=env, capture_output=True, text=True, 
                 errors='replace'
@@ -169,6 +149,10 @@ class RespaldoService:
                 if "fatal:" in stderr_text.lower() or "falló" in stderr_text.lower() or "error" in stderr_text.lower():
                     pass # pg_restore a veces arroja errores ignorables, seguimos adelante.
             
+            # Cerrar la conexión actual para obligar a Django a reconectar y no usar transacciones rotas
+            from django.db import connection
+            connection.close()
+
             # Restaurar el historial de backups desde memoria
             RespaldoSistema.objects.all().delete()
             ConfiguracionRespaldo.objects.all().delete()
