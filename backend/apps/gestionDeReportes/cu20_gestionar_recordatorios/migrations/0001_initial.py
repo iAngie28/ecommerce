@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('cu13_gestionar_estado_de_pedido', '__first__'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -27,7 +26,6 @@ class Migration(migrations.Migration):
                 ('notificacion_enviada', models.BooleanField(default=False, verbose_name='Notificación enviada')),
                 ('fecha_creacion', models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Creación')),
                 ('fecha_actualizacion', models.DateTimeField(auto_now=True, verbose_name='Última Actualización')),
-                ('pedido', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='recordatorios', to='cu13_gestionar_estado_de_pedido.pedido', verbose_name='Pedido vinculado')),
                 ('usuario', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recordatorios', to=settings.AUTH_USER_MODEL, verbose_name='Usuario')),
             ],
             options={
