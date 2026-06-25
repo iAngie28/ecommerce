@@ -209,12 +209,9 @@ class VoiceQueryService:
                     response = resp
                     used_model = current_model
                     break
-                elif resp.status_code == 429:
-                    logger.warning(f"Model {current_model} rate-limited (429). Intentando con el siguiente fallback...")
-                    continue
                 else:
-                    logger.error(f"OpenRouter Error {resp.status_code} on {current_model}: {resp.text}")
-                    raise Exception(f"Error del servicio de IA: {resp.status_code}")
+                    logger.warning(f"Model {current_model} falló ({resp.status_code}): {resp.text}. Intentando con el siguiente fallback...")
+                    continue
             except requests.exceptions.RequestException as e:
                 logger.warning(f"Connection Error with {current_model}: {str(e)}")
                 continue
