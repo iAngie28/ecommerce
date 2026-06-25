@@ -156,22 +156,41 @@ class RespaldoService:
             # Cerrar la conexión actual para obligar a Django a reconectar y no usar transacciones rotas
             from django.db import connection
             connection.close()
+            
+            # Ejecutar migraciones por si el backup es muy antiguo y le faltan tablas nuevas (como esta de respaldos)
+            import sys
+            logger.info("Ejecutando migrate_schemas --shared para recrear tablas faltantes...")
+            print("🚀 [Scheduler] Ejecutando migraciones post-restore...")
+            mig_result = subprocess.run(
+                [sys.executable, 'manage.py', 'migrate_schemas', '--shared'],
+                cwd=getattr(settings, 'BASE_DIR'),
+                env=env, capture_output=True, text=True
+            )
+            if mig_result.returncode != 0:
+                print(f"⚠️ [Scheduler] Error en migraciones post-restore: {mig_result.stderr}")
 
             # Restaurar el historial de backups desde memoria
-            RespaldoSistema.objects.all().delete()
-            ConfiguracionRespaldo.objects.all().delete()
+            # Usamos try-except por si la tabla aún no existe por algún error bizarro
+            try:
+                RespaldoSistema.objects.all().delete()
+                ConfiguracionRespaldo.objects.all().delete()
+            except Exception as e:
+                print(f"⚠️ [Scheduler] Error al limpiar tablas de respaldo: {e}")
             
-            for c in config_mem:
-                ConfiguracionRespaldo.objects.create(**c)
+            try:
+                for c in config_mem:
+                    ConfiguracionRespaldo.objects.create(**c)
+                    
+                RespaldoSistema.objects.bulk_create([RespaldoSistema(**r) for r in respaldos_mem])
                 
-            RespaldoSistema.objects.bulk_create([RespaldoSistema(**r) for r in respaldos_mem])
-            
-            # Restaurar timestamps originales (bulk_create + auto_now_add los sobreescribe)
-            for r in respaldos_mem:
-                RespaldoSistema.objects.filter(id=r['id']).update(timestamp=r['timestamp'])
-            
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT setval(pg_get_serial_sequence('customers_respaldo', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM customers_respaldo;")
+                # Restaurar timestamps originales (bulk_create + auto_now_add los sobreescribe)
+                for r in respaldos_mem:
+                    RespaldoSistema.objects.filter(id=r['id']).update(timestamp=r['timestamp'])
+                
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT setval(pg_get_serial_sequence('customers_respaldo', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM customers_respaldo;")
+            except Exception as e:
+                print(f"⚠️ [Scheduler] Error al restaurar respaldos desde memoria: {e}")
             
             logger.info("✅ Restauración completada con éxito.")
             return True
