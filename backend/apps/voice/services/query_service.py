@@ -182,22 +182,50 @@ class VoiceQueryService:
             "X-Title": "Ecommerce Voice Assistant"
         }
         
-        data = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"User Request: {prompt}"}
-            ],
-            "temperature": 0.1
-        }
+        # Models to try if the primary one is rate-limited
+        fallback_models = [
+            model,
+            "google/gemini-2.5-flash:free",
+            "mistralai/mistral-7b-instruct:free",
+            "deepseek/deepseek-chat:free",
+            "qwen/qwen-2-7b-instruct:free"
+        ]
+        
+        response = None
+        used_model = None
+        
+        for current_model in fallback_models:
+            data = {
+                "model": current_model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"User Request: {prompt}"}
+                ],
+                "temperature": 0.1
+            }
+            
+            try:
+                resp = requests.post(url, headers=headers, json=data, timeout=30)
+                if resp.status_code == 200:
+                    response = resp
+                    used_model = current_model
+                    break
+                elif resp.status_code == 429:
+                    logger.warning(f"Model {current_model} rate-limited (429). Intentando con el siguiente fallback...")
+                    continue
+                else:
+                    logger.error(f"OpenRouter Error {resp.status_code} on {current_model}: {resp.text}")
+                    raise Exception(f"Error del servicio de IA: {resp.status_code}")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Connection Error with {current_model}: {str(e)}")
+                continue
+
+        if not response:
+            raise Exception("Todos los modelos de IA están rate-limited o caídos. Intenta de nuevo más tarde.")
         
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=30)
-            if response.status_code != 200:
-                logger.error(f"OpenRouter Error {response.status_code}: {response.text}")
-                raise Exception(f"Error del servicio de IA: {response.status_code}")
-            
             content = response.json()['choices'][0]['message']['content'].strip()
+            logger.info(f"Generated successfully using model: {used_model}")
             
             # Clean up AI response
             sql = content
@@ -235,9 +263,9 @@ class VoiceQueryService:
                     raise Exception(f"Comando prohibido detectado: {word}")
             
             return sql
-        except requests.exceptions.RequestException as e:
-            logger.error(f"OpenRouter Connection Error: {str(e)}")
-            raise Exception("No se pudo conectar con el servicio de IA.")
+        except KeyError as e:
+            logger.error(f"Error parsing AI response from {used_model}: {str(e)}")
+            raise Exception("No se pudo procesar la respuesta de la IA.")
 
     @staticmethod
     def _serialize_row(row: dict) -> dict:

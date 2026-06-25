@@ -24,6 +24,7 @@ class ReporteVozTab extends StatefulWidget {
 class _ReporteVozTabState extends State<ReporteVozTab> {
   bool _isRecording = false;
   bool _isLoading = false;
+  String _loadingStatus = 'Enviando audio...';
   bool _isUpgrading = false;
   Map<String, dynamic>? _result;
   String? _error;
@@ -74,12 +75,23 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
   Future<void> _sendAudio(String filePath) async {
     setState(() {
       _isLoading = true;
+      _loadingStatus = 'Enviando audio...';
       _result = null;
       _error = null;
     });
 
     try {
-      final result = await _reportRepository.sendVoiceQuery(filePath);
+      final result = await _reportRepository.sendVoiceQuery(
+        filePath,
+        onProgress: (status) {
+          if (mounted) {
+            setState(() {
+              _loadingStatus = status;
+            });
+          }
+        },
+      );
+      if (!mounted) return;
       setState(() {
         _result = result;
         _isLoading = false;
@@ -226,7 +238,7 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
                         SizedBox(
                           width: double.infinity,
                           child: AppButton.add(
-                            label: _isRecording ? 'Detener' : (_isLoading ? 'Analizando...' : 'Hablar'),
+                            label: _isRecording ? 'Detener' : (_isLoading ? _loadingStatus : 'Hablar'),
                             icon: _isRecording ? Icons.square : Icons.mic,
                             color: _isRecording ? AppColors.danger : AppColors.accentTeal,
                             onPressed: _isLoading ? null : (_isRecording ? _stopRecording : _startRecording),
@@ -259,8 +271,8 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
                           ],
                         ),
                       ),
-                      AppButton.add(
-                        label: _isRecording ? 'Detener' : (_isLoading ? 'Analizando...' : 'Hablar'),
+                        AppButton.add(
+                        label: _isRecording ? 'Detener' : (_isLoading ? _loadingStatus : 'Hablar'),
                         icon: _isRecording ? Icons.square : Icons.mic,
                         color: _isRecording ? AppColors.danger : AppColors.accentTeal,
                         onPressed: _isLoading ? null : (_isRecording ? _stopRecording : _startRecording),
@@ -270,9 +282,16 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
                 }
               ),
               if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: LinearProgressIndicator(color: AppColors.accentTeal, backgroundColor: AppColors.bgLight),
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(_loadingStatus, style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 8),
+                      const LinearProgressIndicator(color: AppColors.accentTeal, backgroundColor: AppColors.bgLight),
+                    ],
+                  ),
                 ),
             ],
           ),
