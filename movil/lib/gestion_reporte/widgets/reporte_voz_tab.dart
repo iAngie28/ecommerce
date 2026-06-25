@@ -25,6 +25,7 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
   bool _isRecording = false;
   bool _isLoading = false;
   String _loadingStatus = 'Enviando audio...';
+  double? _uploadProgress;
   bool _isUpgrading = false;
   Map<String, dynamic>? _result;
   String? _error;
@@ -76,6 +77,7 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
     setState(() {
       _isLoading = true;
       _loadingStatus = 'Enviando audio...';
+      _uploadProgress = 0.0;
       _result = null;
       _error = null;
     });
@@ -83,10 +85,13 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
     try {
       final result = await _reportRepository.sendVoiceQuery(
         filePath,
-        onProgress: (status) {
+        onProgress: (status, [progress]) {
           if (mounted) {
             setState(() {
               _loadingStatus = status;
+              if (progress != null) {
+                _uploadProgress = progress;
+              }
             });
           }
         },
@@ -288,8 +293,11 @@ class _ReporteVozTabState extends State<ReporteVozTab> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(_loadingStatus, style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 8),
-                      const LinearProgressIndicator(color: AppColors.accentTeal, backgroundColor: AppColors.bgLight),
+                      LinearProgressIndicator(
+                        value: (_loadingStatus == 'Enviando audio...') ? _uploadProgress : null,
+                        color: AppColors.accentTeal, 
+                        backgroundColor: AppColors.bgLight,
+                      ),
                     ],
                   ),
                 ),
