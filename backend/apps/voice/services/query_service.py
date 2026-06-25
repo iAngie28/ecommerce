@@ -166,7 +166,7 @@ class VoiceQueryService:
     - app_negocio_producto: id [PK], nombre, descripcion, precio, costo, stock, categoria_id, activo.
     - app_negocio_detalle_factura: id [PK], factura_id (FK->app_negocio_factura.nro), producto_id, cantidad, precio_unitario, total.
     - app_negocio_categoria: id [PK], nombre, descripcion, fecha_creacion.
-    - customers_cliente: id [PK], nombre, apellido, email, telefono, fecha_creacion.
+    - customers_cliente: id [PK], nombre, correo, telefono, contrasena, nit, fecha_registro, activo. THERE IS NO 'apellido' column.
 13. SMART ANALYTICS: When requested for top items, rankings, or performance over time, utilize Window Functions (RANK(), SUM() OVER()) to provide deep insights without losing row-level context.
 14. MULTI-TENANCY: Do not use schema prefixes. Just use the exact table names provided in the schema (e.g. use 'customers_cliente', NEVER invent 'app_negocio_cliente').
 15. SECURITY: Only SELECT queries are allowed. Never generate INSERT, UPDATE, DELETE, DROP, or ALTER.
