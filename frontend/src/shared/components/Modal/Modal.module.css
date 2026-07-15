@@ -14,7 +14,7 @@
 }
 
 .content {
-    background: var(--color-bg-card, #ffffff);
+    background: var(--color-surface);
     width: 95%;
     max-width: 550px;
     border-radius: 16px;

@@ -50,36 +50,32 @@ class VoiceQueryService:
             'customers_cliente'  # Shared client customer table
         }
 
-        for app_label in target_apps:
-            try:
-                app_config = apps.get_app_config(app_label)
-                app_models = app_config.get_models()
+        for model in apps.get_models():
+            table_name = model._meta.db_table
+            if table_name not in allowed_tables:
+                continue
                 
-                for model in app_models:
-                    table_name = model._meta.db_table
-                    if table_name not in allowed_tables:
-                        continue
-                        
-                    fields = []
-                    pk_field = model._meta.pk.name
+            try:
+                fields = []
+                pk_field = model._meta.pk.name
+                
+                for field in model._meta.fields:
+                    is_pk = field.name == pk_field
+                    pk_indicator = " [PRIMARY KEY]" if is_pk else ""
                     
-                    for field in model._meta.fields:
-                        is_pk = field.name == pk_field
-                        pk_indicator = " [PRIMARY KEY]" if is_pk else ""
-                        
-                        col_name = field.get_attname()
-                        col_type = field.get_internal_type()
-                        
-                        if col_type == 'ForeignKey' or col_type == 'OneToOneField':
-                            related_model = field.related_model._meta.db_table
-                            related_pk = field.related_model._meta.pk.name
-                            fields.append(f"{col_name} (FK -> {related_model}.{related_pk})")
-                        else:
-                            fields.append(f"{col_name} ({col_type}){pk_indicator}")
+                    col_name = field.get_attname()
+                    col_type = field.get_internal_type()
                     
-                    schema_description.append(f"TABLE: {table_name}\nCOLUMNS: {', '.join(fields)}")
+                    if col_type == 'ForeignKey' or col_type == 'OneToOneField':
+                        related_model = field.related_model._meta.db_table
+                        related_pk = field.related_model._meta.pk.name
+                        fields.append(f"{col_name} (FK -> {related_model}.{related_pk})")
+                    else:
+                        fields.append(f"{col_name} ({col_type}){pk_indicator}")
+                
+                schema_description.append(f"TABLE: {table_name}\nCOLUMNS: {', '.join(fields)}")
             except Exception as e:
-                logger.warning(f"Could not load schema for app {app_label}: {str(e)}")
+                logger.warning(f"Could not load schema for model {model.__name__}: {str(e)}")
         
         return "\n\n".join(schema_description)
 
@@ -170,7 +166,7 @@ class VoiceQueryService:
     - app_negocio_producto: id [PK], nombre, descripcion, precio, costo, stock, categoria_id, activo.
     - app_negocio_detalle_factura: id [PK], factura_id (FK->app_negocio_factura.nro), producto_id, cantidad, precio_unitario, total.
     - app_negocio_categoria: id [PK], nombre, descripcion, fecha_creacion.
-    - customers_cliente: id [PK], nombre, apellido, email, telefono, fecha_creacion.
+    - customers_cliente: id [PK], nombre, correo, telefono, contrasena, nit, fecha_registro, activo. THERE IS NO 'apellido' column.
 13. SMART ANALYTICS: When requested for top items, rankings, or performance over time, utilize Window Functions (RANK(), SUM() OVER()) to provide deep insights without losing row-level context.
 14. MULTI-TENANCY: Do not use schema prefixes. Just use the exact table names provided in the schema (e.g. use 'customers_cliente', NEVER invent 'app_negocio_cliente').
 15. SECURITY: Only SELECT queries are allowed. Never generate INSERT, UPDATE, DELETE, DROP, or ALTER.
@@ -186,22 +182,49 @@ class VoiceQueryService:
             "X-Title": "Ecommerce Voice Assistant"
         }
         
-        data = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"User Request: {prompt}"}
-            ],
-            "temperature": 0.1
-        }
+        # Models to try if the primary one is rate-limited
+        fallback_models = [
+            model,
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "meta-llama/llama-3.2-3b-instruct:free",
+            "nousresearch/hermes-3-llama-3.1-405b:free"
+        ]
+        
+        response = None
+        used_model = None
+        
+        for current_model in fallback_models:
+            data = {
+                "model": current_model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"User Request: {prompt}"}
+                ],
+                "temperature": 0.1,
+                "max_tokens": 500,
+                "frequency_penalty": 0.5,
+                "top_p": 0.9
+            }
+            
+            try:
+                resp = requests.post(url, headers=headers, json=data, timeout=30)
+                if resp.status_code == 200:
+                    response = resp
+                    used_model = current_model
+                    break
+                else:
+                    logger.warning(f"Model {current_model} falló ({resp.status_code}): {resp.text}. Intentando con el siguiente fallback...")
+                    continue
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Connection Error with {current_model}: {str(e)}")
+                continue
+
+        if not response:
+            raise Exception("Todos los modelos de IA están rate-limited o caídos. Intenta de nuevo más tarde.")
         
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=30)
-            if response.status_code != 200:
-                logger.error(f"OpenRouter Error {response.status_code}: {response.text}")
-                raise Exception(f"Error del servicio de IA: {response.status_code}")
-            
             content = response.json()['choices'][0]['message']['content'].strip()
+            logger.info(f"Generated successfully using model: {used_model}")
             
             # Clean up AI response
             sql = content
@@ -239,9 +262,9 @@ class VoiceQueryService:
                     raise Exception(f"Comando prohibido detectado: {word}")
             
             return sql
-        except requests.exceptions.RequestException as e:
-            logger.error(f"OpenRouter Connection Error: {str(e)}")
-            raise Exception("No se pudo conectar con el servicio de IA.")
+        except KeyError as e:
+            logger.error(f"Error parsing AI response from {used_model}: {str(e)}")
+            raise Exception("No se pudo procesar la respuesta de la IA.")
 
     @staticmethod
     def _serialize_row(row: dict) -> dict:
@@ -339,7 +362,10 @@ class VoiceQueryService:
                 upper_sql = sql.upper().strip()
                 if not (upper_sql.startswith('SELECT') or upper_sql.startswith('WITH')):
                     task.status = 'FAILURE'
-                    task.error_message = sql if sql else "La IA no pudo generar una consulta SQL válida para tu petición."
+                    error_msg = sql if sql else "La IA no pudo generar una consulta SQL válida para tu petición."
+                    if len(error_msg) > 150:
+                        error_msg = "La IA generó una respuesta inválida y no pudo entender tu petición. Por favor, intenta de nuevo."
+                    task.error_message = error_msg
                     task.save(update_fields=['status', 'error_message'])
                     return
 

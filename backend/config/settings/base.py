@@ -28,6 +28,7 @@ SHARED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt.token_blacklist',
+    'apps.gestionDeReportes.cu21_generar_backup.apps.Cu21Config',
 )
 
 TENANT_APPS = (
@@ -48,7 +49,6 @@ TENANT_APPS = (
     'apps.gestionDeReportes.cu18_gestionar_notificaciones.apps.Cu18Config',
     'apps.gestionDeReportes.cu19_generar_reportes_de_ventas.apps.Cu19Config',
     'apps.gestionDeReportes.cu20_gestionar_recordatorios.apps.Cu20Config',
-    'apps.gestionDeReportes.cu21_generar_backup.apps.Cu21Config',
     'apps.voice',
 )
 
@@ -157,6 +157,27 @@ if not STRIPE_SECRET_KEY:
 
 # â”€â”€ AUDITORÃA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 AUDIT_LOG_RETENTION_DAYS = 90
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
 
 
 

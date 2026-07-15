@@ -136,26 +136,7 @@ class _OrderCardState extends State<_OrderCard> {
     }
   }
 
-  Color _getLabelColor(String currentStatus, String targetState) {
-    final statusUpper = currentStatus.toUpperCase();
-    final allStates = ['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'];
-    if (statusUpper == 'CANCELADO') return AppColors.textMuted;
-    
-    int currentIndex = allStates.indexOf(statusUpper);
-    int targetIndex = allStates.indexOf(targetState);
-    if (currentIndex == -1 || targetIndex == -1) return AppColors.textMuted;
-    
-    if (targetIndex <= currentIndex) {
-      switch (targetState) {
-        case 'PENDIENTE': return AppColors.primary;
-        case 'PAGADO': return AppColors.info;
-        case 'PROCESADO': return AppColors.warning;
-        case 'ENVIADO':
-        case 'ENTREGADO': return AppColors.success;
-      }
-    }
-    return AppColors.textMuted;
-  }
+
 
   Widget _buildProgressBar(String currentStatus) {
     final statusUpper = currentStatus.toUpperCase();
@@ -169,31 +150,53 @@ class _OrderCardState extends State<_OrderCard> {
       return targetIndex <= currentIndex;
     }
 
-    return Container(
-      height: 6,
-      decoration: BoxDecoration(
-        color: AppColors.surface2,
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Row(
-        children: allStates.map((state) {
-          Color color = Colors.transparent;
-          if (isPast(state)) {
-            switch (state) {
-              case 'PENDIENTE': color = AppColors.primary; break;
-              case 'PAGADO': color = AppColors.info; break;
-              case 'PROCESADO': color = AppColors.warning; break;
-              case 'ENVIADO':
-              case 'ENTREGADO': color = AppColors.success; break;
-            }
-          }
-          return Expanded(
-            child: Container(
-              color: color,
-            ),
-          );
-        }).toList(),
-      ),
+    return Column(
+      children: [
+        Row(
+          children: allStates.map((state) {
+            bool isCurrent = state == statusUpper;
+            return Expanded(
+              child: Center(
+                child: Text(
+                  isCurrent ? state : '',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: _getStatusColor(currentStatus),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: Row(
+            children: allStates.map((state) {
+              Color color = Colors.transparent;
+              if (isPast(state)) {
+                switch (state) {
+                  case 'PENDIENTE': color = AppColors.primary; break;
+                  case 'PAGADO': color = AppColors.info; break;
+                  case 'PROCESADO': color = AppColors.warning; break;
+                  case 'ENVIADO':
+                  case 'ENTREGADO': color = AppColors.success; break;
+                }
+              }
+              return Expanded(
+                child: Container(
+                  color: color,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -237,31 +240,7 @@ class _OrderCardState extends State<_OrderCard> {
                         Text(dateStr, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         const SizedBox(height: 10),
                         // Etiquetas de progreso y barra
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('PENDIENTE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: _getLabelColor(order.estado, 'PENDIENTE'))),
-                            Text('PAGADO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: _getLabelColor(order.estado, 'PAGADO'))),
-                            Text('PROCESADO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: _getLabelColor(order.estado, 'PROCESADO'))),
-                            Text('ENVIADO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: _getLabelColor(order.estado, 'ENVIADO'))),
-                            Text('ENTREGADO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: _getLabelColor(order.estado, 'ENTREGADO'))),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
                         _buildProgressBar(order.estado),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(order.estado).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _getStatusColor(order.estado)),
-                          ),
-                          child: Text(
-                            order.estado,
-                            style: TextStyle(color: _getStatusColor(order.estado), fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
                       ],
                     ),
                   ),

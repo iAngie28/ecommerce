@@ -29,8 +29,8 @@ from apps.gestionDeClientes.cu17_analizar_comportamiento_del_cliente.api.behavio
 from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.api.device_token_views import DeviceTokenRegisterView
 from apps.gestionDeReportes.cu21_generar_backup.api.respaldo_views import RespaldoViewSet
 from apps.gestionDeUsuarioySeguridad.cu6_gestionar_bitacora.api.bitacora_views import BitacoraViewSet
-from apps.customers.tenants.api.views import TiendaPerfilView
-from apps.gestionDeClientes.cu22_gestionar_prediccion_de_ventas.api.forecast_views import PrediccionVentasAPIView
+from apps.customers.tenants.api.views import TiendaPerfilView, UpgradeSuscripcionView
+from apps.gestionDeClientes.cu22_gestionar_prediccion_de_ventas.api.forecast_views import PrediccionVentasAPIView, PrediccionProductosAPIView, PrediccionCategoriasAPIView
 
 def debug_schema(request):
     return JsonResponse({'urlconf': 'config.tenant_urls', 'schema': connection.schema_name})
@@ -79,9 +79,11 @@ urlpatterns = [
     path('api/tipos-pago/', TipoPagoViewSet.as_view({'get': 'list', 'post': 'create'}), name='tipo-pago-list'),
     
     path('api/pagos/', PagoViewSet.as_view({'get': 'list', 'post': 'create'}), name='pago-list'),
+    path('api/pagos/create-payment-intent/', PagoViewSet.as_view({'post': 'create_payment_intent'}), name='pago-payment-intent'),
     path('api/pagos/create-checkout-session/', PagoViewSet.as_view({'post': 'create_checkout_session'}), name='pago-stripe-session'),
     path('api/pagos/webhook/', PagoViewSet.as_view({'post': 'stripe_webhook'}), name='pago-stripe-webhook'),
     path('api/pagos/confirm-success/', PagoViewSet.as_view({'post': 'confirm_success'}), name='pago-confirm-success'),
+    path('api/pagos/confirm-payment/', PagoViewSet.as_view({'post': 'confirm_payment'}), name='pago-confirm-payment'),
 
     # Categorías
     path('api/categorias/', CategoriaViewSet.as_view({'get': 'list', 'post': 'create'}), name='categoria-list'),
@@ -99,6 +101,7 @@ urlpatterns = [
     # Perfil del usuario autenticado
     path('api/usuarios/perfil/', MiPerfilView.as_view(), name='mi_perfil'),
     path('api/tienda/perfil/', TiendaPerfilView.as_view(), name='tienda_perfil'),
+    path('api/tienda/suscripcion/upgrade/', UpgradeSuscripcionView.as_view(), name='suscripcion_upgrade'),
 
     # Consultas por voz
     path('api/vquery/', VoiceQueryView.as_view(), name='voice_query'),
@@ -111,6 +114,8 @@ urlpatterns = [
     # Reportes
     path('api/reportes/comportamiento-clientes/', ComportamientoClientesAPIView.as_view(), name='comportamiento_clientes'),
     path('api/reportes/prediccion/', PrediccionVentasAPIView.as_view(), name='prediccion_ventas'),
+    path('api/reportes/prediccion/productos/', PrediccionProductosAPIView.as_view(), name='prediccion_productos'),
+    path('api/reportes/prediccion/categorias/', PrediccionCategoriasAPIView.as_view(), name='prediccion_categorias'),
     path('api/reportes/', include('apps.gestionDeReportes.cu19_generar_reportes_de_ventas.api.urls')),
 
     # Recordatorios (CU-20)

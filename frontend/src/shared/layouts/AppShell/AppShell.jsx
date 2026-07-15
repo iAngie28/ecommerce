@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Box, LogOut, Bell, Search, Settings } from 'lucide-react';
+import { Box, LogOut, Bell, Search, Settings, Gem } from 'lucide-react';
 import { getSidebarGroups } from 'core/router/routes.config';
 import { useAuth } from 'core/hooks/useAuth';
 import { useTenant } from 'core/hooks/useTenant';
@@ -51,7 +51,9 @@ const AppShell = () => {
             <span className={styles.sectionLabel}>
               {GROUP_LABELS[group] || group}
             </span>
-            {items.map(({ id, path, label, icon: Icon }) => (
+            {items.map((item) => {
+              const { id, path, label, icon: Icon } = item;
+              return (
               <NavLink
                 key={id}
                 to={path}
@@ -60,24 +62,18 @@ const AppShell = () => {
                 }
               >
                 <Icon size={18} />
-                <span>{label}</span>
+                <span style={{ flex: 1 }}>{label}</span>
+                {item.premiumLocked && <Gem size={16} color="#fbbf24" />}
               </NavLink>
-            ))}
+              );
+            })}
           </div>
         ))}
 
         {/* Footer */}
         <div className={styles.sidebarFooter}>
           <div className={styles.divider} />
-          <NavLink
-            to="/configuracion"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <Settings size={18} />
-            <span>Configuración</span>
-          </NavLink>
+
           <button
             className={`${styles.navItem} ${styles.navLogout}`}
             onClick={logout}

@@ -26,8 +26,15 @@ class CartRepository {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {
-      print('[DEBUG] Error al obtener el carrito: ${response.statusCode} - ${response.body}');
-      throw Exception('Error al obtener el carrito: ${response.body}');
+      String errMsg = 'Error al obtener el carrito: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      print('[DEBUG] Error al obtener el carrito: $errMsg');
+      throw Exception(errMsg);
     }
   }
 
@@ -47,8 +54,15 @@ class CartRepository {
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {
-      print('[DEBUG] Error al agregar item: ${response.statusCode} - ${response.body}');
-      throw Exception('Error al agregar item: ${response.body}');
+      String errMsg = 'Error al agregar item: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      print('[DEBUG] Error al agregar item: $errMsg');
+      throw Exception(errMsg);
     }
   }
 
@@ -67,7 +81,14 @@ class CartRepository {
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al eliminar item: ${response.body}');
+      String errMsg = 'Error al eliminar item: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -81,7 +102,14 @@ class CartRepository {
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al vaciar carrito');
+      String errMsg = 'Error al vaciar carrito: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -95,7 +123,14 @@ class CartRepository {
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al procesar pedido');
+      String errMsg = 'Error al procesar pedido: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 }

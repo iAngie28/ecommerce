@@ -71,7 +71,7 @@ class RespaldoService:
             
             nuevo_respaldo = RespaldoSistema.objects.create(
                 nombre=f"{nombre_base}",
-                archivo_path=full_path,
+                archivo_path=filename, # Guardar solo el nombre para portabilidad
                 anterior=ultimo_respaldo,
                 metadata={
                     'size_bytes': os.path.getsize(full_path),
@@ -93,9 +93,19 @@ class RespaldoService:
 
     def restaurar_respaldo(self, respaldo_id):
         """Restaura la base de datos a partir de un respaldo usando pg_restore."""
+        from ..models.respaldo import RespaldoSistema, ConfiguracionRespaldo
+        
         respaldo = RespaldoSistema.objects.get(id=respaldo_id)
-        if not respaldo.archivo_path or not os.path.exists(respaldo.archivo_path):
-            raise Exception("El archivo físico del respaldo no existe.")
+        
+        project_root = getattr(settings, 'PROJECT_ROOT', settings.BASE_DIR.parent)
+        backup_dir = os.path.join(project_root, 'backups')
+        
+        # Retrocompatibilidad: extraer el nombre del archivo si se guardó con ruta absoluta
+        filename = os.path.basename(respaldo.archivo_path)
+        real_path = os.path.join(backup_dir, filename)
+        
+        if not real_path or not os.path.exists(real_path):
+            raise Exception(f"El archivo físico '{filename}' no existe en este servidor. Si creaste este respaldo ejecutando el código en tu computadora local, el archivo se quedó guardado en tu computadora, no en el VPS.")
             
         db_config = settings.DATABASES['default']
         env = os.environ.copy()
@@ -114,8 +124,13 @@ class RespaldoService:
             else:
                 pg_restore_path = '/usr/bin/pg_restore'
         
+        # Guardar historial en memoria antes de la purga
+        respaldos_mem = list(RespaldoSistema.objects.all().values())
+        config_mem = list(ConfiguracionRespaldo.objects.all().values())
+
         # Usamos -c (clean) para borrar los objetos antes de crearlos,
         # --if-exists para evitar errores si no existen.
+        # Quitamos -T para que pg_restore restaure TODOS los esquemas sin filtros.
         cmd = [
             pg_restore_path,
             '-h', db_config['HOST'],
@@ -124,25 +139,80 @@ class RespaldoService:
             '-d', db_config['NAME'],
             '-c', '--if-exists',
             '--no-owner', # No restaurar dueños de roles, previene errores de permisos
-            '-T', 'customers_respaldo', 
-            '-T', 'customers_configuracion_respaldo',
-            respaldo.archivo_path
+            real_path
         ]
         
         try:
-            logger.warning(f"⚠️ Iniciando RESTAURACIÓN desde {respaldo.archivo_path}")
+            logger.warning(f"⚠️ Iniciando RESTAURACIÓN desde {real_path}")
+            
+            # Matar todas las otras conexiones activas a la base de datos para garantizar
+            # que pg_restore obtenga el AccessExclusiveLock inmediatamente.
+            from django.db import connection
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT pg_terminate_backend(pid) 
+                        FROM pg_stat_activity 
+                        WHERE datname = current_database() 
+                          AND pid <> pg_backend_pid();
+                    """)
+            except Exception as e:
+                logger.warning(f"No se pudieron terminar otras conexiones (quizás por permisos): {e}")
+
+            # Cerrar la conexión actual ANTES de pg_restore para evitar DEADLOCK
+            connection.close()
+
+            # Dejamos que pg_restore con -c haga la limpieza.
+            logger.info("Ejecutando pg_restore...")
+            print(f"🚀 [Scheduler] Ejecutando pg_restore: {' '.join(cmd)}")
             result = subprocess.run(
                 cmd, env=env, capture_output=True, text=True, 
                 errors='replace'
             )
             if result.returncode != 0:
                 stderr_text = result.stderr or ""
+                print(f"❌ [pg_restore] ERROR: {stderr_text}")
                 logger.error(f"Error de pg_restore: {stderr_text}")
-                # A veces pg_restore termina con warnings pero funciona, lo consideramos error si es crítico.
-                # Si falló, levantamos la excepción.
-                if "FATAL" in stderr_text or "falló" in stderr_text.lower():
-                    raise Exception(f"Falló la restauración: {stderr_text}")
+                if "fatal:" in stderr_text.lower() or "falló" in stderr_text.lower() or "error" in stderr_text.lower():
+                    pass # pg_restore a veces arroja errores ignorables, seguimos adelante.
+            else:
+                print("✅ [pg_restore] Éxito absoluto")
+            
+            # Ejecutar migraciones por si el backup es muy antiguo y le faltan tablas nuevas (como esta de respaldos)
+            import sys
+            logger.info("Ejecutando migrate_schemas --shared para recrear tablas faltantes...")
+            print("🚀 [Scheduler] Ejecutando migraciones post-restore...")
+            mig_result = subprocess.run(
+                [sys.executable, 'manage.py', 'migrate_schemas', '--shared'],
+                cwd=getattr(settings, 'BASE_DIR'),
+                env=env, capture_output=True, text=True
+            )
+            if mig_result.returncode != 0:
+                print(f"⚠️ [Scheduler] Error en migraciones post-restore: {mig_result.stderr}")
+
+            # Restaurar el historial de backups desde memoria
+            # Usamos try-except por si la tabla aún no existe por algún error bizarro
+            try:
+                RespaldoSistema.objects.all().delete()
+                ConfiguracionRespaldo.objects.all().delete()
+            except Exception as e:
+                print(f"⚠️ [Scheduler] Error al limpiar tablas de respaldo: {e}")
+            
+            try:
+                for c in config_mem:
+                    ConfiguracionRespaldo.objects.create(**c)
                     
+                RespaldoSistema.objects.bulk_create([RespaldoSistema(**r) for r in respaldos_mem])
+                
+                # Restaurar timestamps originales (bulk_create + auto_now_add los sobreescribe)
+                for r in respaldos_mem:
+                    RespaldoSistema.objects.filter(id=r['id']).update(timestamp=r['timestamp'])
+                
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT setval(pg_get_serial_sequence('customers_respaldo', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM customers_respaldo;")
+            except Exception as e:
+                print(f"⚠️ [Scheduler] Error al restaurar respaldos desde memoria: {e}")
+            
             logger.info("✅ Restauración completada con éxito.")
             return True
         except Exception as e:

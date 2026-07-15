@@ -12,6 +12,8 @@ import re
 from datetime import timedelta
 from pathlib import Path
 from django.utils.crypto import get_random_string
+from django.core.management import call_command
+from django.db import connection
 
 # Configuración de Rutas
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -30,15 +32,22 @@ except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "faker"])
     from faker import Faker
 
-from django_tenants.utils import tenant_context, schema_context
+from django_tenants.utils import tenant_context, schema_context, schema_exists
 from django.utils import timezone
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente
-from apps.negocio.models import Producto, Categoria, Pedido, Factura, Carrito, CarritoItem, TipoPago, DetalleFactura
+from apps.gestionDeProductoYCatalogo.cu7_gestionar_productos.models.producto import Producto
+from apps.gestionDeProductoYCatalogo.cu9_gestionar_categorias.models.categoria import Categoria
+from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito import Carrito
+from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito_item import CarritoItem
+from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.models.tipo_pago import TipoPago
+from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
+from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.factura import Factura
 
 fake = Faker(['es_ES', 'es_MX'])
 
 class BusinessGenerator:
-    PASSWORD_STANDAR = "Password123!"
+    PASSWORD_STANDAR = "Pass123@"
     ESTADOS_PEDIDO_VENTA = ['PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']
     PERIODOS_PEDIDOS_DIAS = {
         '1a': 365,
@@ -73,10 +82,14 @@ class BusinessGenerator:
     @staticmethod
     def schema_tienda_seguro():
         for _ in range(100):
-            raw_name = fake.unique.user_name().lower()
-            clean_name = re.sub(r'[^a-z0-9]+', '', raw_name)
-            if not clean_name:
-                clean_name = get_random_string(8, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456789')
+            raw_name = fake.unique.company()
+            # Convert to camelCase and remove special chars
+            parts = re.split(r'[^a-zA-Z0-9]+', raw_name)
+            parts = [p for p in parts if p]
+            if not parts:
+                clean_name = get_random_string(8, allowed_chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+            else:
+                clean_name = parts[0].lower() + ''.join(p.capitalize() for p in parts[1:])
 
             schema = f"shop{clean_name}"[:20]
             if not Client.objects.filter(schema_name=schema).exists():
@@ -143,12 +156,58 @@ class DatabaseSeeder:
     def __init__(self):
         self.base_domain = BusinessGenerator.obtener_ip_dominio()
 
+    def sync_tenant_schema(self, tenant):
+        if not schema_exists(tenant.schema_name):
+            with connection.cursor() as cursor:
+                cursor.execute(f'CREATE SCHEMA {connection.ops.quote_name(tenant.schema_name)}')
+            connection.set_schema_to_public()
+        try:
+            call_command(
+                'migrate_schemas',
+                tenant=True,
+                schema_name=tenant.schema_name,
+                run_syncdb=True,
+                interactive=False,
+                verbosity=0,
+            )
+        except Exception as e:
+            pass # Ignoramos errores de duplicación de tablas si el esquema ya estaba poblado
+
+    def get_or_create_tenant(self, schema, defaults):
+        tenant = Client.objects.filter(schema_name=schema).first()
+        created = tenant is None
+        if created:
+            tenant = Client(schema_name=schema, **defaults)
+            tenant.auto_create_schema = False
+            tenant.save()
+        else:
+            for field, value in defaults.items():
+                setattr(tenant, field, value)
+            tenant.auto_create_schema = False
+            tenant.save()
+
+        self.sync_tenant_schema(tenant)
+        return tenant, created
+
+    def ensure_tenant_admin(self, tenant, rol_admin):
+        user, created = Usuario.objects.get_or_create(
+            email=f"admin@{tenant.schema_name.lower()}.com",
+            defaults={'tenant': tenant, 'is_staff': True},
+        )
+        if created:
+            user.set_password(BusinessGenerator.PASSWORD_STANDAR)
+        user.tenant = tenant
+        user.is_staff = True
+        user.save()
+        user.roles.add(rol_admin)
+        return user
+
     def ejecutar_sincronizacion(self, n_tiendas, n_clientes, p_por_tienda, o_por_cliente, periodo_pedidos='1m'):
-        print(f"\n--- ⚡ Motor Especializado V5.4 ---")
+        print(f"\n--- [INFO] Motor Especializado V5.4 ---")
         fecha_inicio, fecha_fin = BusinessGenerator.parse_rango_fechas(periodo_pedidos)
 
         with schema_context('public'):
-            print("\n🔑 1. Configurando Permisos Maestros y de Reportes...")
+            print("\n  1. Configurando Permisos Maestros y de Reportes...")
             permisos_data = [
                 ("Acceso Total Sistema", "SYS_ALL", "Sistema", True, "Acceso irrestricto"),
                 ("Gestionar Tenants", "SYS_TENANTS", "Sistema", True, "Crear y eliminar tiendas"),
@@ -171,7 +230,7 @@ class DatabaseSeeder:
                 )
                 permisos_obj[codigo] = p
 
-            print("👥 2. Configurando Roles y asginando Permisos...")
+            print(" 2. Configurando Roles y asginando Permisos...")
             roles_data = [
                 ("Administrador", 1, ["SYS_ALL", "SYS_TENANTS", "STORE_PRODUCTS", "STORE_SALES", "STORE_REPORTS", "REP_ESTATICO", "REP_DINAMICO", "REP_AUDIO"]),
                 ("Vendedor", 2, ["STORE_PRODUCTS", "STORE_SALES", "STORE_REPORTS", "REP_ESTATICO", "REP_DINAMICO", "REP_AUDIO"]),
@@ -181,26 +240,40 @@ class DatabaseSeeder:
                 rol, _ = Rol.objects.get_or_create(nombre=nombre_rol, tenant=None, defaults={'nivel': nivel, 'activo': True})
                 rol.permisos.set([permisos_obj[c] for c in codigos if c in permisos_obj])
 
-            print("💳 3. Configurando Planes SaaS y sus Reportes...")
-            # 1. Crear o asegurar los planes oficiales de la plataforma
-            plan_basico, _ = Plan.objects.get_or_create(
-                nombre='Básico', 
-                defaults={'precio_mensual': 29.0, 'precio_anual': 290.0, 'max_usuarios': 2, 'max_productos': 50}
+            print(" 3. Configurando Planes SaaS y sus Reportes...")
+            # 1. Crear o asegurar los 4 nuevos planes oficiales
+            plan_gratis, _ = Plan.objects.get_or_create(
+                nombre='Gratis', 
+                defaults={'precio_mensual': 0.0, 'precio_anual': 0.0, 'max_usuarios': 2, 'max_productos': 50, 'facturacion_max': 1000.0}
             )
-            plan_basico.permisos.set([permisos_obj['REP_ESTATICO']])
+            plan_gratis.permisos.set([])
+
+            plan_standard, _ = Plan.objects.get_or_create(
+                nombre='Standard', 
+                defaults={'precio_mensual': 29.0, 'precio_anual': 290.0, 'max_usuarios': 5, 'max_productos': 500, 'facturacion_max': 10000.0}
+            )
+            plan_standard.permisos.set([permisos_obj['REP_ESTATICO']])
+
+            plan_gold, _ = Plan.objects.get_or_create(
+                nombre='Gold', 
+                defaults={'precio_mensual': 69.0, 'precio_anual': 690.0, 'max_usuarios': 15, 'max_productos': 5000, 'facturacion_max': 500000.0}
+            )
+            # Faltan algunos permisos premium que crea el fix, pero el seeder base usa estos:
+            plan_gold.permisos.set([permisos_obj['REP_ESTATICO']])
 
             plan_profesional, _ = Plan.objects.get_or_create(
                 nombre='Profesional', 
-                defaults={'precio_mensual': 99.0, 'precio_anual': 990.0, 'max_usuarios': 20, 'max_productos': 5000}
+                defaults={'precio_mensual': 99.0, 'precio_anual': 990.0, 'max_usuarios': 999999, 'max_productos': 999999, 'facturacion_max': None}
             )
             plan_profesional.permisos.set([permisos_obj['REP_ESTATICO'], permisos_obj['REP_DINAMICO'], permisos_obj['REP_AUDIO']])
-
-            plan_medio, _ = Plan.objects.get_or_create(
-                nombre='Medio', 
-                defaults={'precio_mensual': 59.0, 'precio_anual': 590.0, 'max_usuarios': 5, 'max_productos': 500}
-            )
-            plan_medio.permisos.set([permisos_obj['REP_ESTATICO'], permisos_obj['REP_DINAMICO']])
             
+            # Fuerza a actualizar los límites en la base de datos por si get_or_create encontró un plan viejo con 0
+            Plan.objects.filter(id=plan_gratis.id).update(max_usuarios=2, max_productos=50)
+            Plan.objects.filter(id=plan_standard.id).update(max_usuarios=5, max_productos=500)
+            Plan.objects.filter(id=plan_gold.id).update(max_usuarios=15, max_productos=5000)
+            Plan.objects.filter(id=plan_profesional.id).update(max_usuarios=999999, max_productos=999999)
+            
+            todos_los_planes = [plan_gratis, plan_standard, plan_gold, plan_profesional]
             # Roles globales (aunque en este sistema multi-tenant los roles se crean por tenant)
             rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
 
@@ -210,10 +283,19 @@ class DatabaseSeeder:
                 nombre = fake.company()
                 with schema_context('public'):
                     schema = BusinessGenerator.schema_tienda_seguro()
-                    tenant, _ = Client.objects.get_or_create(schema_name=schema, defaults={'name': nombre, 'plan': plan_profesional, 'nombre_comercial': nombre, 'categoria_tienda': fake.job()})
-                    Domain.objects.get_or_create(domain=f"{schema}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema}.localhost", tenant=tenant, defaults={'is_primary': True})
-                    user = Usuario.objects.create_user(email=f"admin@{schema}.local", password=BusinessGenerator.PASSWORD_STANDAR, tenant=tenant, is_staff=True)
-                    user.roles.add(rol_admin)
+                    plan_aleatorio = random.choice(todos_los_planes)
+                    tenant, _ = self.get_or_create_tenant(
+                        schema,
+                        {
+                            'name': nombre,
+                            'plan': plan_aleatorio,
+                            'nombre_comercial': nombre,
+                            'categoria_tienda': fake.job(),
+                        },
+                    )
+                    domain_str = f"{schema.lower()}.{self.base_domain}" if self.base_domain != 'localhost' else f"{schema.lower()}.localhost"
+                    Domain.objects.get_or_create(domain=domain_str, tenant=tenant, defaults={'is_primary': True})
+                    self.ensure_tenant_admin(tenant, rol_admin)
 
         # 2. Nuevos Clientes
         if n_clientes > 0:
@@ -232,6 +314,10 @@ class DatabaseSeeder:
         all_cat_names = list(BusinessGenerator.KEYWORDS_POR_CATEGORIA.keys())
 
         for tenant in todas:
+            self.sync_tenant_schema(tenant)
+            self.ensure_tenant_admin(tenant, rol_admin)
+
+        for tenant in todas:
             with tenant_context(tenant):
                 # Especialización
                 tienda_cats = random.sample(all_cat_names, random.randint(1, 3))
@@ -247,16 +333,16 @@ class DatabaseSeeder:
                 
                 # Asegurar TipoPago
                 tp, _ = TipoPago.objects.get_or_create(nombre='Efectivo')
-                print(f"  ✅ {tenant.schema_name}: +{creados} productos.")
+                print(f"  [OK] {tenant.schema_name}: +{creados} productos.")
 
         # 4. Pedidos Globales
         if o_por_cliente > 0 and not todas:
             print("  [i] No hay tiendas disponibles. Se omite generación de pedidos.")
-            print(f"\n✨ Sincronización Finalizada.")
+            print(f"\n Sincronización Finalizada.")
             return
 
         if o_por_cliente > 0:
-            print(f"\n🧾 4. Generando {o_por_cliente} pedidos por cliente EN CADA TIENDA entre {fecha_inicio.strftime('%d/%m/%Y')} y {fecha_fin.strftime('%d/%m/%Y')}...")
+            print(f"\n 4. Generando {o_por_cliente} pedidos por cliente EN CADA TIENDA entre {fecha_inicio.strftime('%d/%m/%Y')} y {fecha_fin.strftime('%d/%m/%Y')}...")
             print(f"  Estados posibles: {', '.join(BusinessGenerator.ESTADOS_PEDIDO_VENTA)}")
 
         todos_clientes = list(Cliente.objects.all())
@@ -264,6 +350,8 @@ class DatabaseSeeder:
 
         for t_destino in todas:
             with tenant_context(t_destino):
+                if o_por_cliente <= 0:
+                    continue
                 prods = list(Producto.objects.filter(activo=True))
                 if not prods:
                     continue
@@ -326,16 +414,19 @@ class DatabaseSeeder:
                                 fecha=fecha_pedido.date(),
                                 hora=fecha_pedido.time()
                             )
-        print(f"\nâœ¨ Sincronización Finalizada.")
+        print(f"\n  [OK] Sincronización Finalizada.")
 
 def main():
     seeder = DatabaseSeeder()
     try:
-        nt = int(input("Â¿Tiendas nuevas? [0]: ") or 0)
-        nc = int(input("Â¿Clientes nuevos? [0]: ") or 0)
-        pp = int(input("Â¿Productos A AÑADIR por tienda? [10]: ") or 10)
-        op = int(input("Â¿Pedidos A GENERAR por cliente? [2]: ") or 2)
-        periodo = input("¿Rango de fechas para pedidos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
+        print("\n========================================================")
+        print("  SÚPER POBLADOR DE DATOS SAAS (Presiona Enter para valores masivos)")
+        print("========================================================")
+        nt = int(input("¿Tiendas (Tenants) nuevas a crear? [10]: ") or 10)
+        nc = int(input("¿Clientes globales nuevos a registrar? [100]: ") or 100)
+        pp = int(input("¿Productos A AÑADIR por cada tienda? [50]: ") or 50)
+        op = int(input("¿Pedidos A GENERAR por cliente en CADA tienda? [5]: ") or 5)
+        periodo = input("¿Rango de fechas para los pedidos históricos? [1a (1 año)]\n  (Formatos: '1m', '1a', '2002', '2002 2026', '18 12 2002', '18 12 2002 12 12 2026'): ") or '1a'
         seeder.ejecutar_sincronizacion(nt, nc, pp, op, periodo)
     except KeyboardInterrupt: pass
     except Exception as e: print(f"Error: {e}"); import traceback; traceback.print_exc()

@@ -58,10 +58,19 @@ class UsuarioCrudViewSet(BaseViewSet):
         
         datos = serializer.validated_data.copy()
         
-        # AsignaciÃ³n automÃ¡tica de tenant si estamos en una tienda
-        if connection.schema_name != 'public' and not datos.get('tenant'):
+        # Asignación automática de tenant si estamos en una tienda
+        if connection.schema_name != 'public':
             tenant = Client.objects.get(schema_name=connection.schema_name)
-            datos['tenant'] = tenant
+            if not datos.get('tenant'):
+                datos['tenant'] = tenant
+                
+            if tenant.plan:
+                max_usuarios = tenant.plan.max_usuarios
+                if max_usuarios > 0:
+                    current_count = Usuario.objects.filter(tenant=tenant).count()
+                    if current_count >= max_usuarios:
+                        from rest_framework.exceptions import ValidationError
+                        raise ValidationError({"limite_alcanzado": f"Tu plan ({tenant.plan.nombre}) permite un máximo de {max_usuarios} usuarios. Mejora tu plan para añadir más."})
             
         return self.service.crear_usuario(datos)
 
@@ -160,7 +169,11 @@ class MiPerfilView(APIView):
                         if usuario.is_superuser:
                             permisos_efectivos_premium = permisos_premium
                         else:
-                            permisos_efectivos_premium = permisos_premium & plan_permisos
+                            # Si el usuario es staff (dueño/admin de tienda), recibe todos los permisos premium del plan
+                            if getattr(usuario, 'is_staff', False):
+                                permisos_efectivos_premium = plan_permisos
+                            else:
+                                permisos_efectivos_premium = permisos_premium & plan_permisos
                     else:
                         permisos_efectivos_premium = permisos_premium if usuario.is_superuser else set()
                 except Client.DoesNotExist:

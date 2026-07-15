@@ -13,12 +13,6 @@ import styles from './AuthView.module.css';
 
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY || 'pk_test_dummy');
 
-const PLANS = [
-  { id: 'basico', name: 'Gratuito', price: 0 },
-  { id: 'profesional', name: 'Profesional', price: 29 },
-  { id: 'premium', name: 'Premium', price: 99 },
-];
-
 const FEATURES = [
   { icon: <Sparkles size={18} />, title: 'Inteligencia Artificial', description: 'Predice tus ventas y optimiza tu inventario automáticamente.' },
   { icon: <ShieldCheck size={18} />, title: 'Seguridad Total', description: 'Tus datos protegidos con encriptación de grado bancario.' },
@@ -28,7 +22,7 @@ const FEATURES = [
 export default function CrearTiendaView() {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
-  const initialPlan = query.get('plan') || 'basico';
+  const initialPlan = query.get('plan') || '';
 
   const [form, setForm] = useState({
     nombre_tienda: '', schema_name: '', dominio: '',
@@ -38,6 +32,8 @@ export default function CrearTiendaView() {
   const [status, setStatus] = useState('idle');
   const [responseData, setResponseData] = useState(null);
   const [error, setError] = useState(null);
+  
+  const [availablePlans, setAvailablePlans] = useState([]);
 
   // Stripe Modal State
   const [showStripe, setShowStripe] = useState(false);
@@ -53,6 +49,22 @@ export default function CrearTiendaView() {
       nombreHintTimer.current = setTimeout(() => setNombreHintVisible(false), 2500);
     }
   };
+
+  useEffect(() => {
+    const backendPort = process.env.REACT_APP_DJANGO_PORT || '8001';
+    const apiBase = `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+    fetch(`${apiBase}/api/planes/`)
+      .then(res => res.json())
+      .then(data => {
+        setAvailablePlans(data);
+        if (!form.plan && data.length > 0) {
+          // Select free plan by default, or the first one
+          const freePlan = data.find(p => parseFloat(p.precio_mensual) === 0);
+          setForm(prev => ({ ...prev, plan: freePlan ? freePlan.nombre : data[0].nombre }));
+        }
+      })
+      .catch(err => console.error('Error fetching plans:', err));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!form.nombre_tienda) return;
@@ -97,8 +109,11 @@ export default function CrearTiendaView() {
         if (form[key]) formData.append(key, form[key]);
       });
 
+      const selectedPlanData = availablePlans.find(p => p.nombre === form.plan);
+      const isFree = selectedPlanData ? parseFloat(selectedPlanData.precio_mensual) === 0 : true;
+
       // Si es gratuito, creamos directo
-      if (form.plan === 'basico') {
+      if (isFree) {
         const res = await fetch(`${apiBase}/api/tiendas/crear/`, {
           method: 'POST',
           body: formData,
@@ -206,17 +221,17 @@ export default function CrearTiendaView() {
               Plan de Suscripción
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {PLANS.map(p => (
+              {availablePlans.map(p => (
                 <div
                   key={p.id}
-                  onClick={() => setForm({ ...form, plan: p.id })}
+                  onClick={() => setForm({ ...form, plan: p.nombre })}
                   style={{
-                    flex: 1, padding: '12px', border: `2px solid ${form.plan === p.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    borderRadius: '8px', cursor: 'pointer', textAlign: 'center', background: form.plan === p.id ? 'var(--color-primary-ghost)' : 'transparent'
+                    flex: 1, padding: '12px', border: `2px solid ${form.plan === p.nombre ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    borderRadius: '8px', cursor: 'pointer', textAlign: 'center', background: form.plan === p.nombre ? 'var(--color-primary-ghost)' : 'transparent'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: form.plan === p.id ? 'var(--color-primary)' : 'var(--color-text)' }}>{p.name}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>${p.price}/mes</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: form.plan === p.nombre ? 'var(--color-primary)' : 'var(--color-text)' }}>{p.nombre}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>${p.precio_mensual}/mes</div>
                 </div>
               ))}
             </div>
@@ -293,8 +308,8 @@ export default function CrearTiendaView() {
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
           <StripePaymentModal
             clientSecret={clientSecret}
-            amount={PLANS.find(p => p.id === form.plan)?.price}
-            planName={PLANS.find(p => p.id === form.plan)?.name}
+            amount={availablePlans.find(p => p.nombre === form.plan)?.precio_mensual}
+            planName={availablePlans.find(p => p.nombre === form.plan)?.nombre}
             onClose={() => setShowStripe(false)}
             onSuccess={handlePaymentSuccess}
           />

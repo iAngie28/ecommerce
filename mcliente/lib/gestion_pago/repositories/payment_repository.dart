@@ -76,7 +76,7 @@ class PaymentRepository {
   Future<void> confirmPaymentSuccess(int pedidoId) async {
     final baseUrl = await _buildUrl();
     if (baseUrl == null) throw Exception('No hay tenant configurado.');
-    final url = '${baseUrl}confirm-payment/';
+    final url = '${baseUrl}confirm-success/';
     final schemaName = await _storage.getSchemaName();
     
     await _apiClient.post(

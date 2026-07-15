@@ -18,7 +18,20 @@ class PedidoService(BaseService):
         
         if carrito.cantidad_items == 0:
             raise ValueError("No se puede crear un pedido de un carrito vacío")
+            
+        self._verificar_limite_facturacion(carrito.total_carrito)
         
+        # Descontar stock de los items y notificar stock bajo si aplica
+        for item in carrito.items.all():
+            producto = item.producto
+            if producto.stock >= item.cantidad:
+                producto.stock -= item.cantidad
+                producto.save()
+                if producto.stock <= 6:
+                    self._notificar_stock_bajo(producto)
+            else:
+                raise ValueError(f"Stock insuficiente para {producto.nombre}.")
+
         # Crear pedido
         pedido = Pedido.objects.create(
             carrito=carrito,
@@ -28,6 +41,9 @@ class PedidoService(BaseService):
         # Cerrar carrito
         carrito.estado = 'CERRADO'
         carrito.save()
+        
+        # Notificar nueva venta
+        self._notificar_nueva_venta(pedido)
         
         return pedido
 
@@ -55,17 +71,71 @@ class PedidoService(BaseService):
                 producto.stock -= cantidad_solicitada
                 producto.save()
                 
+                # Low Stock Notification
+                if producto.stock <= 6:
+                    self._notificar_stock_bajo(producto)
+                
                 CarritoItem.objects.create(
                     carrito=carrito,
                     producto=producto,
                     cantidad=cantidad_solicitada
                 )
+                
+            self._verificar_limite_facturacion(carrito.total_carrito)
             
             pedido = Pedido.objects.create(
                 carrito=carrito,
                 estado='PENDIENTE'
             )
+            
+            # Notificar nueva venta al vendedor
+            self._notificar_nueva_venta(pedido)
+            
             return pedido
+
+    def _notificar_stock_bajo(self, producto):
+        from apps.gestionDeReportes.cu18_gestionar_notificaciones.services.notification_service import send_notification
+        from django.db import connection
+        from apps.customers.models import Client
+        from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.usuario import Usuario
+        
+        schema = connection.schema_name
+        if schema == 'public': return
+        
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+            vendedores = Usuario.objects.filter(tenant=tenant, is_active=True)
+            for vendedor in vendedores:
+                send_notification(
+                    usuario=vendedor,
+                    titulo="⚠️ Alerta de Stock Bajo",
+                    mensaje=f"El producto '{producto.nombre}' tiene solo {producto.stock} unidades disponibles.",
+                    tipo="STOCK_BAJO"
+                )
+        except Exception as e:
+            print(f"Error al enviar notificacion de stock bajo: {str(e)}")
+
+    def _notificar_nueva_venta(self, pedido):
+        from apps.gestionDeReportes.cu18_gestionar_notificaciones.services.notification_service import send_notification
+        from django.db import connection
+        from apps.customers.models import Client
+        from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.usuario import Usuario
+        
+        schema = connection.schema_name
+        if schema == 'public': return
+        
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+            vendedores = Usuario.objects.filter(tenant=tenant, is_active=True)
+            for vendedor in vendedores:
+                send_notification(
+                    usuario=vendedor,
+                    titulo="💰 ¡Nueva Venta Registrada!",
+                    mensaje=f"Se ha registrado un nuevo pedido (#{pedido.id}) por un total de Bs. {pedido.carrito.total_carrito}.",
+                    tipo="NUEVA_VENTA"
+                )
+        except Exception as e:
+            print(f"Error al enviar notificacion de nueva venta: {str(e)}")
 
     def cambiar_estado(self, pedido_id, nuevo_estado):
         """Cambia el estado de un pedido."""
@@ -108,3 +178,45 @@ class PedidoService(BaseService):
     def obtener_por_estado(self, estado):
         """Obtiene pedidos por estado."""
         return Pedido.objects.filter(estado=estado).order_by('-fecha_creacion')
+
+    def _verificar_limite_facturacion(self, total_nuevo_pedido):
+        from django.db import connection
+        from apps.customers.models import Client
+        from django.utils.timezone import now
+        from rest_framework.exceptions import ValidationError
+
+        schema = connection.schema_name
+        if schema == 'public':
+            return
+            
+        try:
+            tenant = Client.objects.get(schema_name=schema)
+        except Client.DoesNotExist:
+            return
+            
+        if not tenant.plan:
+            return
+
+        current_day = now().date()
+        
+        pedidos_dia = Pedido.objects.filter(
+            fecha_creacion__date=current_day,
+            estado__in=['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']
+        )
+        
+        total_facturado = sum(p.carrito.total_carrito for p in pedidos_dia)
+        cantidad_ventas = pedidos_dia.count()
+        
+        # Verificar límite de facturación (si aplica)
+        if tenant.plan.facturacion_max is not None:
+            if (float(total_facturado) + float(total_nuevo_pedido)) > float(tenant.plan.facturacion_max):
+                tenant.limite_alcanzado_fecha = current_day
+                tenant.save()
+                raise ValidationError({"limite_alcanzado": f"Has superado el límite de facturación diaria de tu plan ({tenant.plan.nombre}): ${tenant.plan.facturacion_max}. Has facturado ${total_facturado} hoy. Este pedido es de ${total_nuevo_pedido}. Por favor mejora tu suscripción."})
+
+        # Verificar límite de ventas diarias (si aplica)
+        if tenant.plan.ventas_max is not None:
+            if (cantidad_ventas + 1) > tenant.plan.ventas_max:
+                tenant.limite_alcanzado_fecha = current_day
+                tenant.save()
+                raise ValidationError({"limite_alcanzado": f"Has superado el límite de ventas diarias de tu plan ({tenant.plan.nombre}): {tenant.plan.ventas_max} ventas/día. Llevas {cantidad_ventas} hoy. Por favor mejora tu suscripción."})

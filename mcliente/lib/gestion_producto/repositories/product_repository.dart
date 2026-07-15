@@ -32,7 +32,14 @@ class ProductRepository {
       final List<dynamic> data = (decoded is Map) ? (decoded['results'] ?? []) : decoded;
       return data.map((json) => ProductModel.fromJson(json)).toList();
     } else {
-      throw Exception('Error al cargar productos');
+      String errMsg = 'Error al cargar productos: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 
@@ -51,9 +58,9 @@ class ProductRepository {
   }
 
   Future<List<ProductModel>> fetchRecommendations(int productId) async {
-    final baseUrl = await _buildUrl();
-    if (baseUrl == null) throw Exception('No hay tenant configurado.');
-    final url = '$baseUrl$productId/recomendaciones/';
+    final subdomain = await _storage.getSubdomain();
+    if (subdomain == null || subdomain.isEmpty) throw Exception('No hay tenant configurado.');
+    final url = '${ApiConstants.tenantBaseUrl(subdomain)}/catalogo/$productId/recomendaciones/';
     final response = await _apiClient.get(url, requiresAuth: true, includeTenantHost: true);
 
     if (response.statusCode == 200) {
@@ -61,7 +68,14 @@ class ProductRepository {
       final List<dynamic> recs = data['recommendations'] ?? [];
       return recs.map((json) => ProductModel.fromJson(json)).toList();
     } else {
-      return [];
+      String errMsg = 'Error al cargar recomendaciones: ${response.statusCode}';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded.containsKey('detail')) errMsg = decoded['detail'];
+        else if (decoded is Map && decoded.containsKey('error')) errMsg = decoded['error'];
+        else if (decoded is Map) errMsg = decoded.toString();
+      } catch (_) {}
+      throw Exception(errMsg);
     }
   }
 }

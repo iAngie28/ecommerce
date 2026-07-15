@@ -4,6 +4,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../core/services/push_notification_service.dart';
 import '../models/auth_tokens.dart';
+import '../../main.dart' as import_main;
 
 class AuthRepository {
   final ApiClient _apiClient = ApiClient();
@@ -90,6 +91,7 @@ class AuthRepository {
       // Si falla la petición al servidor, igual borramos localmente
     } finally {
       await _storage.deleteAll();
+      import_main.navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }
 
@@ -116,7 +118,7 @@ class AuthRepository {
     }
   }
 
-  // ── ENDPOINT 5: CREAR TIENDA ──
+  // ── ENDPOINT 5: CREAR TIENDA (Gratuita) ──
   Future<Map<String, dynamic>> createStore(Map<String, dynamic> data) async {
     final url = '${ApiConstants.mainBaseUrl}/tiendas/crear/';
     try {
@@ -132,6 +134,66 @@ class AuthRepository {
       return {
         'success': false,
         'error': body['error'] ?? 'Error al crear la tienda',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  // ── ENDPOINT 6: OBTENER PLANES ──
+  Future<List<Map<String, dynamic>>> fetchPlanes() async {
+    final url = '${ApiConstants.mainBaseUrl}/planes/';
+    try {
+      final response = await _apiClient.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('🔴 Error fetchPlanes: $e');
+      return [];
+    }
+  }
+
+  // ── ENDPOINT 7: CHECKOUT SUSCRIPCIÓN (Stripe Intent) ──
+  Future<Map<String, dynamic>> checkoutSuscripcion(Map<String, dynamic> data) async {
+    final url = '${ApiConstants.mainBaseUrl}/tiendas/checkout-suscripcion/';
+    try {
+      final response = await _apiClient.post(url, data);
+      final body = jsonDecode(response.body);
+      
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': body
+        };
+      }
+      return {
+        'success': false,
+        'error': body['error'] ?? 'Error al inicializar el pago',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  // ── ENDPOINT 8: CREAR TIENDA CON PAGO ──
+  Future<Map<String, dynamic>> createStoreWithPayment(Map<String, dynamic> data) async {
+    final url = '${ApiConstants.mainBaseUrl}/tiendas/crear-con-pago/';
+    try {
+      final response = await _apiClient.post(url, data);
+      final body = jsonDecode(response.body);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': body
+        };
+      }
+      return {
+        'success': false,
+        'error': body['error'] ?? 'Error al crear la tienda con pago',
       };
     } catch (e) {
       return {'success': false, 'error': 'Error de conexión: $e'};

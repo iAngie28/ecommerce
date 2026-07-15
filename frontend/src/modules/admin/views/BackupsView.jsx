@@ -463,21 +463,45 @@ export default function BackupsView() {
                         {autoConfig.frecuencia !== 'DIARIO' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                                    {autoConfig.frecuencia === 'SEMANAL' ? 'Día de la semana (0=Lun, 6=Dom)' : 'Día del mes (1-31)'}
+                                    {autoConfig.frecuencia === 'SEMANAL' ? 'Día de la semana' : 'Día del mes'}
                                 </label>
-                                <input
-                                    type="number" min={0} max={31}
-                                    value={autoConfig.dia_referencia}
-                                    onChange={e => setAutoConfig({ ...autoConfig, dia_referencia: parseInt(e.target.value) })}
-                                    style={{
-                                        padding: '8px 10px', borderRadius: '6px',
-                                        border: '1px solid var(--color-border)',
-                                        background: 'var(--color-surface)',
-                                        color: 'var(--color-text)',
-                                        fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
-                                    }}
-                                    disabled={!autoConfig.activo}
-                                />
+                                {autoConfig.frecuencia === 'SEMANAL' ? (
+                                    <select
+                                        value={autoConfig.dia_referencia}
+                                        onChange={e => setAutoConfig({ ...autoConfig, dia_referencia: parseInt(e.target.value) })}
+                                        style={{
+                                            padding: '8px 10px', borderRadius: '6px',
+                                            border: '1px solid var(--color-border)',
+                                            background: '#1f2937', color: '#f8fafc',
+                                            fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
+                                        }}
+                                        disabled={!autoConfig.activo}
+                                    >
+                                        <option value={0}>Lunes</option>
+                                        <option value={1}>Martes</option>
+                                        <option value={2}>Miércoles</option>
+                                        <option value={3}>Jueves</option>
+                                        <option value={4}>Viernes</option>
+                                        <option value={5}>Sábado</option>
+                                        <option value={6}>Domingo</option>
+                                    </select>
+                                ) : (
+                                    <select
+                                        value={autoConfig.dia_referencia}
+                                        onChange={e => setAutoConfig({ ...autoConfig, dia_referencia: parseInt(e.target.value) })}
+                                        style={{
+                                            padding: '8px 10px', borderRadius: '6px',
+                                            border: '1px solid var(--color-border)',
+                                            background: '#1f2937', color: '#f8fafc',
+                                            fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
+                                        }}
+                                        disabled={!autoConfig.activo}
+                                    >
+                                        {Array.from({length: 31}, (_, i) => i + 1).map(day => (
+                                            <option key={day} value={day}>Día {day}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         )}
 

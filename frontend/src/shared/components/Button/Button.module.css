@@ -77,6 +77,16 @@
   color: #fff;
 }
 
+.success {
+  background: var(--color-success);
+  color: #fff;
+  border: 1px solid var(--color-success);
+}
+.success:hover:not(:disabled) {
+  background: hsl(145, 63%, 35%); /* Darker green on hover */
+  box-shadow: 0 4px 12px var(--color-success-light);
+}
+
 /* ── Full width ─────────────────────────────────────────── */
 .full { width: 100%; }
 

@@ -4,12 +4,13 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from apps.customers.models import Client
-from apps.customers.tenants.api.serializers import TiendaPublicSerializer
+from apps.customers.tenants.api.serializers import TiendaPublicSerializer, TenantCreateSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.conf import settings
 
 
 class DirectorioPagination(PageNumberPagination):
@@ -40,11 +41,14 @@ class TiendaPublicViewSet(viewsets.ReadOnlyModelViewSet):
     - GET /api/tiendas-publicas/?categoria_tienda=ropa - Filtrar por categoría
     """
     
-    # Solo tiendas activas
-    queryset = Client.objects.filter(activo=True).prefetch_related('domains')
     serializer_class = TiendaPublicSerializer
     permission_classes = [AllowAny]  # Acceso sin JWT
     pagination_class = DirectorioPagination
+    
+    def get_queryset(self):
+        from django.utils import timezone
+        today = timezone.now().date()
+        return Client.objects.filter(activo=True).exclude(limite_alcanzado_fecha=today).prefetch_related('domains')
     
     # Filtros y búsqueda
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -105,7 +109,6 @@ class UpgradeSuscripcionView(APIView):
             return Response({'error': 'Plan no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
         import stripe
-        from django.conf import settings
         stripe.api_key = settings.STRIPE_SECRET_KEY
 
         # Caso 1: Inicializar el intento de pago (devuelve clientSecret)
@@ -118,7 +121,27 @@ class UpgradeSuscripcionView(APIView):
                 if amount == 0:
                     tenant.plan = nuevo_plan
                     tenant.save()
+                    
+                    # Sincronizar permisos
+                    from django_tenants.utils import tenant_context
+                    from apps.gestionDeUsuarioySeguridad.cu4_gestion_de_roles.models.rol import Rol
+                    from apps.gestionDeUsuarioySeguridad.cu5_gestionar_permisos.models.permiso import Permiso
+                    with tenant_context(tenant):
+                        permisos_basicos = list(Permiso.objects.filter(es_basico=True))
+                        nuevos_permisos = list(nuevo_plan.permisos.all())
+                        permisos_totales = permisos_basicos + nuevos_permisos
+                        
+                        rol_admin = Rol.objects.filter(nombre__iexact='administrador').first()
+                        if rol_admin:
+                            rol_admin.permisos.set(permisos_totales)
+                        rol_vendedor = Rol.objects.filter(nombre__iexact='vendedor').first()
+                        if rol_vendedor:
+                            rol_vendedor.permisos.set(permisos_totales)
+
                     return Response({'success': True, 'message': 'Plan actualizado a Gratuito.'}, status=status.HTTP_200_OK)
+
+                if not stripe.api_key:
+                    return Response({'error': 'Configuración de Stripe incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                 intent = stripe.PaymentIntent.create(
                     amount=amount,
@@ -126,7 +149,11 @@ class UpgradeSuscripcionView(APIView):
                     automatic_payment_methods={'enabled': True},
                     metadata={'tenant_schema': tenant.schema_name, 'nuevo_plan_id': nuevo_plan.id}
                 )
-                return Response({'clientSecret': intent.client_secret}, status=status.HTTP_200_OK)
+                # Se usa settings global
+                return Response({
+                    'clientSecret': intent.client_secret,
+                    'publishableKey': settings.STRIPE_PUBLISHABLE_KEY
+                }, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -143,6 +170,24 @@ class UpgradeSuscripcionView(APIView):
             tenant.fecha_inicio_suscripcion = fecha_inicio
             tenant.fecha_fin_suscripcion = fecha_fin
             tenant.save()
+            
+            # Sincronizar permisos en los roles locales del tenant
+            from django_tenants.utils import tenant_context
+            from apps.gestionDeUsuarioySeguridad.cu4_gestion_de_roles.models.rol import Rol
+            from apps.gestionDeUsuarioySeguridad.cu5_gestionar_permisos.models.permiso import Permiso
+            with tenant_context(tenant):
+                permisos_basicos = list(Permiso.objects.filter(es_basico=True))
+                nuevos_permisos = list(nuevo_plan.permisos.all())
+                permisos_totales = permisos_basicos + nuevos_permisos
+                
+                # Reasignar la totalidad de permisos (básicos + premium del nuevo plan)
+                rol_admin = Rol.objects.filter(nombre__iexact='administrador').first()
+                if rol_admin:
+                    rol_admin.permisos.set(permisos_totales)
+                    
+                rol_vendedor = Rol.objects.filter(nombre__iexact='vendedor').first()
+                if rol_vendedor:
+                    rol_vendedor.permisos.set(permisos_totales)
             
             return Response({'success': True, 'message': f'Plan actualizado a {nuevo_plan.nombre}'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -196,7 +241,11 @@ class CheckoutSuscripcionView(APIView):
                 automatic_payment_methods={'enabled': True},
                 metadata={'plan_id': plan.id, 'nombre_tienda': request.data.get('nombre_tienda', '')}
             )
-            return Response({'clientSecret': intent.client_secret}, status=status.HTTP_200_OK)
+            # Se usa settings global
+            return Response({
+                'clientSecret': intent.client_secret,
+                'publishableKey': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', '')
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -252,7 +301,7 @@ class TenantListView(APIView):
         return Response(serializer.data)
 
 
-# --- Utilidades y RecuperaciÃ³n de ContraseÃ±a ---
+# --- Utilidades y Recuperacion de Contraseña ---
 
 def send_email_ssl(to_email, subject, body):
     from django.core.mail import send_mail

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../storage/secure_storage.dart';
 import '../constants/api_constants.dart';
+import '../../main.dart' as import_main;
 
 /// Cliente HTTP centralizado con:
 /// - Header `Authorization: Bearer <token>` automático
@@ -101,6 +102,7 @@ class ApiClient {
     Map<String, String>? additionalFields,
     bool requiresAuth = false,
     bool includeTenantHost = false,
+    void Function(int sent, int total)? onSendProgress,
   }) async {
     final headers = await _getHeaders(
       requiresAuth: requiresAuth,
@@ -122,20 +124,53 @@ class ApiClient {
     );
     request.files.add(file);
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    try {
+      final byteStream = request.finalize();
+      final totalBytes = request.contentLength;
+      int bytesSent = 0;
 
-    if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => multipartPost(
-            url,
-            filePath: filePath,
-            fieldName: fieldName,
-            additionalFields: additionalFields,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-          ));
+      final customRequest = http.StreamedRequest('POST', Uri.parse(url));
+      customRequest.headers.addAll(request.headers);
+      customRequest.contentLength = totalBytes;
+
+      byteStream.listen(
+        (data) {
+          customRequest.sink.add(data);
+          bytesSent += data.length;
+          if (onSendProgress != null) {
+            onSendProgress(bytesSent, totalBytes);
+          }
+        },
+        onDone: () => customRequest.sink.close(),
+        onError: (e, st) => customRequest.sink.addError(e, st),
+      );
+
+      final streamedResponse = await customRequest.send().timeout(
+        const Duration(seconds: 120),
+        onTimeout: () {
+          throw Exception('Tiempo de espera agotado al subir el archivo (timeout).');
+        },
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 401 && requiresAuth) {
+        return await _handleTokenRefresh(() => multipartPost(
+              url,
+              filePath: filePath,
+              fieldName: fieldName,
+              additionalFields: additionalFields,
+              requiresAuth: requiresAuth,
+              includeTenantHost: includeTenantHost,
+              onSendProgress: onSendProgress,
+            ));
+      }
+      return response;
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('Connection timed out')) {
+        throw Exception('Error de red: No se pudo conectar al servidor ($url). Revisa tu IP y conexión.');
+      }
+      rethrow;
     }
-    return response;
   }
 
   Future<http.Response> put(
@@ -261,12 +296,18 @@ class ApiClient {
         // El refresh token también expiró → limpiar todo
         await _storage.deleteAll();
         _isRefreshing = false;
+        _forceLogout();
         return refreshResponse;
       }
     } catch (e) {
       await _storage.deleteAll();
       _isRefreshing = false;
+      _forceLogout();
       return http.Response('{"detail": "Error en refresh: $e"}', 401);
     }
+  }
+
+  void _forceLogout() {
+    import_main.navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
   }
 }
