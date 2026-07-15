@@ -50,6 +50,9 @@ export default function BackupsView() {
         try {
             const res = await api.get('/respaldos/config/');
             setAutoConfig(res.data);
+            if (res.data._warning) {
+                setError('⚠️ ' + res.data._warning);
+            }
         } catch (err) {
             console.error('Error loading backup config', err);
         }
@@ -67,7 +70,7 @@ export default function BackupsView() {
             setSuccessMsg('Configuración guardada correctamente');
             setTimeout(() => setSuccessMsg(null), 3000);
         } catch (err) {
-            setError('Error guardando configuración');
+            setError('Error: ' + (err.response?.data?.error || 'Error guardando configuración'));
         } finally {
             setSavingConfig(false);
         }
