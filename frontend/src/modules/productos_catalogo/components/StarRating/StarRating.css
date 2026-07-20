@@ -1,0 +1,32 @@
+.star-rating {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.star-button {
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.star-rating.interactive .star-button:hover {
+    transform: scale(1.2);
+}
+
+.star-rating.readonly .star-button {
+    cursor: default;
+}
+
+.star-icon {
+    font-size: 1.5rem;
+    color: #e4e5e9; /* Estrella inactiva (gris claro) */
+    transition: color 0.2s ease;
+}
+
+.star-button.active .star-icon {
+    color: #ffc107; /* Estrella activa (amarillo dorado) */
+}

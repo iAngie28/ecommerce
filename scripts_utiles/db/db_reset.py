@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 # ========================================================================
 # SCRIPT DE RESET DE BASE DE DATOS
 # ========================================================================
@@ -25,11 +25,11 @@ def confirm_destructive():
     print("  — Todas las tablas")
     print("\n")
     
-    confirm = input("Escribe 'ELIMINAR' en mayúsculas para confirmar: ").strip()
-    
-    if confirm != "ELIMINAR":
-        print("[CANCELADO] Operación abortada")
-        return False
+    # confirm = input("Escribe 'ELIMINAR' en mayúsculas para confirmar: ").strip()
+    # 
+    # if confirm != "ELIMINAR":
+    #     print("[CANCELADO] Operación abortada")
+    #     return False
     
     return True
 

@@ -8,11 +8,13 @@ import {
     X,
     ImageOff,
     ShoppingCart,
-    ArrowLeft
+    ArrowLeft,
+    Heart
 } from 'lucide-react';
 import { productosApi, categoriasApi } from '../../productos_catalogo/services/productosApi';
 import { Button, Spinner } from 'shared/components';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from 'core/hooks/useAuth';
 import api from 'core/services/api';
 import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
 import styles from './PublicStorefront.module.css';
@@ -39,6 +41,18 @@ const PublicStorefront = () => {
     // --- Carrito ---
     const { cart, addToCart, removeFromCart, updateQuantity, total, clearCart } = useCart();
     const [isCartOpen, setIsCartOpen] = useState(false);
+    
+    // --- Auth y Notificaciones ---
+    const { isAuthenticated } = useAuth();
+    
+    // Simple notification fallback
+    const addNotification = (type, msg) => {
+        if(type === 'error') alert('Error: ' + msg);
+        else console.log(msg);
+    };
+    
+    // --- Wishlist ---
+    const [wishlistItems, setWishlistItems] = useState(new Set());
 
     // --- Recomendaciones del carrito ---
     const [recommendations, setRecommendations] = useState([]);
@@ -97,6 +111,54 @@ const PublicStorefront = () => {
             setCategories(Array.isArray(res.data) ? res.data : res.data?.results || []);
         });
     }, []);
+
+    // --- Wishlist Logic ---
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchWishlist();
+        } else {
+            setWishlistItems(new Set());
+        }
+    }, [isAuthenticated]);
+
+    const fetchWishlist = async () => {
+        try {
+            const res = await api.get('wishlist/');
+            if (res.data && res.data.items) {
+                const productIds = new Set(res.data.items.map(item => item.producto.id));
+                setWishlistItems(productIds);
+            }
+        } catch (err) {
+            console.error('Error fetching wishlist:', err);
+        }
+    };
+
+    const toggleWishlist = async (e, product) => {
+        e.stopPropagation();
+        if (!isAuthenticated) {
+            addNotification('info', 'Debes iniciar sesión para guardar productos');
+            return;
+        }
+
+        const isSaved = wishlistItems.has(product.id);
+        
+        try {
+            const res = await api.post(`wishlist/toggle/${product.id}/`);
+            if (res.data.accion === 'agregado') {
+                setWishlistItems(prev => new Set(prev).add(product.id));
+                addNotification('success', 'Producto guardado en tu lista');
+            } else {
+                setWishlistItems(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(product.id);
+                    return newSet;
+                });
+                addNotification('success', 'Producto eliminado de la lista');
+            }
+        } catch (err) {
+            addNotification('error', 'Ocurrió un error al actualizar la lista de deseos');
+        }
+    };
 
     const handleAttrChange = (key, value) => {
         setAttributes(prev => ({
@@ -418,6 +480,16 @@ const PublicStorefront = () => {
                                             {prod.stock < 5 && prod.stock > 0 && (
                                                 <span className={styles.lowStockBadge}>Últimas unidades</span>
                                             )}
+                                            <button 
+                                                className={`${styles.wishlistBtn} ${wishlistItems.has(prod.id) ? styles.wishlistActive : ''}`}
+                                                onClick={(e) => toggleWishlist(e, prod)}
+                                                title={wishlistItems.has(prod.id) ? "Quitar de lista de deseos" : "Agregar a lista de deseos"}
+                                            >
+                                                <Heart 
+                                                    size={20} 
+                                                    fill={wishlistItems.has(prod.id) ? "currentColor" : "none"} 
+                                                />
+                                            </button>
                                         </div>
                                         <div className={styles.productBody}>
                                             <span className={styles.categoryName}>{prod.categoria_detail?.nombre}</span>
@@ -608,6 +680,17 @@ const PublicStorefront = () => {
                                 >
                                     <ShoppingCart size={20} style={{marginRight: '10px'}} />
                                     {selectedProduct.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={(e) => toggleWishlist(e, selectedProduct)}
+                                    title={wishlistItems.has(selectedProduct.id) ? "Quitar de lista de deseos" : "Agregar a lista de deseos"}
+                                >
+                                    <Heart 
+                                        size={20} 
+                                        fill={wishlistItems.has(selectedProduct.id) ? "currentColor" : "none"} 
+                                        color={wishlistItems.has(selectedProduct.id) ? "var(--color-primary)" : "currentColor"}
+                                    />
                                 </Button>
                             </div>
                         </div>

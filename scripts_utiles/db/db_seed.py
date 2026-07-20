@@ -308,6 +308,26 @@ class DatabaseSeeder:
                     correo_cliente = f"{nombre_limpio}{sufijo}@{dominio_limpio}"
                     c, created = Cliente.objects.get_or_create(correo=correo_cliente, defaults={'nombre': nombre_cliente})
                     if created: c.set_password(BusinessGenerator.PASSWORD_STANDAR); c.save()
+                    
+        # 2.5 USUARIOS QUEMADOS (Fijos)
+        with schema_context('public'):
+            # Superuser (Admin Global)
+            su, created = Usuario.objects.get_or_create(
+                email="admin@gmail.com",
+                defaults={'is_superuser': True, 'is_staff': True, 'is_active': True}
+            )
+            if created:
+                su.set_password(BusinessGenerator.PASSWORD_STANDAR)
+                su.save()
+
+            # Cliente
+            c_fijo, created = Cliente.objects.get_or_create(
+                correo="cliente@gmail.com",
+                defaults={'nombre': 'Cliente Prueba'}
+            )
+            if created:
+                c_fijo.set_password(BusinessGenerator.PASSWORD_STANDAR)
+                c_fijo.save()
 
         # 3. Poblar TODAS (OG + Nuevas)
         todas = list(Client.objects.exclude(schema_name='public'))
@@ -316,6 +336,34 @@ class DatabaseSeeder:
         for tenant in todas:
             self.sync_tenant_schema(tenant)
             self.ensure_tenant_admin(tenant, rol_admin)
+
+        # Empleados Quemados (Asignados al primer tenant)
+        if todas:
+            primer_tenant = todas[0]
+            with schema_context('public'):
+                # 1. Admin de Tienda (Dueño)
+                rol_admin = Rol.objects.get(nombre='Administrador', tenant=None)
+                admin_t, created_at = Usuario.objects.get_or_create(
+                    email="admin_tienda@gmail.com",
+                    defaults={'tenant': primer_tenant, 'is_staff': True, 'is_active': True}
+                )
+                if created_at:
+                    admin_t.set_password(BusinessGenerator.PASSWORD_STANDAR)
+                    admin_t.save()
+                admin_t.roles.add(rol_admin)
+
+                # 2. Vendedor de Tienda
+                rol_vendedor = Rol.objects.get(nombre='Vendedor', tenant=None)
+                vend, created_v = Usuario.objects.get_or_create(
+                    email="vendedor@gmail.com",
+                    defaults={'tenant': primer_tenant, 'is_staff': True, 'is_active': True}
+                )
+                if created_v:
+                    vend.set_password(BusinessGenerator.PASSWORD_STANDAR)
+                    vend.save()
+                vend.roles.add(rol_vendedor)
+                
+                print(f"  [i] Usuarios fijos (admin_tienda y vendedor) ligados a la tienda: {primer_tenant.schema_name}")
 
         for tenant in todas:
             with tenant_context(tenant):
@@ -359,9 +407,14 @@ class DatabaseSeeder:
                 print(f"  -> {t_destino.schema_name}: Generando transacciones para {len(todos_clientes)} clientes...")
                 for cliente in todos_clientes:
                     with transaction.atomic():
-                        for _ in range(o_por_cliente):
+                        for idx_pedido in range(o_por_cliente):
                             fecha_pedido = BusinessGenerator.fecha_aleatoria_rango(fecha_inicio, fecha_fin)
-                            estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
+                            
+                            # Forzar el primer pedido a estar finalizado (ENTREGADO) para pruebas
+                            if idx_pedido == 0:
+                                estado_pedido = 'ENTREGADO'
+                            else:
+                                estado_pedido = random.choice(BusinessGenerator.ESTADOS_PEDIDO_VENTA)
 
                             # FLUJO REAL: Carrito -> Pedido -> Factura
                             # Elegir entre 1 y 3 productos DISTINTOS por carrito
@@ -400,7 +453,20 @@ class DatabaseSeeder:
                                     precio_unitario=p.precio,
                                     total=p.precio * cantidad
                                 )
-                                CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
+                                
+                        # Crear Cuenta de Puntos quemada para el cliente con algo de saldo (para pruebas de Fidelización)
+                        try:
+                            from apps.gestionDeClientes.cu26_gestionar_fidelizacion.models.cuenta_puntos import CuentaPuntos
+                            CuentaPuntos.objects.get_or_create(
+                                cliente=cliente,
+                                defaults={'saldo_actual': 500, 'puntos_historicos': 500}
+                            )
+                        except Exception as e:
+                            print(f"  [!] Omitiendo puntos para el cliente {cliente.nombre} (posiblemente la app no está activa): {e}")
+                            
+                        # Mover esto al final de la creación de las facturas o en el bloque correcto
+                        for item, p, cantidad in items_creados:
+                            CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
 
                             Carrito.objects.filter(pk=carrito.pk).update(
                                 fecha_creacion=fecha_pedido,

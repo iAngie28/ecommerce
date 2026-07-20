@@ -28,3 +28,16 @@ for root, dirs, files in os.walk(negocio_dir):
                 except Exception as e:
                     print(f"[!] Autodiscovery: Error al importar {module_path}: {e}")
 
+
+# =====================================================================
+# IMPORTAR MODELOS NUEVOS (Reseñas, Wishlist, Fidelización)
+# =====================================================================
+try:
+    from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.models.reseña import Reseña
+    from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.models.wishlist import Wishlist
+    from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.models.wishlist_item import WishlistItem
+    from apps.gestionDeClientes.cu26_gestionar_fidelizacion.models.cuenta_puntos import CuentaPuntos
+    from apps.gestionDeClientes.cu26_gestionar_fidelizacion.models.historial_puntos import HistorialPuntos
+except Exception as e:
+    print(f"[!] Error al importar nuevos modelos: {e}")
+

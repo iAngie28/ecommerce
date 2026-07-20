@@ -17,6 +17,7 @@ import {
   Database,
   TrendingUp,
   Bell,
+  Heart,
 } from 'lucide-react';
 
 // ─── MÓDULOS AUTENTICADOS (con sidebar) ─────────────────────
@@ -226,6 +227,17 @@ export const APP_MODULES = [
     label: 'Mis Pedidos',
     icon: ShoppingBag,
     component: lazy(() => import('modules/cliente/views/MisPedidosView')),
+    protected: true,
+    inSidebar: true,
+    group: 'cliente',
+    roles: ['cliente'],
+  },
+  {
+    id: 'mis_deseos',
+    path: '/wishlist',
+    label: 'Lista de Deseos',
+    icon: Heart,
+    component: lazy(() => import('modules/cliente/views/WishlistView')),
     protected: true,
     inSidebar: true,
     group: 'cliente',

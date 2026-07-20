@@ -16,6 +16,7 @@ from apps.gestionDeVentasYFacturacion.cu15_ver_historial_de_compras.api.historia
 from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.api.views import FacturaViewSet
 from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.api.tipo_pago_views import TipoPagoViewSet
 from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.api.pago_views import PagoViewSet
+from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.api.views import WishlistViewSet
 
 # Customers
 from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.api.views import (
@@ -55,6 +56,7 @@ router.register(r'facturas', FacturaViewSet, basename='facturas')
 router.register(r'tipos-pago', TipoPagoViewSet, basename='tipos-pago')
 router.register(r'pagos', PagoViewSet, basename='pagos')
 router.register(r'notificaciones', NotificacionViewSet, basename='notificaciones')
+router.register(r'wishlist', WishlistViewSet, basename='wishlist')
 
 # Customers
 router.register(r'usuarios', UsuarioCrudViewSet, basename='usuarios')

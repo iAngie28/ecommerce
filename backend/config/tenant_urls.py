@@ -28,9 +28,12 @@ from apps.customers.tenants.api.plan_views import PlanViewSet
 from apps.gestionDeClientes.cu17_analizar_comportamiento_del_cliente.api.behavior_views import ComportamientoClientesAPIView
 from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.api.device_token_views import DeviceTokenRegisterView
 from apps.gestionDeReportes.cu21_generar_backup.api.respaldo_views import RespaldoViewSet
+from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.api.views import WishlistViewSet
 from apps.gestionDeUsuarioySeguridad.cu6_gestionar_bitacora.api.bitacora_views import BitacoraViewSet
 from apps.customers.tenants.api.views import TiendaPerfilView, UpgradeSuscripcionView
 from apps.gestionDeClientes.cu22_gestionar_prediccion_de_ventas.api.forecast_views import PrediccionVentasAPIView, PrediccionProductosAPIView, PrediccionCategoriasAPIView
+from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.api.views import ReseñaViewSet
+from apps.gestionDeClientes.cu26_gestionar_fidelizacion.api.views import FidelizacionViewSet
 
 def debug_schema(request):
     return JsonResponse({'urlconf': 'config.tenant_urls', 'schema': connection.schema_name})
@@ -134,6 +137,29 @@ urlpatterns = [
     path('api/respaldos/historial/', RespaldoViewSet.as_view({'get': 'historial_encadenado'}), name='respaldos-historial-encadenado'),
     path('api/respaldos/<int:pk>/', RespaldoViewSet.as_view({'get': 'retrieve'}), name='respaldos-detail'),
     path('api/respaldos/<int:pk>/restaurar/', RespaldoViewSet.as_view({'post': 'restaurar'}), name='respaldos-restaurar'),
+
+    # Wishlist (CU-25)
+    path('api/wishlist/', WishlistViewSet.as_view({'get': 'list'}), name='wishlist'),
+    path('api/wishlist/agregar/', WishlistViewSet.as_view({'post': 'agregar'}), name='wishlist-agregar'),
+    path('api/wishlist/vaciar/', WishlistViewSet.as_view({'delete': 'vaciar'}), name='wishlist-vaciar'),
+    path('api/wishlist/eliminar/<int:producto_id>/', WishlistViewSet.as_view({'delete': 'eliminar'}), name='wishlist-eliminar'),
+    path('api/wishlist/toggle/<int:producto_id>/', WishlistViewSet.as_view({'post': 'toggle'}), name='wishlist-toggle'),
+    path('api/wishlist/mover-al-carrito/<int:producto_id>/', WishlistViewSet.as_view({'post': 'mover_al_carrito'}), name='wishlist-mover'),
+    path('api/wishlist/contiene/<int:producto_id>/', WishlistViewSet.as_view({'get': 'contiene'}), name='wishlist-contiene'),
+
+    # Reseñas (CU-24)
+    path('api/reseñas/', ReseñaViewSet.as_view({'get': 'list', 'post': 'create'}), name='reseña-list'),
+    path('api/reseñas/mis-reseñas/', ReseñaViewSet.as_view({'get': 'mis_reseñas'}), name='reseña-mis-reseñas'),
+    path('api/reseñas/<int:pk>/', ReseñaViewSet.as_view({'patch': 'partial_update', 'delete': 'destroy'}), name='reseña-detail'),
+    path('api/reseñas/<int:pk>/aprobar/', ReseñaViewSet.as_view({'post': 'aprobar'}), name='reseña-aprobar'),
+    path('api/reseñas/<int:pk>/rechazar/', ReseñaViewSet.as_view({'post': 'rechazar'}), name='reseña-rechazar'),
+    path('api/productos/<int:producto_id>/reseñas/', ReseñaViewSet.as_view({'get': 'por_producto'}), name='producto-reseñas'),
+
+    # Fidelización (CU-26)
+    path('api/fidelizacion/mi-cuenta/', FidelizacionViewSet.as_view({'get': 'mi_cuenta'}), name='fidelizacion-mi-cuenta'),
+    path('api/fidelizacion/canjear/', FidelizacionViewSet.as_view({'post': 'canjear'}), name='fidelizacion-canjear'),
+    path('api/fidelizacion/clientes/', FidelizacionViewSet.as_view({'get': 'listar_cuentas'}), name='fidelizacion-clientes'),
+    path('api/fidelizacion/configuracion/', FidelizacionViewSet.as_view({'get': 'ver_configuracion'}), name='fidelizacion-configuracion'),
 ]
 
 from django.conf import settings
