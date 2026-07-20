@@ -24,6 +24,7 @@ from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.models.tipo
 from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
 from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
 from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.factura import Factura
+from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.models.reseña import Reseña
 from apps.customers.models import Client, Domain, Usuario, Rol, Plan, Cliente, Permiso
 
 def obtener_ip_dominio():
@@ -229,6 +230,7 @@ def ejecutar():
                 Pedido.objects.all().delete()
                 CarritoItem.objects.all().delete()
                 Carrito.objects.all().delete()
+                Reseña.objects.all().delete()
                 Producto.objects.all().delete()
                 Categoria.objects.all().delete()
                 Cliente.objects.all().delete()
@@ -331,6 +333,26 @@ def ejecutar():
                                 total=it.cantidad * it.producto.precio
                             ))
                         DetalleFactura.objects.bulk_create(detalles_a_crear)
+
+                        # Sembrar reseñas aleatorias para productos comprados
+                        if pedido.estado == 'ENTREGADO' and random.random() < 0.6:  # 60% prob de reseñar
+                            for det in detalles_a_crear:
+                                if random.random() < 0.7:  # 70% prob por cada producto del pedido
+                                    calificacion = random.choices([5, 4, 3, 2, 1], weights=[50, 30, 10, 5, 5])[0]
+                                    comentarios_positivos = ["¡Excelente producto!", "Muy bueno, lo recomiendo.", "Cumple su función.", "Me encantó, volvería a comprar.", "Buena relación calidad-precio.", "Es tal como se describe."]
+                                    comentarios_negativos = ["Regular, podría mejorar.", "No me gustó mucho.", "Tuvo algunos problemas.", "Llegó un poco dañado."]
+                                    comentario_random = random.choice(comentarios_positivos) if calificacion >= 3 else random.choice(comentarios_negativos)
+                                    
+                                    Reseña.objects.get_or_create(
+                                        producto=det.producto,
+                                        cliente=cliente,
+                                        defaults={
+                                            'calificacion': calificacion,
+                                            'comentario': comentario_random,
+                                            'estado': 'APROBADO',
+                                            'fecha_creacion': fake_date
+                                        }
+                                    )
 
             print(f"   [OK] {len(prods_creados)} Productos, {len(clientes_creados)} Clientes, {num_pedidos_totales} Pedidos generados.")
 

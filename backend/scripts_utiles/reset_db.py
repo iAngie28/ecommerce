@@ -1,14 +1,24 @@
-﻿import os
+import os
 import shutil
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from dotenv import load_dotenv
 
-# --- CONFIGURACIÃ“N ---
-DB_NAME = 'mi_saas_db'
-DB_USER = 'postgres'
-DB_PASS = 'adm123' #
-DB_HOST = '127.0.0.1'
-DB_PORT = '5432'
+# Cargar .env si existe (usualmente en la carpeta superior o misma carpeta)
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    # Buscar en la raiz del proyecto
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+    load_dotenv(env_path)
+
+# --- CONFIGURACIÓN ---
+DB_NAME = os.environ.get('DB_NAME', 'mi_saas_db')
+DB_USER = os.environ.get('DB_USER', 'postgres')
+DB_PASS = os.environ.get('DB_PASSWORD', 'adm123') 
+DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
+DB_PORT = os.environ.get('DB_PORT', '5432')
 
 def clean_migrations():
     print("--- ðŸ—‘ï¸ Borrando archivos de migraciones (Seguro) ---")
