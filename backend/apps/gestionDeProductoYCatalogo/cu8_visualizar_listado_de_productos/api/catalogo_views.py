@@ -15,6 +15,12 @@ class CatalogoProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
     permission_classes = [AllowAny]
     
+    from apps.gestionDeUsuarioySeguridad.cu1_iniciar_sesion.authentication import (
+        ClienteJWTAuthentication,
+        UsuarioJWTAuthentication,
+    )
+    authentication_classes = [ClienteJWTAuthentication, UsuarioJWTAuthentication]
+    
     filter_backends = [
         DjangoFilterBackend, 
         filters.SearchFilter, 
@@ -32,11 +38,36 @@ class CatalogoProductoViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         from django.db import connection
+        from django.db.models import Avg, Count, Q, Exists, OuterRef
+        from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
+        
         if connection.schema_name == 'public':
             return Producto.objects.none()
+            
+        cliente_id = None
+        auth = getattr(self.request, 'auth', None)
+        if hasattr(auth, 'get') and auth.get('role') == 'CLIENTE':
+            cliente_id = auth.get('cliente_id') or auth.get('user_id')
         
-        # El catÃ¡logo pÃºblico solo muestra productos activos
-        return Producto.objects.filter(activo=True)
+        # El catálogo público solo muestra productos activos
+        # Anotamos con el promedio y conteo de reseñas aprobadas
+        qs = Producto.objects.filter(activo=True).annotate(
+            promedio_calificacion=Avg('reseñas__calificacion', filter=Q(reseñas__estado='APROBADA')),
+            total_reseñas=Count('reseñas', filter=Q(reseñas__estado='APROBADA'))
+        )
+        
+        if cliente_id:
+            qs = qs.annotate(
+                comprado_por_cliente=Exists(
+                    DetalleFactura.objects.filter(
+                        factura__cliente_id=cliente_id,
+                        factura__estado='VIGENTE',
+                        producto_id=OuterRef('pk')
+                    )
+                )
+            )
+            
+        return qs
 
     @action(detail=True, methods=['get'], url_path='recomendaciones')
     def recomendaciones(self, request, pk=None):

@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Bell,
   Heart,
+  Gift,
 } from 'lucide-react';
 
 // ─── MÓDULOS AUTENTICADOS (con sidebar) ─────────────────────
@@ -238,6 +239,17 @@ export const APP_MODULES = [
     label: 'Lista de Deseos',
     icon: Heart,
     component: lazy(() => import('modules/cliente/views/WishlistView')),
+    protected: true,
+    inSidebar: true,
+    group: 'cliente',
+    roles: ['cliente'],
+  },
+  {
+    id: 'mis_puntos',
+    path: '/puntos',
+    label: 'Mis Puntos',
+    icon: Gift,
+    component: lazy(() => import('modules/cliente/fidelizacion/views/MiBilleteraPuntos')),
     protected: true,
     inSidebar: true,
     group: 'cliente',

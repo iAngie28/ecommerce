@@ -1,14 +1,25 @@
 import os
-import firebase_admin
-from firebase_admin import credentials, messaging
 from django.conf import settings
 from apps.gestionDeReportes.cu18_gestionar_notificaciones.models.notificacion import Notificacion
 from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.device_token import DeviceToken
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, messaging
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+    firebase_admin = None
+    credentials = None
+    messaging = None
 
 def _initialize_firebase():
     """
     Inicializa Firebase Admin SDK si aún no está inicializado.
     """
+    if not FIREBASE_AVAILABLE:
+        return
+        
     if not firebase_admin._apps:
         cred_path = getattr(settings, 'FIREBASE_CREDENTIALS_PATH', None)
         
@@ -50,8 +61,11 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
     )
     
     # 2. Enviar Push Notification (FCM)
+    if not FIREBASE_AVAILABLE:
+        return notif
+        
     _initialize_firebase()
-    if not firebase_admin._apps:
+    if not firebase_admin or not firebase_admin._apps:
         return notif # No se configuró firebase
         
     # DeviceToken vive en SHARED_APPS (esquema public), hay que buscarlo allí.

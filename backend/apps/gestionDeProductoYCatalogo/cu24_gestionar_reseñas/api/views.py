@@ -8,21 +8,28 @@ from apps.core.views import BaseViewSet
 from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.models.reseña import Reseña
 from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.api.serializers import ReseñaSerializer, ReseñaPublicaSerializer
 from apps.gestionDeProductoYCatalogo.cu24_gestionar_reseñas.services.reseña_service import ReseñaService
+from apps.gestionDeUsuarioySeguridad.cu1_iniciar_sesion.authentication import (
+    ClienteJWTAuthentication,
+    UsuarioJWTAuthentication,
+)
+from apps.customers.clientes.models.cliente import Cliente
 
 class ReseñaViewSet(BaseViewSet):
     queryset = Reseña.objects.all()
     serializer_class = ReseñaSerializer
     service = ReseñaService()
+    
+    authentication_classes = [ClienteJWTAuthentication, UsuarioJWTAuthentication]
 
     def get_permissions(self):
         if self.action == 'por_producto':
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    def _get_cliente(self):
-        # Verifica si el usuario logueado es un CLIENTE
-        if hasattr(self.request.user, 'roles') and self.request.user.roles.filter(nombre='CLIENTE').exists():
-            return getattr(self.request.user, 'cliente', None)
+    def _get_cliente_id(self):
+        auth = getattr(self.request, 'auth', None)
+        if hasattr(auth, 'get') and auth.get('role') == 'CLIENTE':
+            return auth.get('cliente_id') or auth.get('user_id')
         return None
         
     def _is_admin_or_vendor(self):
@@ -32,8 +39,8 @@ class ReseñaViewSet(BaseViewSet):
         return False
 
     def create(self, request, *args, **kwargs):
-        cliente = self._get_cliente()
-        if not cliente:
+        cliente_id = self._get_cliente_id()
+        if not cliente_id:
             return Response({"detail": "Solo los clientes pueden crear reseñas."}, status=status.HTTP_403_FORBIDDEN)
             
         producto_id = request.data.get('producto')
@@ -45,7 +52,7 @@ class ReseñaViewSet(BaseViewSet):
 
         try:
             reseña = self.service.crear_reseña(
-                cliente_id=cliente.id,
+                cliente_id=cliente_id,
                 producto_id=producto_id,
                 calificacion=int(calificacion),
                 comentario=comentario
@@ -57,11 +64,11 @@ class ReseñaViewSet(BaseViewSet):
 
     @action(detail=False, methods=['get'], url_path='mis-reseñas')
     def mis_reseñas(self, request):
-        cliente = self._get_cliente()
-        if not cliente:
+        cliente_id = self._get_cliente_id()
+        if not cliente_id:
             return Response({"detail": "No autorizado."}, status=status.HTTP_403_FORBIDDEN)
             
-        reseñas = self.queryset.filter(cliente=cliente)
+        reseñas = self.queryset.filter(cliente_id=cliente_id)
         
         page = self.paginate_queryset(reseñas)
         if page is not None:
@@ -93,9 +100,9 @@ class ReseñaViewSet(BaseViewSet):
     def partial_update(self, request, *args, **kwargs):
         # Solo permite al cliente editar si está en estado PENDIENTE
         reseña = self.get_object()
-        cliente = self._get_cliente()
+        cliente_id = self._get_cliente_id()
         
-        if not cliente or reseña.cliente_id != cliente.id:
+        if not cliente_id or reseña.cliente_id != cliente_id:
             return Response({"detail": "No tienes permiso para editar esta reseña."}, status=status.HTTP_403_FORBIDDEN)
             
         if reseña.estado != 'PENDIENTE':

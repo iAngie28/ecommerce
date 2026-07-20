@@ -11,6 +11,7 @@ const BASE_CAT  = '/categorias';
 // ─── PRODUCTOS ────────────────────────────────────────────────
 export const productosApi = {
   listar:   (params)    => api.get(BASE_PROD + '/', { params }),
+  listarCatalogo: (params) => api.get('/catalogo/', { params }),
   obtener:  (id)        => api.get(`${BASE_PROD}/${id}/`),
   crear:    (data)      => api.post(BASE_PROD + '/', data),
   actualizar: (id, data)=> api.put(`${BASE_PROD}/${id}/`, data),

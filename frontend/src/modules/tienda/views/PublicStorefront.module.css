@@ -405,6 +405,34 @@
     border-radius: 6px;
 }
 
+.wishlistBtn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.wishlistBtn:hover {
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+.wishlistActive {
+    color: #ef4444;
+}
+
 .productBody {
     padding: 1.25rem;
 }
@@ -777,6 +805,189 @@
     color: #1e293b;
 }
 
+.loyaltyBox {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+}
+
+.loyaltyHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+    color: #2563eb;
+}
+
+.loyaltyHeader > div {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.loyaltyHeader strong {
+    color: #1e293b;
+    font-size: 0.92rem;
+}
+
+.loyaltyHeader span,
+.loyaltyHint span {
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.loyaltyControls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 52px 82px;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.loyaltyInputWrap {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.loyaltyInputWrap input {
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0 0.75rem;
+    color: #1e293b;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font-size: 0.9rem;
+}
+
+.loyaltyInputWrap span {
+    min-width: 38px;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: #64748b;
+    background: #eef2ff;
+    border-left: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.loyaltyGhostBtn,
+.loyaltyApplyBtn,
+.loyaltyPreview button {
+    height: 38px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.loyaltyGhostBtn {
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.loyaltyApplyBtn {
+    color: #ffffff;
+    background: #2563eb;
+    border: 1px solid #2563eb;
+}
+
+.loyaltyGhostBtn:hover:not(:disabled),
+.loyaltyApplyBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.loyaltyGhostBtn:disabled,
+.loyaltyApplyBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.loyaltyHint {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+}
+
+.loyaltyHint strong {
+    color: #1e293b;
+    font-size: 0.78rem;
+}
+
+.loyaltyError {
+    margin: 0.65rem 0 0;
+    color: #dc2626;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.loyaltyPreview {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+}
+
+.loyaltyPreview div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.loyaltyPreview span {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.loyaltyPreview strong {
+    color: #1d4ed8;
+    font-size: 1rem;
+}
+
+.loyaltyPreview button {
+    width: 58px;
+    color: #dc2626;
+    background: #ffffff;
+    border: 1px solid #fecaca;
+}
+
+.discountRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.discountRow strong {
+    color: #16a34a;
+}
+
+.finalTotalRow {
+    margin-top: 0.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #e2e8f0;
+}
+
 /* --- SUCCESS OVERLAY --- */
 .successOverlay {
     position: fixed;
@@ -1113,4 +1324,143 @@
     .detailPrice .val {
         font-size: 2.25rem;
     }
+}
+
+/* --- REVIEWS --- */
+.ratingBadge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #eab308; /* Yellow */
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ratingBadge span.ratingCount {
+    color: #94a3b8;
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+.detailTabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    gap: 1rem;
+}
+
+.tabBtn {
+    background: none;
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tabBtn:hover {
+    color: #1e293b;
+}
+
+.activeTab {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+.reviewsContainer {
+    padding-right: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.reviewItem {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 0;
+}
+
+.reviewItem:last-child {
+    border-bottom: none;
+}
+
+.reviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.reviewUser {
+    font-weight: 600;
+    color: #1e293b;
+    display: block;
+}
+
+.reviewDate {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.reviewStars {
+    display: flex;
+    gap: 2px;
+    color: #eab308;
+    margin: 4px 0;
+}
+
+.reviewComment {
+    color: #475569;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.reviewForm {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.reviewForm h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+}
+
+.starRatingInput {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.starOption {
+    color: #cbd5e1;
+    transition: color 0.2s;
+}
+
+.starOption.filled {
+    color: #eab308;
+}
+
+.reviewTextarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.loginPrompt {
+    background: #f1f5f9;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #64748b;
+    margin-bottom: 1.5rem;
 }

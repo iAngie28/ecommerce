@@ -21,7 +21,7 @@ const ClienteDashboard = () => {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
 
-                const res = await api.get('/tiendas-publicas/');
+                const res = await api.get('/tiendas-publicas/?page_size=100');
                 setShops(res.data.results || []);
             } catch (err) {
                 console.error("Error fetching shops", err);

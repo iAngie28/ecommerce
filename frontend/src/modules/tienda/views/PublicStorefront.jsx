@@ -9,7 +9,11 @@ import {
     ImageOff,
     ShoppingCart,
     ArrowLeft,
-    Heart
+    Heart,
+    Star,
+    StarHalf,
+    CheckCircle,
+    Gift
 } from 'lucide-react';
 import { productosApi, categoriasApi } from '../../productos_catalogo/services/productosApi';
 import { Button, Spinner } from 'shared/components';
@@ -17,6 +21,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from 'core/hooks/useAuth';
 import api from 'core/services/api';
 import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
+import useFidelizacion from 'modules/cliente/fidelizacion/hooks/useFidelizacion';
 import styles from './PublicStorefront.module.css';
 
 const PublicStorefront = () => {
@@ -38,12 +43,38 @@ const PublicStorefront = () => {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const checkoutInProgress = useRef(false);
 
+    // --- Estado de Reseñas ---
+    const [activeTab, setActiveTab] = useState('desc');
+    const [reviews, setReviews] = useState([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [reviewForm, setReviewForm] = useState({ calificacion: 0, comentario: '' });
+    const [submittingReview, setSubmittingReview] = useState(false);
+
     // --- Carrito ---
     const { cart, addToCart, removeFromCart, updateQuantity, total, clearCart } = useCart();
     const [isCartOpen, setIsCartOpen] = useState(false);
     
     // --- Auth y Notificaciones ---
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+    const isClienteUser = isAuthenticated && user?.role?.toLowerCase() === 'cliente';
+    const {
+        cuenta: cuentaPuntos,
+        loading: loadingPuntos,
+        error: puntosError,
+        fetchCuenta: fetchCuentaPuntos,
+        configuracion,
+        calcularDescuento,
+    } = useFidelizacion();
+    const [pointsToRedeem, setPointsToRedeem] = useState('');
+    const [loyaltyPreview, setLoyaltyPreview] = useState(null);
+    const [loyaltyError, setLoyaltyError] = useState('');
+
+    const saldoPuntos = cuentaPuntos?.saldo_actual || 0;
+    const valorPunto = Number(configuracion.VALOR_BS_POR_PUNTO || 0.05);
+    const maxPointsByTotal = valorPunto > 0 ? Math.floor(total / valorPunto) : 0;
+    const maxRedeemablePoints = Math.max(0, Math.min(saldoPuntos, maxPointsByTotal));
+    const loyaltyDiscount = loyaltyPreview ? Math.min(loyaltyPreview.discount, total) : 0;
+    const checkoutTotal = Math.max(total - loyaltyDiscount, 0);
     
     // Simple notification fallback
     const addNotification = (type, msg) => {
@@ -58,6 +89,18 @@ const PublicStorefront = () => {
     const [recommendations, setRecommendations] = useState([]);
     const [loadingRecs, setLoadingRecs] = useState(false);
     const lastProductId = cart.length > 0 ? cart[cart.length - 1].id : null;
+
+    useEffect(() => {
+        if (!isCartOpen || !isClienteUser) return;
+        fetchCuentaPuntos().catch(() => {});
+    }, [fetchCuentaPuntos, isCartOpen, isClienteUser]);
+
+    useEffect(() => {
+        if (cart.length > 0) return;
+        setPointsToRedeem('');
+        setLoyaltyPreview(null);
+        setLoyaltyError('');
+    }, [cart.length]);
 
     useEffect(() => {
         if (lastProductId && isCartOpen) {
@@ -90,7 +133,7 @@ const PublicStorefront = () => {
                 }
             });
 
-            const res = await productosApi.listar(params);
+            const res = await productosApi.listarCatalogo(params);
             setProducts(Array.isArray(res.data) ? res.data : res.data?.results || []);
         } catch (err) {
             setError('Error al conectar con la tienda.');
@@ -167,6 +210,63 @@ const PublicStorefront = () => {
         }));
     };
 
+    const handlePointsInputChange = (value) => {
+        const parsed = Math.floor(Number(value));
+        setLoyaltyError('');
+        setLoyaltyPreview(null);
+
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            setPointsToRedeem('');
+            return;
+        }
+
+        setPointsToRedeem(String(Math.min(parsed, maxRedeemablePoints || parsed)));
+    };
+
+    const handleUseMaxPoints = () => {
+        if (maxRedeemablePoints <= 0) return;
+        setLoyaltyError('');
+        setLoyaltyPreview(null);
+        setPointsToRedeem(String(maxRedeemablePoints));
+    };
+
+    const handlePreviewPoints = () => {
+        const puntos = Math.floor(Number(pointsToRedeem));
+
+        if (!isClienteUser) {
+            setLoyaltyError('Inicia sesión como cliente para usar puntos.');
+            return;
+        }
+
+        if (!Number.isFinite(puntos) || puntos <= 0) {
+            setLoyaltyPreview(null);
+            setLoyaltyError('Ingresa una cantidad de puntos mayor a cero.');
+            return;
+        }
+
+        if (puntos > saldoPuntos) {
+            setLoyaltyError(`Tu saldo disponible es de ${saldoPuntos} puntos.`);
+            return;
+        }
+
+        if (puntos > maxPointsByTotal) {
+            setLoyaltyError('El descuento no puede superar el total del carrito.');
+            return;
+        }
+
+        setLoyaltyError('');
+        setLoyaltyPreview({
+            points: puntos,
+            discount: Math.min(calcularDescuento(puntos), total),
+        });
+    };
+
+    const clearLoyaltyPreview = () => {
+        setPointsToRedeem('');
+        setLoyaltyPreview(null);
+        setLoyaltyError('');
+    };
+
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [lastPedidoId, setLastPedidoId] = useState(null);
 
@@ -177,6 +277,9 @@ const PublicStorefront = () => {
             const pid = query.get('pedido_id');
             setLastPedidoId(pid);
             clearCart();
+            setPointsToRedeem('');
+            setLoyaltyPreview(null);
+            setLoyaltyError('');
             // Confirmar en el backend por si el webhook se retrasa
             if (pid) {
                 let tenant = query.get('tenant');
@@ -201,6 +304,13 @@ const PublicStorefront = () => {
         let pedidoId = null;
 
         try {
+            const loyaltyPayload = loyaltyPreview
+                ? {
+                    puntos_canjeados: loyaltyPreview.points,
+                    descuento_puntos: loyaltyDiscount,
+                }
+                : {};
+
             // 1. Crear el pedido primero
             const pedidoRes = await api.post('/pedidos/', {
                 productos: cart.map(item => ({
@@ -208,7 +318,8 @@ const PublicStorefront = () => {
                     cantidad: item.quantity,
                     precio_unitario: item.precio
                 })),
-                total: total
+                total: checkoutTotal,
+                ...loyaltyPayload
             });
 
             pedidoId = pedidoRes.data.id;
@@ -225,7 +336,8 @@ const PublicStorefront = () => {
             const stripeRes = await api.post('/pagos/create-checkout-session/', {
                 pedido_id: pedidoId,
                 success_url: successUrl,
-                cancel_url: `${currentUrl}?status=cancel`
+                cancel_url: `${currentUrl}?status=cancel`,
+                ...loyaltyPayload
             });
 
             if (stripeRes.data.url) {
@@ -253,6 +365,78 @@ const PublicStorefront = () => {
         setPriceRange({ min: '', max: '' });
         setAttributes({});
         setSortBy('-creado_en');
+    };
+
+    // --- Funciones de Reseñas ---
+    const fetchReviews = async (productId) => {
+        setLoadingReviews(true);
+        try {
+            const res = await api.get(`/productos/${productId}/reseñas/`);
+            // Manejar tanto respuesta paginada (results) como no paginada (resultados)
+            setReviews(res.data.results || res.data.resultados || []);
+        } catch (err) {
+            console.error("Error fetching reviews:", err);
+            addNotification('error', 'No se pudieron cargar las reseñas');
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
+
+    const submitReview = async (e) => {
+        e.preventDefault();
+        if (reviewForm.calificacion === 0) {
+            addNotification('error', 'Por favor selecciona una calificación');
+            return;
+        }
+        setSubmittingReview(true);
+        try {
+            await api.post('/reseñas/', {
+                producto: selectedProduct.id,
+                calificacion: reviewForm.calificacion,
+                comentario: reviewForm.comentario
+            });
+            addNotification('success', '¡Reseña enviada con éxito!');
+            setReviewForm({ calificacion: 0, comentario: '' });
+            fetchReviews(selectedProduct.id);
+            // Refresh product list to update average stars
+            fetchProducts();
+            
+            // Actualizar el estado del producto seleccionado para que la UI responda inmediatamente
+            setSelectedProduct(prev => {
+                const newTotal = (prev.total_reseñas || 0) + 1;
+                // Calculo rápido del nuevo promedio estimado
+                const newAvg = ((prev.promedio_calificacion || 0) * (prev.total_reseñas || 0) + reviewForm.calificacion) / newTotal;
+                return {
+                    ...prev,
+                    total_reseñas: newTotal,
+                    promedio_calificacion: newAvg
+                };
+            });
+        } catch (err) {
+            console.error("Error submitting review:", err);
+            const msg = err.response?.data?.detail || 'No se pudo enviar la reseña';
+            addNotification('error', msg);
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    const renderStars = (rating, total) => {
+        const avg = parseFloat(rating) || 0;
+        const fullStars = Math.floor(avg);
+        const hasHalfStar = avg - fullStars >= 0.5;
+        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+        return (
+            <div className={styles.ratingBadge}>
+                <div style={{ display: 'flex', color: '#eab308' }}>
+                    {[...Array(fullStars)].map((_, i) => <Star key={`f-${i}`} size={14} fill="currentColor" />)}
+                    {hasHalfStar && <StarHalf size={14} fill="currentColor" />}
+                    {[...Array(emptyStars)].map((_, i) => <Star key={`e-${i}`} size={14} />)}
+                </div>
+                <span className={styles.ratingCount}>({total || 0})</span>
+            </div>
+        );
     };
 
     return (
@@ -470,7 +654,12 @@ const PublicStorefront = () => {
                                 </div>
                             ) : (
                                 products.map(prod => (
-                                    <div key={prod.id} className={styles.productCard} onClick={() => setSelectedProduct(prod)}>
+                                    <div key={prod.id} className={styles.productCard} onClick={() => {
+                                        setSelectedProduct(prod);
+                                        setActiveTab('desc');
+                                        setReviews([]);
+                                        setReviewForm({ calificacion: 0, comentario: '' });
+                                    }}>
                                         <div className={styles.imageBox}>
                                             {prod.imagen_url ? (
                                                 <img src={prod.imagen_url} alt={prod.nombre} />
@@ -490,6 +679,18 @@ const PublicStorefront = () => {
                                                     fill={wishlistItems.has(prod.id) ? "currentColor" : "none"} 
                                                 />
                                             </button>
+                                            {prod.comprado_por_cliente && (
+                                                <div style={{
+                                                    position: 'absolute', top: '12px', left: '12px',
+                                                    background: '#10b981', color: 'white',
+                                                    padding: '4px 8px', borderRadius: '20px',
+                                                    fontSize: '11px', fontWeight: 'bold',
+                                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}>
+                                                    <CheckCircle size={12} /> Comprado
+                                                </div>
+                                            )}
                                         </div>
                                         <div className={styles.productBody}>
                                             <span className={styles.categoryName}>{prod.categoria_detail?.nombre}</span>
@@ -498,8 +699,11 @@ const PublicStorefront = () => {
                                                 <span className={styles.currency}>Bs.</span>
                                                 <span className={styles.priceValue}>{parseFloat(prod.precio).toFixed(2)}</span>
                                             </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                                                Stock disponible: <strong>{prod.stock}</strong>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                                    Stock: <strong>{prod.stock}</strong>
+                                                </div>
+                                                {renderStars(prod.promedio_calificacion, prod.total_reseñas)}
                                             </div>
                                             <button
                                                 className={styles.addToCartBtn}
@@ -572,6 +776,95 @@ const PublicStorefront = () => {
                                             <span>Subtotal</span>
                                             <strong>Bs. {total.toFixed(2)}</strong>
                                         </div>
+
+                                        {isClienteUser && (
+                                            <div className={styles.loyaltyBox}>
+                                                <div className={styles.loyaltyHeader}>
+                                                    <Gift size={18} />
+                                                    <div>
+                                                        <strong>Puntos MiQhatu</strong>
+                                                        <span>
+                                                            {loadingPuntos
+                                                                ? 'Consultando saldo...'
+                                                                : `${saldoPuntos} pts disponibles`}
+                                                        </span>
+                                                    </div>
+                                                    {loadingPuntos && <Spinner size="sm" />}
+                                                </div>
+
+                                                {puntosError ? (
+                                                    <p className={styles.loyaltyError}>{puntosError}</p>
+                                                ) : (
+                                                    <>
+                                                        <div className={styles.loyaltyControls}>
+                                                            <div className={styles.loyaltyInputWrap}>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max={maxRedeemablePoints}
+                                                                    value={pointsToRedeem}
+                                                                    placeholder="0"
+                                                                    onChange={(event) => handlePointsInputChange(event.target.value)}
+                                                                    aria-label="Puntos a canjear"
+                                                                />
+                                                                <span>pts</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.loyaltyGhostBtn}
+                                                                disabled={maxRedeemablePoints <= 0}
+                                                                onClick={handleUseMaxPoints}
+                                                            >
+                                                                Máx.
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.loyaltyApplyBtn}
+                                                                disabled={maxRedeemablePoints <= 0}
+                                                                onClick={handlePreviewPoints}
+                                                            >
+                                                                Calcular
+                                                            </button>
+                                                        </div>
+
+                                                        <div className={styles.loyaltyHint}>
+                                                            <span>Máximo usable en este carrito</span>
+                                                            <strong>{maxRedeemablePoints} pts</strong>
+                                                        </div>
+
+                                                        {loyaltyError && (
+                                                            <p className={styles.loyaltyError}>{loyaltyError}</p>
+                                                        )}
+
+                                                        {loyaltyPreview && (
+                                                            <div className={styles.loyaltyPreview}>
+                                                                <div>
+                                                                    <span>Descuento estimado</span>
+                                                                    <strong>Bs. {loyaltyDiscount.toFixed(2)}</strong>
+                                                                </div>
+                                                                <button type="button" onClick={clearLoyaltyPreview}>
+                                                                    Quitar
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {loyaltyPreview && (
+                                            <>
+                                                <div className={styles.discountRow}>
+                                                    <span>Descuento por puntos</span>
+                                                    <strong>- Bs. {loyaltyDiscount.toFixed(2)}</strong>
+                                                </div>
+                                                <div className={`${styles.totalRow} ${styles.finalTotalRow}`}>
+                                                    <span>Total estimado</span>
+                                                    <strong>Bs. {checkoutTotal.toFixed(2)}</strong>
+                                                </div>
+                                            </>
+                                        )}
+
                                         <Button
                                             variant="primary"
                                             fullWidth
@@ -641,7 +934,10 @@ const PublicStorefront = () => {
 
                         <div className={styles.detailContent}>
                             <div className={styles.detailHeader}>
-                                <span className={styles.detailCategory}>{selectedProduct.categoria_detail?.nombre}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <span className={styles.detailCategory}>{selectedProduct.categoria_detail?.nombre}</span>
+                                    {renderStars(selectedProduct.promedio_calificacion, selectedProduct.total_reseñas)}
+                                </div>
                                 <h2 className={styles.detailName}>{selectedProduct.nombre}</h2>
                             </div>
 
@@ -650,22 +946,103 @@ const PublicStorefront = () => {
                                 <span className={styles.val}>{parseFloat(selectedProduct.precio).toFixed(2)}</span>
                             </div>
 
-                            <p className={styles.detailDesc}>
-                                {selectedProduct.descripcion || 'Sin descripción disponible para este producto.'}
-                            </p>
-
-                            <div className={styles.detailMeta}>
-                                <div className={styles.metaItem}>
-                                    <span className={styles.metaLabel}>Disponibilidad</span>
-                                    <span className={`${styles.metaValue} ${selectedProduct.stock > 0 ? styles.stockOk : styles.stockOut}`}>
-                                        {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Agotado'}
-                                    </span>
-                                </div>
-                                <div className={styles.metaItem}>
-                                    <span className={styles.metaLabel}>Código de producto</span>
-                                    <span className={styles.metaValue}>#PRD-{selectedProduct.id}</span>
-                                </div>
+                            <div className={styles.detailTabs}>
+                                <button 
+                                    className={`${styles.tabBtn} ${activeTab === 'desc' ? styles.activeTab : ''}`}
+                                    onClick={() => setActiveTab('desc')}
+                                >
+                                    Descripción
+                                </button>
+                                <button 
+                                    className={`${styles.tabBtn} ${activeTab === 'reviews' ? styles.activeTab : ''}`}
+                                    onClick={() => {
+                                        setActiveTab('reviews');
+                                        if (reviews.length === 0) fetchReviews(selectedProduct.id);
+                                    }}
+                                >
+                                    Reseñas {selectedProduct.total_reseñas > 0 ? `(${selectedProduct.total_reseñas})` : ''}
+                                </button>
                             </div>
+
+                            {activeTab === 'desc' ? (
+                                <>
+                                    <p className={styles.detailDesc}>
+                                        {selectedProduct.descripcion || 'Sin descripción disponible para este producto.'}
+                                    </p>
+
+                                    <div className={styles.detailMeta}>
+                                        <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Disponibilidad</span>
+                                            <span className={`${styles.metaValue} ${selectedProduct.stock > 0 ? styles.stockOk : styles.stockOut}`}>
+                                                {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Agotado'}
+                                            </span>
+                                        </div>
+                                        <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Código de producto</span>
+                                            <span className={styles.metaValue}>#PRD-{selectedProduct.id}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className={styles.reviewsContainer}>
+                                    {isAuthenticated && user?.role?.toLowerCase() === 'cliente' ? (
+                                        <div className={styles.reviewForm}>
+                                            <h4>Deja tu reseña</h4>
+                                            <form onSubmit={submitReview}>
+                                                <div className={styles.starRatingInput}>
+                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                        <Star 
+                                                            key={star} 
+                                                            size={24} 
+                                                            className={`${styles.starOption} ${reviewForm.calificacion >= star ? styles.filled : ''}`}
+                                                            fill={reviewForm.calificacion >= star ? 'currentColor' : 'none'}
+                                                            onClick={() => setReviewForm(prev => ({ ...prev, calificacion: star }))}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <textarea 
+                                                    className={styles.reviewTextarea}
+                                                    placeholder="Cuéntanos qué te pareció este producto..."
+                                                    value={reviewForm.comentario}
+                                                    onChange={e => setReviewForm(prev => ({ ...prev, comentario: e.target.value }))}
+                                                />
+                                                <Button type="submit" variant="primary" disabled={submittingReview}>
+                                                    {submittingReview ? 'Enviando...' : 'Enviar reseña'}
+                                                </Button>
+                                            </form>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.loginPrompt}>
+                                            Inicia sesión como cliente para dejar una reseña.
+                                        </div>
+                                    )}
+
+                                    {loadingReviews ? (
+                                        <div style={{ textAlign: 'center', padding: '2rem 0' }}><Spinner size="md" /></div>
+                                    ) : reviews.length > 0 ? (
+                                        <div className={styles.reviewList}>
+                                            {reviews.map(rev => (
+                                                <div key={rev.id} className={styles.reviewItem}>
+                                                    <div className={styles.reviewHeader}>
+                                                        <div>
+                                                            <span className={styles.reviewUser}>{rev.cliente_nombre || 'Cliente Anónimo'}</span>
+                                                            <div className={styles.reviewStars}>
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star key={i} size={14} fill={i < rev.calificacion ? 'currentColor' : 'none'} color={i < rev.calificacion ? 'currentColor' : '#cbd5e1'} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <span className={styles.reviewDate}>{new Date(rev.fecha_creacion).toLocaleDateString()}</span>
+                                                    </div>
+                                                    {rev.comentario && <p className={styles.reviewComment}>{rev.comentario}</p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem 0' }}>Aún no hay reseñas para este producto.</p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className={styles.detailActions}>
                                 <Button 

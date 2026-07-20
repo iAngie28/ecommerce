@@ -9,6 +9,9 @@ class ProductoSerializer(serializers.ModelSerializer):
     categoria = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all()
     )
+    promedio_calificacion = serializers.SerializerMethodField()
+    total_reseñas = serializers.SerializerMethodField()
+    comprado_por_cliente = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
@@ -16,8 +19,18 @@ class ProductoSerializer(serializers.ModelSerializer):
             'id', 'nombre', 'sku', 'descripcion', 'precio', 'costo',
             'stock', 'categoria', 'categoria_detail', 'atributos',
             'activo', 'imagen_url', 'creado_en', 'actualizado_en',
+            'promedio_calificacion', 'total_reseñas', 'comprado_por_cliente'
         ]
         read_only_fields = ['id', 'creado_en', 'actualizado_en', 'categoria_detail']
+
+    def get_comprado_por_cliente(self, obj):
+        return getattr(obj, 'comprado_por_cliente', False)
+
+    def get_promedio_calificacion(self, obj):
+        return getattr(obj, 'promedio_calificacion', 0) or 0
+
+    def get_total_reseñas(self, obj):
+        return getattr(obj, 'total_reseñas', 0) or 0
 
     def validate_sku(self, value):
         # Convertir string vacío a None para las actualizaciones.
