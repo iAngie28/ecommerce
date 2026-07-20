@@ -11,7 +11,7 @@ class ReseñaSerializer(serializers.ModelSerializer):
 
     def get_cliente_nombre(self, obj):
         try:
-            return obj.cliente.usuario.get_full_name() or obj.cliente.usuario.username
+            return obj.cliente.nombre
         except Exception:
             return "Usuario Desconocido"
 
@@ -25,6 +25,6 @@ class ReseñaPublicaSerializer(serializers.ModelSerializer):
         
     def get_cliente_nombre(self, obj):
         try:
-            return obj.cliente.usuario.get_full_name() or obj.cliente.usuario.username
+            return obj.cliente.nombre
         except Exception:
             return "Usuario Desconocido"

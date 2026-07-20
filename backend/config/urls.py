@@ -17,6 +17,7 @@ from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.api.views import 
 from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.api.tipo_pago_views import TipoPagoViewSet
 from apps.gestionDeVentasYFacturacion.cu12_gestionar_metodos_de_pago.api.pago_views import PagoViewSet
 from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.api.views import WishlistViewSet
+from apps.gestionDeClientes.cu26_gestionar_fidelizacion.api.views import FidelizacionViewSet
 
 # Customers
 from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.api.views import (
@@ -87,6 +88,12 @@ urlpatterns = [
     path('api/usuarios/perfil/', MiPerfilView.as_view(), name='mi_perfil'),
     path('api/tienda/perfil/', TiendaPerfilView.as_view(), name='tienda_perfil'),
     path('api/tienda/suscripcion/upgrade/', UpgradeSuscripcionView.as_view(), name='suscripcion_upgrade'),
+
+    # Fidelización (CU-26) disponible también desde el portal global del cliente
+    path('api/fidelizacion/mi-cuenta/', FidelizacionViewSet.as_view({'get': 'mi_cuenta'}), name='fidelizacion-mi-cuenta'),
+    path('api/fidelizacion/canjear/', FidelizacionViewSet.as_view({'post': 'canjear'}), name='fidelizacion-canjear'),
+    path('api/fidelizacion/clientes/', FidelizacionViewSet.as_view({'get': 'listar_cuentas'}), name='fidelizacion-clientes'),
+    path('api/fidelizacion/configuracion/', FidelizacionViewSet.as_view({'get': 'ver_configuracion'}), name='fidelizacion-configuracion'),
 
     # Mobile Releases (Public)
     path('api/public/apps/latest/', LatestReleaseInfoView.as_view(), name='apps_latest'),

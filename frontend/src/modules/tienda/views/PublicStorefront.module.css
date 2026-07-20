@@ -1427,6 +1427,8 @@
 .reviewForm h4 {
     margin: 0 0 1rem 0;
     font-size: 1rem;
+    color: #1e293b;
+    font-weight: 600;
 }
 
 .starRatingInput {
