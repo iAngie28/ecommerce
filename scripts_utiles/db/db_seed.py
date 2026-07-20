@@ -454,19 +454,8 @@ class DatabaseSeeder:
                                     total=p.precio * cantidad
                                 )
                                 
-                        # Crear Cuenta de Puntos quemada para el cliente con algo de saldo (para pruebas de Fidelización)
-                        try:
-                            from apps.gestionDeClientes.cu26_gestionar_fidelizacion.models.cuenta_puntos import CuentaPuntos
-                            CuentaPuntos.objects.get_or_create(
-                                cliente=cliente,
-                                defaults={'saldo_actual': 500, 'puntos_historicos': 500}
-                            )
-                        except Exception as e:
-                            print(f"  [!] Omitiendo puntos para el cliente {cliente.nombre} (posiblemente la app no está activa): {e}")
-                            
-                        # Mover esto al final de la creación de las facturas o en el bloque correcto
-                        for item, p, cantidad in items_creados:
-                            CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
+                            for item, p, cantidad in items_creados:
+                                CarritoItem.objects.filter(pk=item.pk).update(fecha_agregado=fecha_pedido)
 
                             Carrito.objects.filter(pk=carrito.pk).update(
                                 fecha_creacion=fecha_pedido,
@@ -480,6 +469,16 @@ class DatabaseSeeder:
                                 fecha=fecha_pedido.date(),
                                 hora=fecha_pedido.time()
                             )
+                            
+                        # Crear Cuenta de Puntos quemada para el cliente con algo de saldo (una sola vez por cliente)
+                        try:
+                            from apps.gestionDeClientes.cu26_gestionar_fidelizacion.models.cuenta_puntos import CuentaPuntos
+                            CuentaPuntos.objects.get_or_create(
+                                cliente=cliente,
+                                defaults={'saldo_actual': 500, 'puntos_historicos': 500}
+                            )
+                        except Exception as e:
+                            print(f"  [!] Omitiendo puntos para el cliente {cliente.nombre} (posiblemente la app no está activa): {e}")
         print(f"\n  [OK] Sincronización Finalizada.")
 
 def main():
@@ -497,5 +496,7 @@ def main():
     except KeyboardInterrupt: pass
     except Exception as e: print(f"Error: {e}"); import traceback; traceback.print_exc()
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()
+    input("Presiona ENTER para salir...")
 

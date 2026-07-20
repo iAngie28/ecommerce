@@ -36,9 +36,9 @@ class WishlistItem(models.Model):
     )
 
     class Meta:
-        app_label = 'app_negocio'
+        app_label = 'cu25_gestionar_wishlist'
         db_table = 'app_negocio_wishlist_item'
-        verbose_name = 'Item de Wishlist'
+        verbose_name = 'Item de Lista de Deseos'
         verbose_name_plural = 'Items de Wishlist'
         unique_together = [('wishlist', 'producto')]
         ordering = ['-agregado_en']

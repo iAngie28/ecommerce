@@ -21,9 +21,9 @@ class Reseña(models.Model):
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = 'app_negocio'
-        db_table = 'app_negocio_reseña'
-        verbose_name = 'Reseña'
+        app_label = 'cu24_gestionar_reseñas'
+        db_table = 'app_negocio_resena'
+        verbose_name = 'Reseña de Producto'
         verbose_name_plural = 'Reseñas'
         unique_together = ('producto', 'cliente')
         ordering = ['-fecha_creacion']

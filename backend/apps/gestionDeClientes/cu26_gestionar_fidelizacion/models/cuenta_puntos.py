@@ -8,7 +8,7 @@ class CuentaPuntos(models.Model):
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     
     class Meta:
-        app_label = 'app_negocio'
+        app_label = 'cu26_gestionar_fidelizacion'
         db_table = 'app_negocio_cuenta_puntos'
         verbose_name = 'Cuenta de Puntos'
         verbose_name_plural = 'Cuentas de Puntos'

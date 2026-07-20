@@ -15,7 +15,7 @@ class HistorialPuntos(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        app_label = 'app_negocio'
+        app_label = 'cu26_gestionar_fidelizacion'
         db_table = 'app_negocio_historial_puntos'
         verbose_name = 'Historial de Puntos'
         verbose_name_plural = 'Historial de Puntos'

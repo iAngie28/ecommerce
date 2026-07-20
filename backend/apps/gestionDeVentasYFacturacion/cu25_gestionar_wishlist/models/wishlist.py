@@ -23,7 +23,7 @@ class Wishlist(models.Model):
     )
 
     class Meta:
-        app_label = 'app_negocio'
+        app_label = 'cu25_gestionar_wishlist'
         db_table = 'app_negocio_wishlist'
         verbose_name = 'Lista de Deseos'
         verbose_name_plural = 'Listas de Deseos'
