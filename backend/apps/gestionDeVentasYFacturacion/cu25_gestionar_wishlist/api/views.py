@@ -47,13 +47,39 @@ class WishlistViewSet(ViewSet):
     # ------------------------------------------------------------------
 
     def list(self, request):
-        """Retorna la wishlist completa del cliente autenticado."""
+        """Retorna la wishlist completa del cliente autenticado (agrupada si es público)."""
+        from django.db import connection
+        
         cliente_id = self._get_cliente_id()
         if not cliente_id:
             return Response(
                 {'error': 'Solo los clientes pueden acceder a su lista de deseos.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # Si es el esquema público, buscamos en todos los tenants
+        if connection.schema_name == 'public':
+            from apps.customers.models import Client
+            from django_tenants.utils import tenant_context
+            from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.models.wishlist import Wishlist
+            
+            todos_items = []
+            for tenant in Client.objects.exclude(schema_name='public'):
+                with tenant_context(tenant):
+                    try:
+                        wishlist = Wishlist.objects.get(cliente_id=cliente_id)
+                        if wishlist.items.exists():
+                            serializer = WishlistSerializer(wishlist, context={'request': request})
+                            items_data = serializer.data.get('items', [])
+                            for item in items_data:
+                                item['tienda_nombre'] = tenant.name
+                                item['tienda_schema'] = tenant.schema_name
+                                todos_items.append(item)
+                    except Wishlist.DoesNotExist:
+                        pass
+            
+            return Response({'items': todos_items, 'total_items': len(todos_items)}, status=status.HTTP_200_OK)
+            
         try:
             wishlist = self.get_service().obtener_o_crear(cliente_id)
             serializer = WishlistSerializer(wishlist, context={'request': request})

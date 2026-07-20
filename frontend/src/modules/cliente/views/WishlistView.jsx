@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from 'shared/components';
 import { Trash2, ShoppingCart, Heart } from 'lucide-react';
 import api from 'core/services/api';
+import { getTenantUrl, getApiUrl } from 'core/utils/domain';
 import styles from './WishlistView.module.css';
 
 const WishlistView = () => {
@@ -31,9 +32,15 @@ const WishlistView = () => {
         }
     };
 
-    const removeFromWishlist = async (productoId) => {
+    const removeFromWishlist = async (item) => {
         try {
-            await api.delete(`wishlist/eliminar/${productoId}/`);
+            let baseUrl = 'api/';
+            if (item.tienda_schema) {
+                const tenantFrontendUrl = getTenantUrl(item.tienda_schema);
+                const tenantHostname = new URL(tenantFrontendUrl).hostname;
+                baseUrl = getApiUrl(tenantHostname) + '/';
+            }
+            await api.delete(`${baseUrl}wishlist/eliminar/${item.producto.id}/`);
             addNotification('success', 'Producto eliminado de la lista de deseos');
             fetchWishlist();
         } catch (error) {
@@ -44,7 +51,13 @@ const WishlistView = () => {
 
     const addToCartAndRemove = async (item) => {
         try {
-            await api.post(`wishlist/mover-al-carrito/${item.producto.id}/`);
+            let baseUrl = 'api/';
+            if (item.tienda_schema) {
+                const tenantFrontendUrl = getTenantUrl(item.tienda_schema);
+                const tenantHostname = new URL(tenantFrontendUrl).hostname;
+                baseUrl = getApiUrl(tenantHostname) + '/';
+            }
+            await api.post(`${baseUrl}wishlist/mover-al-carrito/${item.producto.id}/`);
             addNotification('success', 'Producto movido al carrito');
             fetchWishlist();
             
@@ -94,20 +107,40 @@ const WishlistView = () => {
                             <h3>{item.producto.nombre}</h3>
                             <div className={styles.price}>Bs. {parseFloat(item.producto.precio).toFixed(2)}</div>
                             
-                            <div className={styles.actions}>
-                                <Button 
-                                    variant="primary" 
-                                    className={styles.cartBtn}
-                                    onClick={() => addToCartAndRemove(item)}
-                                    disabled={item.producto.stock <= 0}
-                                >
-                                    <ShoppingCart size={16} /> 
-                                    {item.producto.stock <= 0 ? 'Agotado' : 'Mover al carrito'}
-                                </Button>
+                            {item.tienda_nombre && (
+                                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '10px' }}>
+                                    Tienda: {item.tienda_nombre}
+                                </div>
+                            )}
+
+                            <div className={styles.actions} style={{ flexWrap: 'wrap' }}>
+                                {!item.tienda_nombre && (
+                                    <Button 
+                                        variant="primary" 
+                                        className={styles.cartBtn}
+                                        onClick={() => addToCartAndRemove(item)}
+                                        disabled={item.producto.stock <= 0}
+                                        style={{ flex: 1, minWidth: '120px' }}
+                                    >
+                                        <ShoppingCart size={16} /> 
+                                        {item.producto.stock <= 0 ? 'Agotado' : 'Mover al carrito'}
+                                    </Button>
+                                )}
+                                
+                                {item.tienda_nombre && (
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => window.location.href = `${getTenantUrl(item.tienda_schema)}/catalogo`}
+                                        title="Visitar Tienda"
+                                    >
+                                        Visitar
+                                    </Button>
+                                )}
+                                
                                 <Button 
                                     variant="danger" 
                                     className={styles.removeBtn}
-                                    onClick={() => removeFromWishlist(item.producto.id)}
+                                    onClick={() => removeFromWishlist(item)}
                                     title="Eliminar de la lista"
                                 >
                                     <Trash2 size={16} />
