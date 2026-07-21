@@ -21,7 +21,7 @@ class DeviceToken(models.Model):
         on_delete=models.CASCADE, 
         related_name='device_tokens'
     )
-    token = models.CharField(max_length=255, unique=True, verbose_name="FCM Token")
+    token = models.CharField(max_length=512, unique=True, verbose_name="FCM Token")
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 

@@ -671,9 +671,16 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildPointsInput() {
     return TextField(
+      key: const ValueKey('cart_points_input'),
       controller: _pointsController,
       focusNode: _pointsFocusNode,
       keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      onTap: () {
+        if (!_pointsFocusNode.hasFocus) {
+          _pointsFocusNode.requestFocus();
+        }
+      },
       decoration: InputDecoration(
         hintText: '0',
         suffixText: 'pts',

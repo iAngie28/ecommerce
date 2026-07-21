@@ -78,12 +78,24 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
     with schema_context('public'):
         if cliente_correo:
             from apps.customers.clientes.models.cliente import Cliente
-            cliente_public = Cliente.objects.filter(correo=cliente_correo).first()
-            if cliente_public:
-                cliente_id = cliente_public.id
+            clientes_public_ids = list(
+                Cliente.objects
+                .filter(correo=cliente_correo)
+                .values_list('id', flat=True)
+            )
+        else:
+            clientes_public_ids = []
 
         if cliente_id:
-            tokens = list(DeviceToken.objects.filter(cliente_id=cliente_id).values_list('token', flat=True))
+            clientes_public_ids.append(cliente_id)
+
+        if clientes_public_ids:
+            tokens = list(
+                DeviceToken.objects
+                .filter(cliente_id__in=set(clientes_public_ids))
+                .values_list('token', flat=True)
+                .distinct()
+            )
         elif usuario_id:
             tokens = list(DeviceToken.objects.filter(usuario_id=usuario_id).values_list('token', flat=True))
         else:
@@ -99,7 +111,9 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
         ),
         data={
             'type': tipo,
-            'notificacion_id': str(notif.id)
+            'notificacion_id': str(notif.id),
+            'title': titulo,
+            'body': mensaje,
         },
         tokens=list(tokens),
     )

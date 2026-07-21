@@ -30,13 +30,17 @@ class DeviceTokenRegisterView(APIView):
             role = auth_payload.payload.get('role')
 
         cliente_id = None
+        cliente_correo = None
         usuario_id = None
 
         if role == 'CLIENTE':
             cliente_id = auth_payload.get('cliente_id') if hasattr(auth_payload, 'get') else auth_payload.payload.get('cliente_id')
             if not cliente_id:
                 cliente_id = auth_payload.get('user_id') if hasattr(auth_payload, 'get') else auth_payload.payload.get('user_id')
-            print(f"Identificado como CLIENTE. ID: {cliente_id}")
+            cliente_correo = (
+                auth_payload.get('correo') if hasattr(auth_payload, 'get') else auth_payload.payload.get('correo')
+            ) or getattr(request.user, 'correo', None)
+            print(f"Identificado como CLIENTE. ID: {cliente_id}, correo: {cliente_correo}")
         else:
             # Es vendedor (Usuario)
             usuario_id = request.user.id if request.user and request.user.is_authenticated else None
@@ -51,7 +55,13 @@ class DeviceTokenRegisterView(APIView):
             from apps.customers.clientes.models.cliente import Cliente
             from apps.gestionDeUsuarioySeguridad.cu3_gestion_de_usuario.models.usuario import Usuario
 
-            cliente = Cliente.objects.filter(id=cliente_id).first() if cliente_id else None
+            cliente = (
+                Cliente.objects.filter(correo=cliente_correo).first()
+                if cliente_correo
+                else None
+            )
+            if not cliente and cliente_id:
+                cliente = Cliente.objects.filter(id=cliente_id).first()
             usuario = Usuario.objects.filter(id=usuario_id).first() if usuario_id else None
 
             device_token, created = DeviceToken.objects.get_or_create(

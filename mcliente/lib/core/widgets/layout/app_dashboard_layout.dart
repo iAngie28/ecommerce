@@ -27,6 +27,7 @@ class AppDashboardLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 800;
+    final keyboardBottomInset = MediaQuery.of(context).viewInsets.bottom;
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     final notificationButton = IconButton(
       tooltip: 'Notificaciones',
@@ -46,6 +47,7 @@ class AppDashboardLayout extends StatelessWidget {
 
     return Scaffold(
       key: scaffoldKey,
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bgLight,
       drawer: isMobile
           ? Drawer(
@@ -89,7 +91,14 @@ class AppDashboardLayout extends StatelessWidget {
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isMobile ? 20 : 40),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.manual,
+                    padding: EdgeInsets.fromLTRB(
+                      isMobile ? 20 : 40,
+                      isMobile ? 20 : 40,
+                      isMobile ? 20 : 40,
+                      (isMobile ? 20 : 40) + keyboardBottomInset,
+                    ),
                     child: body,
                   ),
                 ),

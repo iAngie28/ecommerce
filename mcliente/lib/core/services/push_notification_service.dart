@@ -48,6 +48,11 @@ class PushNotificationService {
     if (token != null) {
       await registerTokenWithBackend(token);
     }
+
+    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+      log("FCM Token refrescado (MCliente): $newToken");
+      await registerTokenWithBackend(newToken);
+    });
   }
 
   static Future<void> registerTokenWithBackend(String token) async {
@@ -103,7 +108,9 @@ class PushNotificationService {
   static void _onMessageHandler(RemoteMessage message) {
     log("Mensaje recibido en primer plano: ${message.notification?.title}");
 
-    if (message.notification != null) {
+    if (message.notification != null ||
+        message.data['title'] != null ||
+        message.data['body'] != null) {
       _showLocalNotification(message);
     }
 
@@ -151,8 +158,8 @@ class PushNotificationService {
 
     await _localNotifications.show(
       id: message.hashCode,
-      title: message.notification?.title,
-      body: message.notification?.body,
+      title: message.notification?.title ?? message.data['title']?.toString(),
+      body: message.notification?.body ?? message.data['body']?.toString(),
       notificationDetails: platformChannelSpecifics,
       payload: message.data.toString(),
     );
