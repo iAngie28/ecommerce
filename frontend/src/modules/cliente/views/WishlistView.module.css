@@ -133,6 +133,7 @@
     display: flex;
     gap: 8px;
     margin-top: auto;
+    flex-wrap: wrap;
 }
 
 .cartBtn {
@@ -144,8 +145,19 @@
 }
 
 .removeBtn {
-    padding: 8px;
+    min-width: 112px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fff;
+}
+
+.removeBtn:hover {
+    color: #b91c1c;
+    border-color: #fca5a5;
+    background: #fef2f2;
 }

@@ -144,6 +144,7 @@ const WishlistView = () => {
                                     title="Eliminar de la lista"
                                 >
                                     <Trash2 size={16} />
+                                    Eliminar
                                 </Button>
                             </div>
                         </div>
