@@ -131,6 +131,14 @@
     line-height: 1.4;
 }
 
+.storeName {
+    display: inline-flex;
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
 .empty {
     padding: 24px;
     text-align: center;

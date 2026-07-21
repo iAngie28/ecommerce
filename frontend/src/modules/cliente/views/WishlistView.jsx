@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from 'shared/components';
 import { Trash2, ShoppingCart, Heart } from 'lucide-react';
 import api from 'core/services/api';
@@ -10,16 +10,52 @@ const WishlistView = () => {
     const [loading, setLoading] = useState(true);
     
     // Simple notification fallback
-    const addNotification = (type, msg) => {
+    const addNotification = useCallback((type, msg) => {
         if(type === 'error') alert('Error: ' + msg);
         else console.log(msg);
-    };
-
-    useEffect(() => {
-        fetchWishlist();
     }, []);
 
-    const fetchWishlist = async () => {
+    const normalizeHost = (value) => {
+        if (!value || typeof value !== 'string') return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        try {
+            const parsed = new URL(trimmed.includes('://') ? trimmed : `${window.location.protocol}//${trimmed}`);
+            return parsed.hostname;
+        } catch (_) {
+            return trimmed.split('/')[0] || null;
+        }
+    };
+
+    const getItemTenantSchema = (item) => {
+        const schema = normalizeHost(item.tienda_schema);
+        if (schema) return schema.split('.')[0];
+
+        const host = normalizeHost(item.tienda_host);
+        return host ? host.split('.')[0] : null;
+    };
+
+    const getItemTenantUrl = (item) => {
+        const host = normalizeHost(item.tienda_host);
+        const port = window.location.port ? `:${window.location.port}` : '';
+        if (host && host.includes('.')) {
+            return `${window.location.protocol}//${host}${port}`;
+        }
+
+        const schema = getItemTenantSchema(item);
+        return schema ? getTenantUrl(schema) : null;
+    };
+
+    const getWishlistActionUrl = (item, action) => {
+        const tenantUrl = getItemTenantUrl(item);
+        if (!tenantUrl) return `/wishlist/${action}/${item.producto.id}/`;
+
+        const tenantHostname = new URL(tenantUrl).hostname;
+        return `${getApiUrl(tenantHostname)}/wishlist/${action}/${item.producto.id}/`;
+    };
+
+    const fetchWishlist = useCallback(async () => {
         try {
             setLoading(true);
             const res = await api.get('/wishlist/');
@@ -30,17 +66,15 @@ const WishlistView = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [addNotification]);
+
+    useEffect(() => {
+        fetchWishlist();
+    }, [fetchWishlist]);
 
     const removeFromWishlist = async (item) => {
         try {
-            let baseUrl = 'api/';
-            if (item.tienda_schema) {
-                const tenantFrontendUrl = getTenantUrl(item.tienda_schema);
-                const tenantHostname = new URL(tenantFrontendUrl).hostname;
-                baseUrl = getApiUrl(tenantHostname) + '/';
-            }
-            await api.delete(`${baseUrl}wishlist/eliminar/${item.producto.id}/`);
+            await api.delete(getWishlistActionUrl(item, 'eliminar'));
             addNotification('success', 'Producto eliminado de la lista de deseos');
             fetchWishlist();
         } catch (error) {
@@ -51,13 +85,7 @@ const WishlistView = () => {
 
     const addToCartAndRemove = async (item) => {
         try {
-            let baseUrl = 'api/';
-            if (item.tienda_schema) {
-                const tenantFrontendUrl = getTenantUrl(item.tienda_schema);
-                const tenantHostname = new URL(tenantFrontendUrl).hostname;
-                baseUrl = getApiUrl(tenantHostname) + '/';
-            }
-            await api.post(`${baseUrl}wishlist/mover-al-carrito/${item.producto.id}/`);
+            await api.post(getWishlistActionUrl(item, 'mover-al-carrito'));
             addNotification('success', 'Producto movido al carrito');
             fetchWishlist();
             
@@ -67,6 +95,15 @@ const WishlistView = () => {
             console.error('Error adding to cart:', error);
             addNotification('error', 'No se pudo mover al carrito');
         }
+    };
+
+    const visitStore = (item) => {
+        const tenantUrl = getItemTenantUrl(item);
+        if (!tenantUrl) {
+            addNotification('error', 'No se pudo abrir la tienda');
+            return;
+        }
+        window.location.href = `${tenantUrl}/catalogo`;
     };
 
     if (loading) {
@@ -130,7 +167,7 @@ const WishlistView = () => {
                                 {item.tienda_nombre && (
                                     <Button 
                                         variant="outline" 
-                                        onClick={() => window.location.href = `${getTenantUrl(item.tienda_schema)}/catalogo`}
+                                        onClick={() => visitStore(item)}
                                         title="Visitar Tienda"
                                     >
                                         Visitar
