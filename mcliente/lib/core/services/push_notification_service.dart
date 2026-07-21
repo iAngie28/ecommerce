@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../main.dart';
 import '../network/api_client.dart';
 import '../constants/api_constants.dart';
+import '../storage/secure_storage.dart';
+import 'notification_badge_service.dart';
 
 /// Define un background handler de forma top-level como lo requiere Firebase
 @pragma('vm:entry-point')
@@ -57,11 +60,24 @@ class PushNotificationService {
 
   static Future<void> registerTokenWithBackend(String token) async {
     try {
+      final accessToken = await SecureStorageService().getAccessToken();
+      if (accessToken == null || accessToken.isEmpty) {
+        log("Token FCM pendiente: no hay sesión cliente activa.");
+        return;
+      }
+
       final apiClient = ApiClient();
-      await apiClient.post('${ApiConstants.mainBaseUrl}/device-token/', {
+      final response = await apiClient.post('${ApiConstants.mainBaseUrl}/device-token/', {
         'token': token,
       }, requiresAuth: true);
-      log("Token registrado en el backend exitosamente.");
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        log("Token registrado en el backend exitosamente.");
+      } else {
+        log(
+          "Error al registrar token en el backend: "
+          "${response.statusCode} ${response.body}",
+        );
+      }
     } catch (e) {
       log("Error al registrar token en el backend: $e");
     }
@@ -99,7 +115,12 @@ class PushNotificationService {
         // Manejar toque en la notificación generada localmente (app en primer plano)
         if (response.payload != null) {
           log("Notificación local tocada con payload: ${response.payload}");
-          // _handleNotificationTypeData(response.payload);
+          try {
+            final data = jsonDecode(response.payload!);
+            if (data is Map<String, dynamic>) {
+              _handleNotificationType(data);
+            }
+          } catch (_) {}
         }
       },
     );
@@ -114,7 +135,7 @@ class PushNotificationService {
       _showLocalNotification(message);
     }
 
-    _handleNotificationType(message.data);
+    NotificationBadgeService.notifyChanged();
   }
 
   static void _onMessageOpenApp(RemoteMessage message) {
@@ -161,7 +182,7 @@ class PushNotificationService {
       title: message.notification?.title ?? message.data['title']?.toString(),
       body: message.notification?.body ?? message.data['body']?.toString(),
       notificationDetails: platformChannelSpecifics,
-      payload: message.data.toString(),
+      payload: jsonEncode(message.data),
     );
   }
 

@@ -62,10 +62,12 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
     
     # 2. Enviar Push Notification (FCM)
     if not FIREBASE_AVAILABLE:
+        print("⚠️ Firebase Admin SDK no está instalado; solo se guardó la notificación in-app.")
         return notif
         
     _initialize_firebase()
     if not firebase_admin or not firebase_admin._apps:
+        print("⚠️ Firebase no está inicializado; solo se guardó la notificación in-app.")
         return notif # No se configuró firebase
         
     # DeviceToken vive en SHARED_APPS (esquema public), hay que buscarlo allí.
@@ -102,6 +104,8 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
             tokens = []
 
     if not tokens:
+        destino = cliente_correo or usuario_id or cliente_id
+        print(f"⚠️ No hay DeviceToken FCM registrado para enviar push a {destino}.")
         return notif
 
     message = messaging.MulticastMessage(
