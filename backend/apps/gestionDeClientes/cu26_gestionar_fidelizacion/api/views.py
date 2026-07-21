@@ -25,7 +25,15 @@ class FidelizacionViewSet(viewsets.ViewSet):
 
         if getattr(user, 'role', None) == 'CLIENTE':
             cliente_id = getattr(user, 'cliente_id', None) or getattr(user, 'id', None)
-            return Cliente.objects.filter(id=cliente_id).first()
+            cliente = Cliente.objects.filter(id=cliente_id).first()
+            if cliente:
+                return cliente
+
+            correo = getattr(user, 'email', getattr(user, 'correo', None))
+            if correo:
+                return Cliente.objects.filter(correo=correo).first()
+
+            return None
 
         if hasattr(user, 'roles') and user.roles.filter(nombre='CLIENTE').exists():
             return getattr(user, 'cliente', None)
@@ -44,6 +52,18 @@ class FidelizacionViewSet(viewsets.ViewSet):
     def _get_active_tenants(self):
         return Client.objects.filter(activo=True).exclude(schema_name='public')
 
+    def _get_cliente_en_schema_actual(self, cliente):
+        if not cliente:
+            return None
+
+        correo = getattr(cliente, 'correo', None)
+        if correo:
+            cliente_schema = Cliente.objects.filter(correo=correo).first()
+            if cliente_schema:
+                return cliente_schema
+
+        return Cliente.objects.filter(id=cliente.id).first()
+
     def _build_global_cuenta_response(self, cliente):
         saldo_actual = 0
         puntos_historicos = 0
@@ -54,9 +74,14 @@ class FidelizacionViewSet(viewsets.ViewSet):
         for tenant in self._get_active_tenants():
             try:
                 with schema_context(tenant.schema_name):
-                    FidelizacionService.sincronizar_pedidos_entregados(cliente.id)
-                    FidelizacionService.sincronizar_canjes_pendientes(cliente.id)
-                    cuenta = CuentaPuntos.objects.filter(cliente_id=cliente.id).first()
+                    cliente_tenant = self._get_cliente_en_schema_actual(cliente)
+                    cuenta = None
+
+                    if cliente_tenant:
+                        FidelizacionService.sincronizar_pedidos_entregados(cliente_tenant.id)
+                        FidelizacionService.sincronizar_canjes_pendientes(cliente_tenant.id)
+                        cuenta = CuentaPuntos.objects.filter(cliente_id=cliente_tenant.id).first()
+
                     saldo_tienda = cuenta.saldo_actual if cuenta else 0
                     historicos_tienda = cuenta.puntos_historicos if cuenta else 0
 
