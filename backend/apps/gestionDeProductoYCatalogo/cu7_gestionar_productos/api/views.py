@@ -63,4 +63,25 @@ class ProductoViewSet(BaseViewSet):
                 pass
                 
         super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        precio_anterior = serializer.instance.precio
+        precio_nuevo = serializer.validated_data.get('precio', precio_anterior)
+        precio_bajo = precio_nuevo < precio_anterior
+
+        if precio_bajo:
+            serializer.instance._skip_wishlist_price_drop_signal = True
+
+        super().perform_update(serializer)
+
+        if precio_bajo:
+            from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.services.price_drop_notification_service import (
+                notificar_baja_precio_producto,
+            )
+
+            notificar_baja_precio_producto(
+                serializer.instance,
+                precio_anterior,
+                precio_nuevo,
+            )
     

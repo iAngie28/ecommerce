@@ -13,20 +13,20 @@ import 'gestion_producto/screens/storefront_screen.dart';
 import 'gestion_producto/screens/cart_screen.dart';
 import 'gestion_producto/screens/orders_screen.dart';
 import 'gestion_producto/screens/shop_list_screen.dart';
+import 'gestion_producto/screens/wishlist_screen.dart';
+import 'gestion_cliente/screens/points_screen.dart';
 import 'gestion_usuario/screens/notifications_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await PushNotificationService.initializeApp();
-  
+
   await dotenv.load(fileName: "assets/.env");
-  
+
   Stripe.publishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? "";
   await Stripe.instance.applySettings();
 
@@ -51,6 +51,8 @@ class MyApp extends StatelessWidget {
         '/tienda': (context) => const StorefrontScreen(),
         '/carrito': (context) => const CartScreen(),
         '/pedidos': (context) => const OrdersScreen(),
+        '/wishlist': (context) => const WishlistScreen(),
+        '/puntos': (context) => const PointsScreen(),
         '/perfil': (context) => const ProfileScreen(),
         '/notificaciones': (context) => const NotificationsScreen(),
       },

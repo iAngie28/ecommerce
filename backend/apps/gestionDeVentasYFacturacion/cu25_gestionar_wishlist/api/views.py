@@ -8,6 +8,7 @@ from apps.gestionDeUsuarioySeguridad.cu1_iniciar_sesion.authentication import (
     ClienteJWTAuthentication,
     UsuarioJWTAuthentication,
 )
+from apps.customers.models import Cliente
 from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.api.serializers import WishlistSerializer
 from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.services.wishlist_service import WishlistService
 
@@ -35,12 +36,40 @@ class WishlistViewSet(ViewSet):
     def get_service(self):
         return WishlistService()
 
-    def _get_cliente_id(self):
-        """Extrae el cliente_id del payload JWT si el rol es CLIENTE."""
+    def _get_cliente(self):
+        """Retorna el Cliente del schema actual usando correo como llave estable."""
         auth = getattr(self.request, 'auth', None)
         if hasattr(auth, 'get') and auth.get('role') == 'CLIENTE':
-            return auth.get('cliente_id') or auth.get('user_id')
+            correo = auth.get('correo') or getattr(self.request.user, 'correo', None)
+            if correo:
+                cliente = Cliente.objects.filter(correo=correo).first()
+                if cliente:
+                    return cliente
+
+            cliente_id = auth.get('cliente_id') or auth.get('user_id')
+            if cliente_id:
+                return Cliente.objects.filter(id=cliente_id).first()
         return None
+
+    def _get_cliente_id(self):
+        cliente = self._get_cliente()
+        return cliente.id if cliente else None
+
+    def _get_cliente_en_schema_actual(self, cliente):
+        if not cliente:
+            return None
+
+        correo = getattr(cliente, 'correo', None)
+        if correo:
+            cliente_schema = Cliente.objects.filter(correo=correo).first()
+            if cliente_schema:
+                return cliente_schema
+
+        return Cliente.objects.filter(id=cliente.id).first()
+
+    def _get_tenant_host(self, tenant):
+        domain = tenant.domains.first()
+        return getattr(domain, 'domain', None) or tenant.schema_name
 
     # ------------------------------------------------------------------
     # GET /api/wishlist/
@@ -50,8 +79,8 @@ class WishlistViewSet(ViewSet):
         """Retorna la wishlist completa del cliente autenticado (agrupada si es público)."""
         from django.db import connection
         
-        cliente_id = self._get_cliente_id()
-        if not cliente_id:
+        cliente = self._get_cliente()
+        if not cliente:
             return Response(
                 {'error': 'Solo los clientes pueden acceder a su lista de deseos.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -65,21 +94,32 @@ class WishlistViewSet(ViewSet):
             
             todos_items = []
             for tenant in Client.objects.exclude(schema_name='public'):
+                tenant_host = self._get_tenant_host(tenant)
                 with tenant_context(tenant):
                     try:
-                        wishlist = Wishlist.objects.get(cliente_id=cliente_id)
+                        cliente_tenant = self._get_cliente_en_schema_actual(cliente)
+                        if not cliente_tenant:
+                            continue
+
+                        wishlist = Wishlist.objects.get(cliente_id=cliente_tenant.id)
                         if wishlist.items.exists():
                             serializer = WishlistSerializer(wishlist, context={'request': request})
                             items_data = serializer.data.get('items', [])
                             for item in items_data:
-                                item['tienda_nombre'] = tenant.name
+                                item['tienda_nombre'] = (
+                                    getattr(tenant, 'nombre_comercial', None)
+                                    or getattr(tenant, 'name', None)
+                                    or tenant.schema_name
+                                )
                                 item['tienda_schema'] = tenant.schema_name
+                                item['tienda_host'] = tenant_host
                                 todos_items.append(item)
                     except Wishlist.DoesNotExist:
                         pass
             
             return Response({'items': todos_items, 'total_items': len(todos_items)}, status=status.HTTP_200_OK)
             
+        cliente_id = self._get_cliente_id()
         try:
             wishlist = self.get_service().obtener_o_crear(cliente_id)
             serializer = WishlistSerializer(wishlist, context={'request': request})
@@ -213,12 +253,37 @@ class WishlistViewSet(ViewSet):
     @action(detail=False, methods=['delete'], url_path='vaciar')
     def vaciar(self, request):
         """Vacía toda la lista de deseos del cliente."""
-        cliente_id = self._get_cliente_id()
-        if not cliente_id:
+        from django.db import connection
+
+        cliente = self._get_cliente()
+        if not cliente:
             return Response(
                 {'error': 'Solo los clientes pueden vaciar su lista de deseos.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        if connection.schema_name == 'public':
+            from apps.customers.models import Client
+            from django_tenants.utils import tenant_context
+            from apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.models.wishlist_item import WishlistItem
+
+            eliminados = 0
+            for tenant in Client.objects.exclude(schema_name='public'):
+                with tenant_context(tenant):
+                    cliente_tenant = self._get_cliente_en_schema_actual(cliente)
+                    if not cliente_tenant:
+                        continue
+                    deleted, _ = WishlistItem.objects.filter(
+                        wishlist__cliente_id=cliente_tenant.id,
+                    ).delete()
+                    eliminados += deleted
+
+            return Response(
+                {'mensaje': f'Lista de deseos vaciada. {eliminados} producto(s) eliminado(s).'},
+                status=status.HTTP_200_OK,
+            )
+
+        cliente_id = cliente.id
         try:
             eliminados = self.get_service().vaciar(cliente_id)
             return Response(

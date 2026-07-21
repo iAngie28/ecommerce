@@ -28,7 +28,7 @@ class AppSidebar extends StatelessWidget {
   const AppSidebar({
     super.key,
     required this.brandName,
-    this.brandIcon = Icons.inventory_2, 
+    this.brandIcon = Icons.inventory_2,
     required this.items,
   });
 
@@ -46,11 +46,11 @@ class AppSidebar extends StatelessWidget {
         children: [
           AppBrand(name: brandName, icon: brandIcon, darkBackground: true),
           const SizedBox(height: 40),
-          
+
           ...navItems.map((item) => _SidebarNavItem(item: item)),
-          
+
           const Spacer(),
-          
+
           if (logout != null) _SidebarNavItem(item: logout),
         ],
       ),
@@ -81,14 +81,18 @@ class _SidebarNavItem extends StatelessWidget {
               size: 20,
               color: item.isLogout
                   ? AppColors.danger
-                  : (item.isActive ? AppColors.accentTeal : AppColors.textMuted),
+                  : (item.isActive
+                        ? AppColors.accentTeal
+                        : AppColors.textMuted),
             ),
             const SizedBox(width: 12),
             Text(
               item.label,
               style: item.isLogout
                   ? AppTextStyles.navItem.copyWith(color: AppColors.danger)
-                  : (item.isActive ? AppTextStyles.navItemActive : AppTextStyles.navItem),
+                  : (item.isActive
+                        ? AppTextStyles.navItemActive
+                        : AppTextStyles.navItem),
             ),
           ],
         ),

@@ -17,14 +17,14 @@ class AppTheme {
       onSecondary: AppColors.white,
     ),
     textTheme: const TextTheme(
-      displayLarge:  AppTextStyles.h1Hero,
+      displayLarge: AppTextStyles.h1Hero,
       displayMedium: AppTextStyles.h1,
       headlineMedium: AppTextStyles.h2,
-      titleLarge:    AppTextStyles.h3,
-      bodyLarge:     AppTextStyles.bodyLg,
-      bodyMedium:    AppTextStyles.body,
-      bodySmall:     AppTextStyles.bodySm,
-      labelLarge:    AppTextStyles.label,
+      titleLarge: AppTextStyles.h3,
+      bodyLarge: AppTextStyles.bodyLg,
+      bodyMedium: AppTextStyles.body,
+      bodySmall: AppTextStyles.bodySm,
+      labelLarge: AppTextStyles.label,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -62,9 +62,6 @@ class AppTheme {
       margin: EdgeInsets.zero,
     ),
     dividerColor: AppColors.border,
-    dividerTheme: const DividerThemeData(
-      color: AppColors.border,
-      thickness: 1,
-    ),
+    dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
   );
 }

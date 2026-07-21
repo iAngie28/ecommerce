@@ -40,6 +40,7 @@ class CatalogoProductoViewSet(viewsets.ReadOnlyModelViewSet):
         from django.db import connection
         from django.db.models import Avg, Count, Q, Exists, OuterRef
         from apps.gestionDeVentasYFacturacion.cu14_generar_facturacion.models.detalle_factura import DetalleFactura
+        from apps.customers.clientes.models.cliente import Cliente
         
         if connection.schema_name == 'public':
             return Producto.objects.none()
@@ -47,7 +48,12 @@ class CatalogoProductoViewSet(viewsets.ReadOnlyModelViewSet):
         cliente_id = None
         auth = getattr(self.request, 'auth', None)
         if hasattr(auth, 'get') and auth.get('role') == 'CLIENTE':
-            cliente_id = auth.get('cliente_id') or auth.get('user_id')
+            correo = auth.get('correo') or getattr(self.request.user, 'correo', None)
+            if correo:
+                cliente = Cliente.objects.filter(correo=correo).first()
+                cliente_id = cliente.id if cliente else None
+            if not cliente_id:
+                cliente_id = auth.get('cliente_id') or auth.get('user_id')
         
         # El catálogo público solo muestra productos activos
         # Anotamos con el promedio y conteo de reseñas aprobadas

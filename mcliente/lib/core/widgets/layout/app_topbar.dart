@@ -26,9 +26,12 @@ class AppSearchBar extends StatelessWidget {
             child: TextField(
               onChanged: onChanged,
               decoration: InputDecoration(
-                hintText: hint, border: InputBorder.none,
-                isDense: true, contentPadding: EdgeInsets.zero,
-                fillColor: Colors.transparent, filled: false,
+                hintText: hint,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                fillColor: Colors.transparent,
+                filled: false,
               ),
               style: const TextStyle(fontSize: 14),
             ),
@@ -106,22 +109,30 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 AppTenantBadge(label: tenantLabel!, value: tenantValue!),
                 const SizedBox(width: 25),
               ],
-              if (trailing != null) ...[
-                trailing!,
-                const SizedBox(width: 20),
-              ],
+              if (trailing != null) ...[trailing!, const SizedBox(width: 20)],
               Row(
                 children: [
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: AppColors.accentTeal,
-                    backgroundImage: userAvatarUrl != null ? NetworkImage(userAvatarUrl!) : null,
+                    backgroundImage: userAvatarUrl != null
+                        ? NetworkImage(userAvatarUrl!)
+                        : null,
                     child: userAvatarUrl == null
-                        ? Text(userName[0].toUpperCase(), style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700))
+                        ? Text(
+                            userName[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
                         : null,
                   ),
                   const SizedBox(width: 10),
-                  Text(userName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    userName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ],

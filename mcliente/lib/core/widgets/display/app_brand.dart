@@ -5,13 +5,13 @@ import '../../theme/app_radius.dart';
 
 class AppBrand extends StatelessWidget {
   final String name;
-  final IconData icon; 
-  final bool darkBackground; 
+  final IconData icon;
+  final bool darkBackground;
 
   const AppBrand({
     super.key,
     required this.name,
-    this.icon = Icons.inventory_2, 
+    this.icon = Icons.inventory_2,
     this.darkBackground = false,
   });
 
@@ -27,14 +27,14 @@ class AppBrand extends StatelessWidget {
             color: AppColors.accentTeal,
             borderRadius: BorderRadius.circular(AppRadius.xs),
           ),
-          child: Center(
-            child: Icon(icon, color: AppColors.white, size: 20),
-          ),
+          child: Center(child: Icon(icon, color: AppColors.white, size: 20)),
         ),
         const SizedBox(width: 12),
         Text(
           name,
-          style: darkBackground ? AppTextStyles.brandNameTeal : AppTextStyles.brandName,
+          style: darkBackground
+              ? AppTextStyles.brandNameTeal
+              : AppTextStyles.brandName,
         ),
       ],
     );

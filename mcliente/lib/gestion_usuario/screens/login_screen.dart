@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/cards/app_login_card.dart'; 
+import '../../core/widgets/cards/app_login_card.dart';
 import '../../core/widgets/feedback/app_toast.dart';
 import '../repositories/auth_repository.dart';
 
@@ -36,12 +36,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     final bool isSuccess = await _authRepository.login(email, password);
-    setState(() => _isLoading = false); 
+    setState(() => _isLoading = false);
 
     if (isSuccess) {
       if (!mounted) return;
       AppToast.showSuccess(context, '¡Bienvenido de vuelta!');
-      Navigator.pushReplacementNamed(context, '/tiendas'); 
+      Navigator.pushReplacementNamed(context, '/tiendas');
     } else {
       if (!mounted) return;
       AppToast.showError(context, 'Correo o contraseña incorrectos.');
@@ -55,13 +55,14 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: _isLoading 
+          child: _isLoading
               ? const CircularProgressIndicator(color: AppColors.accentTeal)
               : AppLoginCard(
                   brandName: 'MiQhatu',
                   brandIcon: Icons.shopping_bag_outlined,
                   infoTitle: 'Tu tienda favorita,\nahora en tu bolsillo.',
-                  infoSubtitle: 'Explora productos, realiza pedidos y haz seguimiento a tus compras.',
+                  infoSubtitle:
+                      'Explora productos, realiza pedidos y haz seguimiento a tus compras.',
                   emailController: _emailController,
                   passwordController: _passwordController,
                   onSubmit: _handleLogin,

@@ -72,9 +72,16 @@ def send_notification(cliente=None, usuario=None, titulo="", mensaje="", tipo='S
     # Usamos IDs para evitar problemas de FK entre schemas.
     from django_tenants.utils import schema_context
     cliente_id = cliente.id if cliente else None
+    cliente_correo = getattr(cliente, 'correo', None) if cliente else None
     usuario_id = usuario.id if usuario else None
 
     with schema_context('public'):
+        if cliente_correo:
+            from apps.customers.clientes.models.cliente import Cliente
+            cliente_public = Cliente.objects.filter(correo=cliente_correo).first()
+            if cliente_public:
+                cliente_id = cliente_public.id
+
         if cliente_id:
             tokens = list(DeviceToken.objects.filter(cliente_id=cliente_id).values_list('token', flat=True))
         elif usuario_id:

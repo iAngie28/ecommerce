@@ -12,15 +12,15 @@ class AuthRepository {
   Future<bool> login(String email, String password) async {
     final url = '${ApiConstants.mainBaseUrl}/clientes/login/';
     try {
-      final response = await _apiClient.post(
-        url,
-        {'correo': email, 'contrasena': password},
-      );
+      final response = await _apiClient.post(url, {
+        'correo': email,
+        'contrasena': password,
+      });
 
       if (response.statusCode == 200) {
         final tokens = AuthTokens.fromJson(jsonDecode(response.body));
         await _storage.saveTokens(tokens.access, tokens.refresh);
-        
+
         final token = await PushNotificationService.getToken();
         if (token != null) {
           await PushNotificationService.registerTokenWithBackend(token);
@@ -40,7 +40,7 @@ class AuthRepository {
       if (response.statusCode == 201) {
         final tokens = AuthTokens.fromJson(jsonDecode(response.body));
         await _storage.saveTokens(tokens.access, tokens.refresh);
-        
+
         final token = await PushNotificationService.getToken();
         if (token != null) {
           await PushNotificationService.registerTokenWithBackend(token);

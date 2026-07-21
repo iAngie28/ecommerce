@@ -10,6 +10,7 @@ import '../repositories/product_repository.dart';
 import '../../gestion_usuario/repositories/auth_repository.dart';
 import '../../core/widgets/feedback/app_toast.dart';
 import '../repositories/cart_repository.dart';
+import '../repositories/wishlist_repository.dart';
 import 'product_detail_screen.dart';
 
 class StorefrontScreen extends StatefulWidget {
@@ -20,7 +21,8 @@ class StorefrontScreen extends StatefulWidget {
 }
 
 class _StorefrontScreenState extends State<StorefrontScreen> {
-  List<ProductModel> _allProducts = []; // Para guardar todos los productos cargados
+  List<ProductModel> _allProducts =
+      []; // Para guardar todos los productos cargados
   List<ProductModel> _filteredProducts = []; // Para mostrar
   List<Map<String, dynamic>> _categories = [];
   int? _selectedCategoryId;
@@ -39,12 +41,18 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
   final ProductRepository _productRepository = ProductRepository();
   final AuthRepository _authRepository = AuthRepository();
   final CartRepository _cartRepository = CartRepository();
+  final WishlistRepository _wishlistRepository = WishlistRepository();
   int _cartItemCount = 0;
+  Set<int> _wishlistProductIds = {};
+  Set<int> _updatingWishlistIds = {};
 
   @override
   void initState() {
     super.initState();
-    _inicializar().then((_) => _loadCartCount());
+    _inicializar().then((_) {
+      _loadCartCount();
+      _loadWishlist();
+    });
   }
 
   Future<void> _loadCartCount() async {
@@ -56,8 +64,67 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     } catch (_) {}
   }
 
+  Future<void> _loadWishlist() async {
+    try {
+      final productIds = await _wishlistRepository
+          .fetchProductIdsForCurrentStore();
+      if (!mounted) return;
+      setState(() => _wishlistProductIds = productIds);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleWishlist(ProductModel product) async {
+    if (_updatingWishlistIds.contains(product.id)) return;
+
+    final wasSaved = _wishlistProductIds.contains(product.id);
+    setState(() {
+      _updatingWishlistIds = {..._updatingWishlistIds, product.id};
+      if (wasSaved) {
+        _wishlistProductIds.remove(product.id);
+      } else {
+        _wishlistProductIds.add(product.id);
+      }
+    });
+
+    try {
+      final isSaved = await _wishlistRepository.toggleProduct(product.id);
+      if (!mounted) return;
+      setState(() {
+        if (isSaved) {
+          _wishlistProductIds.add(product.id);
+        } else {
+          _wishlistProductIds.remove(product.id);
+        }
+        _updatingWishlistIds.remove(product.id);
+      });
+      AppToast.showSuccess(
+        context,
+        isSaved
+            ? 'Producto guardado en wishlist'
+            : 'Producto quitado de wishlist',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        if (wasSaved) {
+          _wishlistProductIds.add(product.id);
+        } else {
+          _wishlistProductIds.remove(product.id);
+        }
+        _updatingWishlistIds.remove(product.id);
+      });
+      AppToast.showError(context, 'No se pudo actualizar la wishlist');
+    }
+  }
+
   Future<void> _addToCart(ProductModel product) async {
-    print('[DEBUG] _addToCart iniciado para: ${product.nombre} (ID: ${product.id})');
+    if (!product.activo || product.stock <= 0) {
+      AppToast.showInfo(context, 'Producto no disponible');
+      return;
+    }
+    print(
+      '[DEBUG] _addToCart iniciado para: ${product.nombre} (ID: ${product.id})',
+    );
     try {
       final cart = await _cartRepository.fetchActiveCart();
       print('[DEBUG] Carrito obtenido: ID ${cart.id}');
@@ -114,7 +181,9 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
     });
 
     try {
-      final productos = await _productRepository.fetchProducts(categoryId: _selectedCategoryId);
+      final productos = await _productRepository.fetchProducts(
+        categoryId: _selectedCategoryId,
+      );
       setState(() {
         _allProducts = productos;
         _isLoading = false;
@@ -134,7 +203,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
         // 1. Busqueda (nombre o marca/sku)
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
-          if (!p.nombre.toLowerCase().contains(query) && 
+          if (!p.nombre.toLowerCase().contains(query) &&
               !(p.sku.toLowerCase().contains(query))) {
             return false;
           }
@@ -172,7 +241,12 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return Container(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, left: 24, right: 24, top: 24),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -184,15 +258,25 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40, height: 4,
+                      width: 40,
+                      height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Filtros Avanzados', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Filtros Avanzados',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       TextButton(
                         onPressed: () {
                           setModalState(() {
@@ -203,18 +287,27 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                           _limpiarFiltros();
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Limpiar', style: TextStyle(color: AppColors.danger)),
+                        child: const Text(
+                          'Limpiar',
+                          style: TextStyle(color: AppColors.danger),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text('Rango de Precio', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Rango de Precio',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   RangeSlider(
                     values: RangeValues(tempMin, tempMax),
                     min: 0,
                     max: 10000,
                     divisions: 100,
-                    labels: RangeLabels('Bs.\${tempMin.round()}', 'Bs.\${tempMax.round()}'),
+                    labels: RangeLabels(
+                      'Bs.\${tempMin.round()}',
+                      'Bs.\${tempMax.round()}',
+                    ),
                     activeColor: AppColors.primaryDark,
                     onChanged: (vals) {
                       setModalState(() {
@@ -226,13 +319,22 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Bs.\${tempMin.round()}', style: const TextStyle(color: AppColors.textMuted)),
-                      Text('Bs.\${tempMax.round()}', style: const TextStyle(color: AppColors.textMuted)),
+                      Text(
+                        'Bs.\${tempMin.round()}',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      Text(
+                        'Bs.\${tempMax.round()}',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
                   SwitchListTile(
-                    title: const Text('Solo con disponibilidad (En stock)', style: TextStyle(fontWeight: FontWeight.w600)),
+                    title: const Text(
+                      'Solo con disponibilidad (En stock)',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     contentPadding: EdgeInsets.zero,
                     activeColor: AppColors.primaryDark,
                     value: tempStock,
@@ -245,7 +347,9 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryDark,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         setState(() {
@@ -256,7 +360,13 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                         _aplicarFiltrosLocales();
                         Navigator.pop(ctx);
                       },
-                      child: const Text('Aplicar Filtros', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Aplicar Filtros',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -275,23 +385,25 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
       brandName: 'MiQhatu',
       tenantValue: _storeName,
       userName: _userName,
-      topBarTrailing: Stack(
+      topBarTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.primaryDark),
-            onPressed: () => Navigator.pushNamed(context, '/carrito').then((_) => _loadCartCount()),
+          _buildBadgeIcon(
+            icon: Icons.favorite_border,
+            count: _wishlistProductIds.length,
+            onPressed: () => Navigator.pushNamed(
+              context,
+              '/wishlist',
+            ).then((_) => _loadWishlist()),
           ),
-          if (_cartItemCount > 0)
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Text('$_cartItemCount', style: const TextStyle(color: Colors.white, fontSize: 10), textAlign: TextAlign.center),
-              ),
-            ),
+          _buildBadgeIcon(
+            icon: Icons.shopping_cart_outlined,
+            count: _cartItemCount,
+            onPressed: () => Navigator.pushNamed(
+              context,
+              '/carrito',
+            ).then((_) => _loadCartCount()),
+          ),
         ],
       ),
       sidebarItems: [
@@ -307,9 +419,19 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
           onTap: () {},
         ),
         AppSidebarItem(
+          icon: Icons.favorite_border,
+          label: 'Mi Wishlist',
+          onTap: () => Navigator.pushReplacementNamed(context, '/wishlist'),
+        ),
+        AppSidebarItem(
           icon: Icons.shopping_bag_outlined,
           label: 'Mis Pedidos',
           onTap: () => Navigator.pushReplacementNamed(context, '/pedidos'),
+        ),
+        AppSidebarItem(
+          icon: Icons.card_giftcard,
+          label: 'Mis Puntos',
+          onTap: () => Navigator.pushReplacementNamed(context, '/puntos'),
         ),
         AppSidebarItem(
           icon: Icons.person_outline,
@@ -338,11 +460,17 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
                 children: [
                   Text('Nuestro Catálogo', style: AppTextStyles.h1),
                   const SizedBox(height: 5),
-                  Text('Encuentra los mejores productos', style: AppTextStyles.subtitle),
+                  Text(
+                    'Encuentra los mejores productos',
+                    style: AppTextStyles.subtitle,
+                  ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.filter_list, color: AppColors.primaryDark),
+                icon: const Icon(
+                  Icons.filter_list,
+                  color: AppColors.primaryDark,
+                ),
                 onPressed: _abrirFiltros,
                 tooltip: 'Filtros Avanzados',
               ),
@@ -360,22 +488,38 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               filled: true,
               fillColor: AppColors.bgCard,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 16),
           _buildCategoryBar(),
           const SizedBox(height: 20),
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.accentTeal))
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.accentTeal),
+            )
           else if (_error != null)
-            Center(child: Text(_error!, style: const TextStyle(color: AppColors.danger)))
+            Center(
+              child: Text(
+                _error!,
+                style: const TextStyle(color: AppColors.danger),
+              ),
+            )
           else if (_filteredProducts.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(20.0),
-                child: Text('No se encontraron productos con estos filtros.', style: TextStyle(color: Colors.grey)),
+                child: Text(
+                  'No se encontraron productos con estos filtros.',
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
             )
           else
@@ -383,10 +527,12 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
+                crossAxisCount: MediaQuery.of(context).size.width > 1200
+                    ? 4
+                    : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 0.75,
+                childAspectRatio: 0.68,
               ),
               itemCount: _filteredProducts.length,
               itemBuilder: (context, index) {
@@ -401,7 +547,7 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
 
   Widget _buildCategoryBar() {
     if (_isLoadingCats) return const SizedBox(height: 40);
-    
+
     return SizedBox(
       height: 45,
       child: ListView.separated(
@@ -425,7 +571,9 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primaryDark : AppColors.bgCard,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: isSelected ? AppColors.primaryDark : AppColors.border),
+                border: Border.all(
+                  color: isSelected ? AppColors.primaryDark : AppColors.border,
+                ),
               ),
               child: Text(
                 name,
@@ -443,12 +591,22 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
 
   Widget _buildProductCard(ProductModel product) {
     return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
-      ).then((refresh) {
-        if (refresh == true) _loadCartCount();
-      }),
+      onTap: () =>
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(product: product),
+            ),
+          ).then((result) {
+            final cartChanged =
+                result == true ||
+                (result is Map && result['cartChanged'] == true);
+            final reviewsChanged =
+                result is Map && result['reviewsChanged'] == true;
+            if (cartChanged) _loadCartCount();
+            if (reviewsChanged) _cargarProductos();
+            _loadWishlist();
+          }),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.bgCard,
@@ -459,21 +617,44 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Hero(
-                tag: 'product-${product.id}',
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: AppColors.bgSearch,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Hero(
+                    tag: 'product-${product.id}',
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: AppColors.bgSearch,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(14),
+                        ),
+                      ),
+                      child:
+                          product.imagenUrl != null &&
+                              product.imagenUrl!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(14),
+                              ),
+                              child: Image.network(
+                                product.imagenUrl!,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.image_outlined,
+                              size: 50,
+                              color: AppColors.textMuted,
+                            ),
+                    ),
                   ),
-                  child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                          child: Image.network(product.imagenUrl!, fit: BoxFit.cover),
-                        )
-                      : const Icon(Icons.image_outlined, size: 50, color: AppColors.textMuted),
-                ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _buildWishlistButton(product),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -481,23 +662,51 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.categoriaNombre ?? 'General', style: const TextStyle(color: AppColors.accentTeal, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    product.categoriaNombre ?? 'General',
+                    style: const TextStyle(
+                      color: AppColors.accentTeal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(product.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    product.nombre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
-                    Row(
+                  _buildProductRating(product),
+                  const SizedBox(height: 8),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
-                          'BS. ${product.precio}', 
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark),
+                          'BS. ${product.precio}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: AppColors.primaryDark,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_shopping_cart, color: AppColors.accentTeal),
-                        onPressed: () => _addToCart(product),
+                        icon: Icon(
+                          Icons.add_shopping_cart,
+                          color: product.activo && product.stock > 0
+                              ? AppColors.accentTeal
+                              : AppColors.textMuted,
+                        ),
+                        onPressed: product.activo && product.stock > 0
+                            ? () => _addToCart(product)
+                            : null,
                       ),
                     ],
                   ),
@@ -506,6 +715,98 @@ class _StorefrontScreenState extends State<StorefrontScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductRating(ProductModel product) {
+    final rating = product.promedioCalificacion;
+    final fullStars = rating.floor();
+    final hasHalfStar = rating - fullStars >= 0.5;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(5, (index) {
+            IconData icon;
+            if (index < fullStars) {
+              icon = Icons.star;
+            } else if (index == fullStars && hasHalfStar) {
+              icon = Icons.star_half;
+            } else {
+              icon = Icons.star_border;
+            }
+            return Icon(icon, color: AppColors.warning, size: 14);
+          }),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '(${product.totalResenas})',
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeIcon({
+    required IconData icon,
+    required int count,
+    required VoidCallback onPressed,
+  }) {
+    return Stack(
+      children: [
+        IconButton(
+          icon: Icon(icon, color: AppColors.primaryDark),
+          onPressed: onPressed,
+        ),
+        if (count > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: AppColors.danger,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                count.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildWishlistButton(ProductModel product) {
+    final isSaved = _wishlistProductIds.contains(product.id);
+    final isUpdating = _updatingWishlistIds.contains(product.id);
+
+    return Material(
+      color: Colors.white.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: isSaved ? 'Quitar de wishlist' : 'Guardar en wishlist',
+        onPressed: isUpdating ? null : () => _toggleWishlist(product),
+        icon: isUpdating
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                isSaved ? Icons.favorite : Icons.favorite_border,
+                color: isSaved ? AppColors.danger : AppColors.primaryDark,
+              ),
       ),
     );
   }

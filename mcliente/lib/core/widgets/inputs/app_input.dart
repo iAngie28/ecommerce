@@ -51,7 +51,7 @@ class AppInput extends StatelessWidget {
           validator: validator,
           readOnly: readOnly,
           style: TextStyle(
-            fontSize: 14, 
+            fontSize: 14,
             color: readOnly ? AppColors.textGray : AppColors.textPrimary,
           ),
           decoration: InputDecoration(

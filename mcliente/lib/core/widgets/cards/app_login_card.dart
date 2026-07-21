@@ -24,7 +24,7 @@ class AppLoginCard extends StatelessWidget {
   const AppLoginCard({
     super.key,
     required this.brandName,
-    this.brandIcon = Icons.inventory_2, 
+    this.brandIcon = Icons.inventory_2,
     required this.infoTitle,
     required this.infoSubtitle,
     this.formKey,
@@ -73,22 +73,30 @@ class AppLoginCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppBrand(
-                        name: brandName,
-                        icon: brandIcon, 
-                        darkBackground: true),
+                      name: brandName,
+                      icon: brandIcon,
+                      darkBackground: true,
+                    ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(infoTitle,
-                            style: AppTextStyles.h1Hero
-                                .copyWith(fontSize: 38, color: AppColors.white)),
+                        Text(
+                          infoTitle,
+                          style: AppTextStyles.h1Hero.copyWith(
+                            fontSize: 38,
+                            color: AppColors.white,
+                          ),
+                        ),
                         const SizedBox(height: 20),
-                        Text(infoSubtitle,
-                            style: AppTextStyles.bodyLg
-                                .copyWith(color: Colors.white.withOpacity(0.8))),
+                        Text(
+                          infoSubtitle,
+                          style: AppTextStyles.bodyLg.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(), 
+                    const SizedBox(),
                   ],
                 ),
               ),
@@ -124,11 +132,7 @@ class AppLoginCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showBrand) ...[
-            AppBrand(
-              name: brandName,
-              icon: brandIcon,
-              darkBackground: false,
-            ),
+            AppBrand(name: brandName, icon: brandIcon, darkBackground: false),
             const SizedBox(height: 30),
           ],
           Text('Iniciar Sesión', style: AppTextStyles.h1),
@@ -148,14 +152,15 @@ class AppLoginCard extends StatelessWidget {
             suffixWidget: onForgot != null
                 ? GestureDetector(
                     onTap: onForgot,
-                    child: Text('¿Olvidaste tu contraseña?',
-                        style: AppTextStyles.link),
+                    child: Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: AppTextStyles.link,
+                    ),
                   )
                 : null,
           ),
           const SizedBox(height: 30),
-          AppButton.submit(
-              label: 'Iniciar Sesión', onPressed: onSubmit),
+          AppButton.submit(label: 'Iniciar Sesión', onPressed: onSubmit),
           if (onRegister != null) ...[
             const SizedBox(height: 30),
             Center(
@@ -167,8 +172,7 @@ class AppLoginCard extends StatelessWidget {
                     WidgetSpan(
                       child: GestureDetector(
                         onTap: onRegister,
-                        child: Text('Regístrate',
-                            style: AppTextStyles.link),
+                        child: Text('Regístrate', style: AppTextStyles.link),
                       ),
                     ),
                   ],

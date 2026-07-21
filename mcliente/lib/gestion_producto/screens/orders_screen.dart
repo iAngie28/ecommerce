@@ -61,10 +61,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
           onTap: () => Navigator.pushReplacementNamed(context, '/tiendas'),
         ),
         AppSidebarItem(
+          icon: Icons.favorite_border,
+          label: 'Mi Wishlist',
+          onTap: () => Navigator.pushReplacementNamed(context, '/wishlist'),
+        ),
+        AppSidebarItem(
           icon: Icons.shopping_bag_outlined,
           label: 'Mis Pedidos',
           isActive: true,
           onTap: () => Navigator.pushReplacementNamed(context, '/pedidos'),
+        ),
+        AppSidebarItem(
+          icon: Icons.card_giftcard,
+          label: 'Mis Puntos',
+          onTap: () => Navigator.pushReplacementNamed(context, '/puntos'),
         ),
         AppSidebarItem(
           icon: Icons.logout,

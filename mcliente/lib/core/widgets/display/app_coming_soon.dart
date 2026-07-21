@@ -22,7 +22,9 @@ class AppComingSoon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 20 : 40),
+      padding: EdgeInsets.all(
+        MediaQuery.of(context).size.width < 600 ? 20 : 40,
+      ),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
@@ -51,7 +53,12 @@ class AppComingSoon extends StatelessWidget {
           const SizedBox(height: 30),
           const Text(
             'CARACTERÍSTICAS PRÓXIMAMENTE:',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.2, color: AppColors.textMuted),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 1.2,
+              color: AppColors.textMuted,
+            ),
           ),
           const SizedBox(height: 20),
           Wrap(
@@ -78,7 +85,10 @@ class AppComingSoon extends StatelessWidget {
         children: [
           Icon(Icons.check_circle, size: 14, color: accentColor),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );

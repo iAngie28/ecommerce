@@ -35,11 +35,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  Future<void> _markAsRead(int id) async {
+  Future<void> _markAsRead(Map<String, dynamic> notif) async {
     try {
-      await _repo.markAsRead(id);
+      final id = int.tryParse((notif['id'] ?? '').toString()) ?? 0;
+      await _repo.markAsRead(
+        id,
+        tenantHost: notif['tienda_host']?.toString(),
+        tenantSchema: notif['tienda_schema']?.toString(),
+      );
       setState(() {
-        final index = _notifications.indexWhere((n) => n['id'] == id);
+        final tenantSchema = notif['tienda_schema']?.toString();
+        final index = _notifications.indexWhere(
+          (n) =>
+              n['id'] == id &&
+              (n['tienda_schema']?.toString() ?? '') ==
+                  (tenantSchema ?? ''),
+        );
         if (index != -1) {
           _notifications[index]['leido'] = true;
         }
@@ -73,40 +84,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               icon: const Icon(Icons.checklist),
               tooltip: 'Marcar todas como leídas',
               onPressed: _markAllAsRead,
-            )
+            ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _notifications.isEmpty
-              ? const Center(child: Text('No tienes notificaciones'))
-              : ListView.builder(
-                  itemCount: _notifications.length,
-                  itemBuilder: (context, index) {
-                    final notif = _notifications[index];
-                    final isRead = notif['leido'] ?? false;
-                    
-                    return ListTile(
-                      tileColor: isRead ? null : Colors.blue.withOpacity(0.1),
-                      leading: Icon(
-                        notif['tipo'] == 'PAGO' 
-                            ? Icons.payment 
-                            : notif['tipo'] == 'PEDIDO' 
-                                ? Icons.local_shipping 
-                                : Icons.info,
-                        color: isRead ? Colors.grey : Colors.blue,
-                      ),
-                      title: Text(
-                        notif['titulo'] ?? '',
-                        style: TextStyle(fontWeight: isRead ? FontWeight.normal : FontWeight.bold),
-                      ),
-                      subtitle: Text(notif['mensaje'] ?? ''),
-                      onTap: () {
-                        if (!isRead) _markAsRead(notif['id']);
-                      },
-                    );
+          ? const Center(child: Text('No tienes notificaciones'))
+          : ListView.builder(
+              itemCount: _notifications.length,
+              itemBuilder: (context, index) {
+                final notif = _notifications[index];
+                final isRead = notif['leido'] ?? false;
+
+                return ListTile(
+                  tileColor: isRead ? null : Colors.blue.withOpacity(0.1),
+                  leading: Icon(
+                    notif['tipo'] == 'PAGO'
+                        ? Icons.payment
+                        : notif['tipo'] == 'PEDIDO'
+                        ? Icons.local_shipping
+                        : Icons.info,
+                    color: isRead ? Colors.grey : Colors.blue,
+                  ),
+                  title: Text(
+                    notif['titulo'] ?? '',
+                    style: TextStyle(
+                      fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(notif['mensaje'] ?? ''),
+                  isThreeLine: notif['tienda_nombre'] != null,
+                  onTap: () {
+                    if (!isRead) _markAsRead(Map<String, dynamic>.from(notif));
                   },
-                ),
+                  trailing: notif['tienda_nombre'] != null
+                      ? Text(
+                          notif['tienda_nombre'].toString(),
+                          style: const TextStyle(fontSize: 11),
+                        )
+                      : null,
+                );
+              },
+            ),
     );
   }
 }

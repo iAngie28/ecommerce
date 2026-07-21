@@ -83,5 +83,4 @@ class DefaultFirebaseOptions {
     authDomain: 'si2parcial-9e9e9.firebaseapp.com',
     storageBucket: 'si2parcial-9e9e9.firebasestorage.app',
   );
-
 }

@@ -20,7 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _nitController = TextEditingController();
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   UserModel? _user;
@@ -57,7 +57,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'nombre': _nameController.text,
         'telefono': _phoneController.text,
         'nit': _nitController.text,
-        'correo': _user!.correo, // El correo suele ser fijo o requiere otro flujo
+        'correo':
+            _user!.correo, // El correo suele ser fijo o requiere otro flujo
       });
       setState(() {
         _user = updatedUser;
@@ -87,9 +88,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: () => Navigator.pushReplacementNamed(context, '/tienda'),
         ),
         AppSidebarItem(
+          icon: Icons.favorite_border,
+          label: 'Mi Wishlist',
+          onTap: () => Navigator.pushReplacementNamed(context, '/wishlist'),
+        ),
+        AppSidebarItem(
           icon: Icons.shopping_bag_outlined,
           label: 'Mis Pedidos',
           onTap: () => Navigator.pushReplacementNamed(context, '/pedidos'),
+        ),
+        AppSidebarItem(
+          icon: Icons.card_giftcard,
+          label: 'Mis Puntos',
+          onTap: () => Navigator.pushReplacementNamed(context, '/puntos'),
         ),
         AppSidebarItem(
           icon: Icons.person_outline,
@@ -110,7 +121,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text('Mi Perfil', style: AppTextStyles.h1),
           const SizedBox(height: 30),
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.accentTeal))
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.accentTeal),
+            )
           else
             _buildProfileForm(),
         ],
@@ -134,7 +147,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             CircleAvatar(
               radius: 50,
               backgroundColor: AppColors.accentTeal.withOpacity(0.1),
-              child: const Icon(Icons.person, size: 50, color: AppColors.accentTeal),
+              child: const Icon(
+                Icons.person,
+                size: 50,
+                color: AppColors.accentTeal,
+              ),
             ),
             const SizedBox(height: 30),
             AppInput(

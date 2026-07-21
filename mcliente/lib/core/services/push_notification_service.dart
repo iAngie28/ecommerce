@@ -14,8 +14,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class PushNotificationService {
-  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> initializeApp() async {
     // 1. Solicitar permisos (Principalmente para iOS y Android 13+)
@@ -34,7 +36,8 @@ class PushNotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenApp);
 
     // 6. Manejar si la app fue abierta desde una notificación cuando estaba terminada
-    final RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
+    final RemoteMessage? initialMessage = await _firebaseMessaging
+        .getInitialMessage();
     if (initialMessage != null) {
       _onMessageOpenApp(initialMessage);
     }
@@ -50,11 +53,9 @@ class PushNotificationService {
   static Future<void> registerTokenWithBackend(String token) async {
     try {
       final apiClient = ApiClient();
-      await apiClient.post(
-        '${ApiConstants.mainBaseUrl}/device-token/', 
-        {'token': token},
-        requiresAuth: true,
-      );
+      await apiClient.post('${ApiConstants.mainBaseUrl}/device-token/', {
+        'token': token,
+      }, requiresAuth: true);
       log("Token registrado en el backend exitosamente.");
     } catch (e) {
       log("Error al registrar token en el backend: $e");
@@ -68,15 +69,19 @@ class PushNotificationService {
       sound: true,
       provisional: false,
     );
-    log('Estado del permiso de notificaciones: ${settings.authorizationStatus}');
+    log(
+      'Estado del permiso de notificaciones: ${settings.authorizationStatus}',
+    );
   }
 
   static Future<void> _initializeLocalNotifications() async {
     // Usa el ícono por defecto de lanzamiento de la app (se debe asegurar que exista en mipmap)
-    const AndroidInitializationSettings androidInitSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+    const AndroidInitializationSettings androidInitSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
     // Para iOS (si fuera aplicable en el futuro)
-    const DarwinInitializationSettings iosInitSettings = DarwinInitializationSettings();
+    const DarwinInitializationSettings iosInitSettings =
+        DarwinInitializationSettings();
 
     const InitializationSettings initSettings = InitializationSettings(
       android: androidInitSettings,
@@ -97,11 +102,11 @@ class PushNotificationService {
 
   static void _onMessageHandler(RemoteMessage message) {
     log("Mensaje recibido en primer plano: ${message.notification?.title}");
-    
+
     if (message.notification != null) {
       _showLocalNotification(message);
     }
-    
+
     _handleNotificationType(message.data);
   }
 
@@ -116,7 +121,7 @@ class PushNotificationService {
 
     final String? type = data['type'];
     log("Procesando tipo de notificación en MCliente: $type");
-    
+
     // Navegar usando navigatorKey
     if (navigatorKey.currentState != null) {
       if (type == 'PAGO' || type == 'PEDIDO') {
@@ -128,14 +133,16 @@ class PushNotificationService {
   }
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {
-    final AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'high_importance_channel', // id
-      'High Importance Notifications', // nombre
-      channelDescription: 'Este canal se usa para notificaciones importantes.',
-      importance: Importance.max,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher', // IMPORTANTE: debe coincidir
-    );
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'high_importance_channel', // id
+          'High Importance Notifications', // nombre
+          channelDescription:
+              'Este canal se usa para notificaciones importantes.',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher', // IMPORTANTE: debe coincidir
+        );
 
     final NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,

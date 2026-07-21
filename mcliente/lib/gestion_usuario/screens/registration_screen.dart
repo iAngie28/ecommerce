@@ -19,7 +19,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _phoneController = TextEditingController();
   final _nitController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _isLoading = false;
   final AuthRepository _authRepository = AuthRepository();
 
@@ -27,7 +27,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    
+
     final success = await _authRepository.register({
       'nombre': _nameController.text,
       'correo': _emailController.text,
@@ -62,7 +62,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               color: AppColors.bgCard,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 10)),
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
               ],
             ),
             child: Form(
@@ -73,17 +77,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(15),
-                      decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle),
-                      child: const Icon(Icons.person_add_outlined, color: Colors.white, size: 30),
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentTeal,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_add_outlined,
+                        color: Colors.white,
+                        size: 30,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   const Center(
-                    child: Text('Crea tu cuenta', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Crea tu cuenta',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   const Center(
-                    child: Text('Únete a nuestra comunidad de compradores', style: TextStyle(color: AppColors.textMuted)),
+                    child: Text(
+                      'Únete a nuestra comunidad de compradores',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                   ),
                   const SizedBox(height: 30),
                   AppInput(
@@ -117,7 +137,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     controller: _passwordController,
                     labelIcon: Icons.lock_outline,
                     obscureText: true,
-                    validator: (v) => v!.length < 6 ? 'Mínimo 6 caracteres' : null,
+                    validator: (v) =>
+                        v!.length < 6 ? 'Mínimo 6 caracteres' : null,
                   ),
                   const SizedBox(height: 30),
                   AppButton.submit(
@@ -129,7 +150,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   Center(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('¿Ya tienes cuenta? Inicia sesión', style: TextStyle(color: AppColors.accentTeal)),
+                      child: const Text(
+                        '¿Ya tienes cuenta? Inicia sesión',
+                        style: TextStyle(color: AppColors.accentTeal),
+                      ),
                     ),
                   ),
                 ],

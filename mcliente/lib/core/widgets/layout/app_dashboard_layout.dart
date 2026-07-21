@@ -28,51 +28,65 @@ class AppDashboardLayout extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 800;
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+    final notificationButton = IconButton(
+      tooltip: 'Notificaciones',
+      icon: const Icon(Icons.notifications_outlined),
+      onPressed: () => Navigator.pushNamed(context, '/notificaciones'),
+    );
+    final trailingWidgets = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        notificationButton,
+        if (topBarTrailing != null) ...[
+          const SizedBox(width: 4),
+          topBarTrailing!,
+        ],
+      ],
+    );
 
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: AppColors.bgLight,
-      drawer: isMobile 
+      drawer: isMobile
           ? Drawer(
-              child: AppSidebar(
-                brandName: brandName,
-                items: sidebarItems,
-              ),
+              child: AppSidebar(brandName: brandName, items: sidebarItems),
             )
           : null,
       body: Row(
         children: [
-          if (!isMobile)
-            AppSidebar(
-              brandName: brandName,
-              items: sidebarItems,
-            ),
-          
+          if (!isMobile) AppSidebar(brandName: brandName, items: sidebarItems),
+
           Expanded(
             child: Column(
               children: [
                 if (isMobile)
                   AppBar(
                     backgroundColor: AppColors.bgCard,
-                    iconTheme: const IconThemeData(color: AppColors.primaryDark),
+                    iconTheme: const IconThemeData(
+                      color: AppColors.primaryDark,
+                    ),
                     elevation: 0,
                     leading: IconButton(
                       icon: const Icon(Icons.menu),
                       onPressed: () => scaffoldKey.currentState?.openDrawer(),
                     ),
-                    title: Text(tenantValue ?? 'Tienda', style: const TextStyle(color: AppColors.primaryDark, fontSize: 16)),
-                    actions: [
-                      if (topBarTrailing != null) topBarTrailing!,
-                    ],
+                    title: Text(
+                      tenantValue ?? 'Tienda',
+                      style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontSize: 16,
+                      ),
+                    ),
+                    actions: [trailingWidgets],
                   )
                 else
                   AppTopBar(
                     tenantLabel: tenantLabel,
                     tenantValue: tenantValue,
                     userName: userName,
-                    trailing: topBarTrailing,
+                    trailing: trailingWidgets,
                   ),
-                
+
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(isMobile ? 20 : 40),

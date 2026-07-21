@@ -50,9 +50,9 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
-  })  : _variant = _AppButtonVariant.submit,
-        icon = null,
-        color = null;
+  }) : _variant = _AppButtonVariant.submit,
+       icon = null,
+       color = null;
 
   const AppButton.navRegister({
     super.key,
@@ -60,9 +60,9 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = false,
-  })  : _variant = _AppButtonVariant.navRegister,
-        icon = null,
-        color = null;
+  }) : _variant = _AppButtonVariant.navRegister,
+       icon = null,
+       color = null;
 
   @override
   Widget build(BuildContext context) {
@@ -83,16 +83,26 @@ class AppButton extends StatelessWidget {
       case _AppButtonVariant.secondary:
         button = OutlinedButton.icon(
           onPressed: isLoading ? null : onPressed,
-          icon: isLoading 
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-            : (icon != null ? Icon(icon, size: 18) : const SizedBox.shrink()),
+          icon: isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.white,
+                  ),
+                )
+              : (icon != null ? Icon(icon, size: 18) : const SizedBox.shrink()),
           label: Text(label),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.white,
             side: const BorderSide(color: AppColors.white, width: 2),
             shape: const StadiumBorder(),
             padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 16),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
           ),
         );
         break;
@@ -101,8 +111,15 @@ class AppButton extends StatelessWidget {
         button = ElevatedButton.icon(
           onPressed: isLoading ? null : onPressed,
           icon: isLoading
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-            : Icon(icon ?? Icons.add, size: 18),
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.white,
+                  ),
+                )
+              : Icon(icon ?? Icons.add, size: 18),
           label: Text(label),
           style: ElevatedButton.styleFrom(
             backgroundColor: color ?? AppColors.accentTeal,
@@ -111,7 +128,10 @@ class AppButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
             elevation: 0,
           ),
         );
@@ -125,12 +145,22 @@ class AppButton extends StatelessWidget {
             foregroundColor: AppColors.white,
             shape: const StadiumBorder(),
             padding: const EdgeInsets.symmetric(vertical: 18),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
             elevation: 0,
           ),
           child: isLoading
-            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-            : Text(label),
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.white,
+                  ),
+                )
+              : Text(label),
         );
         break;
 
@@ -193,14 +223,24 @@ class _PillButton extends StatelessWidget {
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.white,
+                ),
+              )
             : (icon != null
-                ? Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(icon, size: 18),
-                    const SizedBox(width: 8),
-                    Text(label),
-                  ])
-                : Text(label)),
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 18),
+                        const SizedBox(width: 8),
+                        Text(label),
+                      ],
+                    )
+                  : Text(label)),
       ),
     );
   }

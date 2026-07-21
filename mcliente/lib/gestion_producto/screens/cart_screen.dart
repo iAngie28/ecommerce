@@ -34,6 +34,7 @@ class _CartScreenState extends State<CartScreen> {
   final FidelizacionRepository _fidelizacionRepository =
       FidelizacionRepository();
   final TextEditingController _pointsController = TextEditingController();
+  final FocusNode _pointsFocusNode = FocusNode();
   final NumberFormat _pointsFormat = NumberFormat.decimalPattern('es_BO');
   int _saldoPuntos = 0;
   double _valorPunto = 0.05;
@@ -52,6 +53,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void dispose() {
     _pointsController.dispose();
+    _pointsFocusNode.dispose();
     super.dispose();
   }
 
@@ -190,6 +192,20 @@ class _CartScreenState extends State<CartScreen> {
     _previewDiscount = 0;
   }
 
+  void _handlePointsChanged(String _) {
+    if (_loyaltyError == null &&
+        _previewPoints == null &&
+        _previewDiscount == 0) {
+      return;
+    }
+
+    setState(() {
+      _loyaltyError = null;
+      _previewPoints = null;
+      _previewDiscount = 0;
+    });
+  }
+
   Future<void> _processCheckout() async {
     if (_cart == null || _cart!.items.isEmpty) {
       AppToast.showInfo(context, 'Tu carrito está vacío');
@@ -270,9 +286,19 @@ class _CartScreenState extends State<CartScreen> {
           onTap: () => Navigator.pushReplacementNamed(context, '/tienda'),
         ),
         AppSidebarItem(
+          icon: Icons.favorite_border,
+          label: 'Mi Wishlist',
+          onTap: () => Navigator.pushReplacementNamed(context, '/wishlist'),
+        ),
+        AppSidebarItem(
           icon: Icons.shopping_bag_outlined,
           label: 'Mis Pedidos',
           onTap: () => Navigator.pushReplacementNamed(context, '/pedidos'),
+        ),
+        AppSidebarItem(
+          icon: Icons.card_giftcard,
+          label: 'Mis Puntos',
+          onTap: () => Navigator.pushReplacementNamed(context, '/puntos'),
         ),
         AppSidebarItem(
           icon: Icons.logout,
@@ -527,54 +553,42 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _pointsController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: '0',
-                    suffixText: 'pts',
-                    filled: true,
-                    fillColor: AppColors.bgSearch,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.border),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 420;
+              final input = _buildPointsInput();
+              final maxButton = _buildMaxPointsButton();
+              final calculateButton = _buildCalculatePointsButton(
+                fullWidth: isNarrow,
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: input),
+                        const SizedBox(width: 8),
+                        maxButton,
+                      ],
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                  ),
-                  onChanged: (_) => setState(() {
-                    _loyaltyError = null;
-                    _previewPoints = null;
-                    _previewDiscount = 0;
-                  }),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _maxRedeemablePoints > 0 ? _useMaxPoints : null,
-                child: const Text('Máx.'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: _maxRedeemablePoints > 0
-                    ? _previewLoyaltyDiscount
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentTeal,
-                  foregroundColor: AppColors.white,
-                ),
-                child: const Text('Calcular'),
-              ),
-            ],
+                    const SizedBox(height: 10),
+                    calculateButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: input),
+                  const SizedBox(width: 8),
+                  maxButton,
+                  const SizedBox(width: 8),
+                  calculateButton,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 10),
           Row(
@@ -653,6 +667,55 @@ class _CartScreenState extends State<CartScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPointsInput() {
+    return TextField(
+      controller: _pointsController,
+      focusNode: _pointsFocusNode,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        hintText: '0',
+        suffixText: 'pts',
+        filled: true,
+        fillColor: AppColors.bgSearch,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+      onChanged: _handlePointsChanged,
+    );
+  }
+
+  Widget _buildMaxPointsButton() {
+    return OutlinedButton(
+      onPressed: _maxRedeemablePoints > 0 ? _useMaxPoints : null,
+      child: const Text('Máx.'),
+    );
+  }
+
+  Widget _buildCalculatePointsButton({required bool fullWidth}) {
+    final button = ElevatedButton(
+      onPressed: _maxRedeemablePoints > 0 ? _previewLoyaltyDiscount : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.accentTeal,
+        foregroundColor: AppColors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      ),
+      child: const Text('Calcular'),
+    );
+
+    if (!fullWidth) return button;
+    return SizedBox(width: double.infinity, child: button);
   }
 
   Widget _buildRecommendationsSection() {

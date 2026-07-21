@@ -26,11 +26,23 @@ class ReseñaViewSet(BaseViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    def _get_cliente_id(self):
+    def _get_cliente(self):
         auth = getattr(self.request, 'auth', None)
         if hasattr(auth, 'get') and auth.get('role') == 'CLIENTE':
-            return auth.get('cliente_id') or auth.get('user_id')
+            correo = auth.get('correo') or getattr(self.request.user, 'correo', None)
+            if correo:
+                cliente = Cliente.objects.filter(correo=correo).first()
+                if cliente:
+                    return cliente
+
+            cliente_id = auth.get('cliente_id') or auth.get('user_id')
+            if cliente_id:
+                return Cliente.objects.filter(id=cliente_id).first()
         return None
+
+    def _get_cliente_id(self):
+        cliente = self._get_cliente()
+        return cliente.id if cliente else None
         
     def _is_admin_or_vendor(self):
         # Verifica si el usuario logueado es ADMIN o VENDEDOR
@@ -68,7 +80,7 @@ class ReseñaViewSet(BaseViewSet):
         if not cliente_id:
             return Response({"detail": "No autorizado."}, status=status.HTTP_403_FORBIDDEN)
             
-        reseñas = self.queryset.filter(cliente_id=cliente_id)
+        reseñas = self.queryset.filter(cliente_id=cliente_id).order_by('-fecha_creacion')
         
         page = self.paginate_queryset(reseñas)
         if page is not None:
@@ -81,7 +93,10 @@ class ReseñaViewSet(BaseViewSet):
     @action(detail=False, methods=['get'], url_path=r'por-producto/(?P<producto_id>\d+)')
     def por_producto(self, request, producto_id=None):
         # Endpoint público para listar reseñas aprobadas de un producto
-        reseñas = self.queryset.filter(producto_id=producto_id, estado='APROBADA')
+        reseñas = self.queryset.filter(
+            producto_id=producto_id,
+            estado='APROBADA'
+        ).order_by('-fecha_creacion')
         promedios = self.service.calcular_promedio(producto_id)
         
         page = self.paginate_queryset(reseñas)

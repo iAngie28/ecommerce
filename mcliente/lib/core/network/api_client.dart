@@ -12,9 +12,7 @@ class ApiClient {
     bool includeTenantHost = false,
     String? tenantHostOverride,
   }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
 
     if (requiresAuth) {
       final token = await _storage.getAccessToken();
@@ -51,12 +49,14 @@ class ApiClient {
     final response = await http.get(Uri.parse(url), headers: headers);
 
     if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => get(
-            url,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-            tenantHostOverride: tenantHostOverride,
-          ));
+      return await _handleTokenRefresh(
+        () => get(
+          url,
+          requiresAuth: requiresAuth,
+          includeTenantHost: includeTenantHost,
+          tenantHostOverride: tenantHostOverride,
+        ),
+      );
     }
     return response;
   }
@@ -80,13 +80,15 @@ class ApiClient {
     );
 
     if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => post(
-            url,
-            body,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-            tenantHostOverride: tenantHostOverride,
-          ));
+      return await _handleTokenRefresh(
+        () => post(
+          url,
+          body,
+          requiresAuth: requiresAuth,
+          includeTenantHost: includeTenantHost,
+          tenantHostOverride: tenantHostOverride,
+        ),
+      );
     }
     return response;
   }
@@ -110,17 +112,18 @@ class ApiClient {
     );
 
     if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => put(
-            url,
-            body,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-            tenantHostOverride: tenantHostOverride,
-          ));
+      return await _handleTokenRefresh(
+        () => put(
+          url,
+          body,
+          requiresAuth: requiresAuth,
+          includeTenantHost: includeTenantHost,
+          tenantHostOverride: tenantHostOverride,
+        ),
+      );
     }
     return response;
   }
-
 
   Future<http.Response> patch(
     String url,
@@ -141,13 +144,15 @@ class ApiClient {
     );
 
     if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => patch(
-            url,
-            body,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-            tenantHostOverride: tenantHostOverride,
-          ));
+      return await _handleTokenRefresh(
+        () => patch(
+          url,
+          body,
+          requiresAuth: requiresAuth,
+          includeTenantHost: includeTenantHost,
+          tenantHostOverride: tenantHostOverride,
+        ),
+      );
     }
     return response;
   }
@@ -166,11 +171,14 @@ class ApiClient {
     final response = await http.delete(Uri.parse(url), headers: headers);
 
     if (response.statusCode == 401 && requiresAuth) {
-      return await _handleTokenRefresh(() => delete(
-            url,
-            requiresAuth: requiresAuth,
-            includeTenantHost: includeTenantHost,
-          ));
+      return await _handleTokenRefresh(
+        () => delete(
+          url,
+          requiresAuth: requiresAuth,
+          includeTenantHost: includeTenantHost,
+          tenantHostOverride: tenantHostOverride,
+        ),
+      );
     }
     return response;
   }

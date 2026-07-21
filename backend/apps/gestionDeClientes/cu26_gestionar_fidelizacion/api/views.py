@@ -24,14 +24,16 @@ class FidelizacionViewSet(viewsets.ViewSet):
         user = self.request.user
 
         if getattr(user, 'role', None) == 'CLIENTE':
+            correo = getattr(user, 'email', getattr(user, 'correo', None))
+            if correo:
+                cliente = Cliente.objects.filter(correo=correo).first()
+                if cliente:
+                    return cliente
+
             cliente_id = getattr(user, 'cliente_id', None) or getattr(user, 'id', None)
             cliente = Cliente.objects.filter(id=cliente_id).first()
             if cliente:
                 return cliente
-
-            correo = getattr(user, 'email', getattr(user, 'correo', None))
-            if correo:
-                return Cliente.objects.filter(correo=correo).first()
 
             return None
 
