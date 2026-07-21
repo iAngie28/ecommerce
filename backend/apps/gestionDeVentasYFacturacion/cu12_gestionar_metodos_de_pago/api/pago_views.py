@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class PagoViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     LOYALTY_OBSERVATION_KEY = 'fidelizacion_checkout'
+    ESTADOS_CON_PAGO_CONFIRMADO = {'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'}
 
     def _get_stripe_key(self):
         key = getattr(settings, 'STRIPE_SECRET_KEY', None)
@@ -103,28 +104,48 @@ class PagoViewSet(viewsets.ViewSet):
         }, None
 
     def _aplicar_canje_puntos_pedido(self, pedido, metadata=None):
-        loyalty_data = self._obtener_fidelizacion_checkout(pedido, metadata)
+        loyalty_data = FidelizacionService.obtener_canje_pendiente_pedido(pedido, metadata)
         puntos_canjeados = self._to_positive_int(loyalty_data.get('puntos_canjeados'))
 
         if puntos_canjeados <= 0:
             return
 
         try:
-            referencia = loyalty_data.get('referencia') or f'Canje Pedido #{pedido.id}'
-            descuento = FidelizacionService.canjear_puntos(
-                pedido.carrito.cliente_id,
-                puntos_canjeados,
-                referencia
-            )
+            descuento = FidelizacionService.aplicar_canje_pendiente_pedido(pedido, metadata)
             print(
                 f"[POINTS] Canje aplicado para pedido {pedido.id}: "
-                f"{puntos_canjeados} pts = Bs. {descuento:.2f}"
+                f"{puntos_canjeados} pts = Bs. {float(descuento or 0):.2f}"
             )
         except ValidationError as e:
             detalle = e.messages[0] if hasattr(e, 'messages') and e.messages else str(e)
             print(f"[WARN] No se pudo canjear puntos del pedido {pedido.id}: {detalle}")
         except Exception as e:
             print(f"[WARN] Error aplicando canje de puntos del pedido {pedido.id}: {str(e)}")
+
+    def _resolve_schema_name(self, tenant):
+        tenant = str(tenant or '').strip()
+        if not tenant:
+            return None
+
+        if tenant == 'public':
+            return 'public'
+
+        try:
+            from apps.customers.models import Client, Domain
+
+            client = Client.objects.filter(schema_name=tenant).first()
+            if client:
+                return client.schema_name
+
+            domain = Domain.objects.filter(domain=tenant).select_related('tenant').first()
+            if not domain:
+                domain = Domain.objects.filter(domain__startswith=f'{tenant}.').select_related('tenant').first()
+            if domain:
+                return domain.tenant.schema_name
+        except Exception as e:
+            print(f"[WARN] No se pudo resolver tenant '{tenant}': {str(e)}")
+
+        return tenant
 
     @action(detail=False, methods=['post'], url_path='create-payment-intent')
     def create_payment_intent(self, request):
@@ -258,7 +279,12 @@ class PagoViewSet(viewsets.ViewSet):
             pedido.stripe_session_id = checkout_session.id
             if loyalty_data:
                 loyalty_data['stripe_session_id'] = checkout_session.id
-                self._guardar_fidelizacion_checkout(pedido, loyalty_data)
+                FidelizacionService.guardar_canje_pendiente_pedido(
+                    pedido,
+                    loyalty_data['puntos_canjeados'],
+                    loyalty_data,
+                    save=False
+                )
             pedido.save()
 
             print(f"[OK] Sesión de Stripe creada: {checkout_session.id}")
@@ -288,8 +314,9 @@ class PagoViewSet(viewsets.ViewSet):
         print(f"[SYNC] Confirmando éxito para pedido {pedido_id} en tenant {tenant or 'actual'}")
         
         try:
-            if tenant:
-                with schema_context(tenant):
+            schema_name = self._resolve_schema_name(tenant)
+            if schema_name and schema_name != 'public':
+                with schema_context(schema_name):
                     self._marcar_pagado(pedido_id)
             else:
                 self._marcar_pagado(pedido_id)
@@ -328,7 +355,8 @@ class PagoViewSet(viewsets.ViewSet):
             tenant = metadata.get('tenant')
             
             if pedido_id and tenant:
-                with schema_context(tenant):
+                schema_name = self._resolve_schema_name(tenant)
+                with schema_context(schema_name or tenant):
                     self._marcar_pagado(pedido_id, metadata)
 
         return Response(status=200)
@@ -380,7 +408,7 @@ class PagoViewSet(viewsets.ViewSet):
                 except Exception as ef:
                     print(f"[WARN] Error al generar factura: {str(ef)}")
 
-            if pedido.estado == 'PAGADO':
+            if pedido.estado in self.ESTADOS_CON_PAGO_CONFIRMADO:
                 self._aplicar_canje_puntos_pedido(pedido, metadata)
         except Exception as e:
             print(f"[ERROR] ERROR en _marcar_pagado: {str(e)}")

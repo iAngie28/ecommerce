@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, Calendar, ChevronRight } from 'lucide-react';
 import AppView from 'shared/widgets/AppView/AppView';
 import api from 'core/services/api';
-import { getBaseDomain, isBaseDomain } from 'core/utils/domain';
+import { getTenantUrl, isBaseDomain } from 'core/utils/domain';
 import { Spinner } from 'shared/components';
 import styles from './ClientePortal.module.css';
 
@@ -12,6 +12,17 @@ const MisPedidosView = () => {
     const [expandedPedidoId, setExpandedPedidoId] = useState(null);
 
     const [isGlobal, setIsGlobal] = useState(false);
+
+    const getPedidoEndpoint = (pedido, path) => {
+        if (!isGlobal) return path;
+
+        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
+        const tenantUrl = pedido.subdominio
+            ? `${window.location.protocol}//${pedido.subdominio}:${apiPort}`
+            : getTenantUrl(pedido.schema_name, window.location.protocol, apiPort);
+
+        return `${tenantUrl}/api${path}`;
+    };
 
     useEffect(() => {
         // Manejar retorno de Stripe
@@ -133,11 +144,7 @@ const MisPedidosView = () => {
                                                     btn.innerText = "Procesando...";
 
                                                     try {
-                                                        const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
-                                                        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
-                                                        const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
-                                                        
-                                                        const res = await api.post(`${baseUrl}/pagos/create-checkout-session/`, {
+                                                        const res = await api.post(getPedidoEndpoint(pedido, '/pagos/create-checkout-session/'), {
                                                             pedido_id: pedido.id,
                                                             success_url: window.location.href + (window.location.href.includes('?') ? '&' : '?') + `status=success&pedido_id=${pedido.id}&tenant=${pedido.schema_name}`,
                                                             cancel_url: window.location.href
@@ -163,16 +170,12 @@ const MisPedidosView = () => {
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     try {
-                                                        const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
-                                                        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
-                                                        const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
-                                                        
-                                                        const res = await api.get(`${baseUrl}/facturas/?pedido=${pedido.id}`);
+                                                        const res = await api.get(getPedidoEndpoint(pedido, `/facturas/?pedido=${pedido.id}`));
                                                         const factura = res.data?.results?.[0] || res.data?.[0];
                                                         if (factura) {
                                                             
                                                             // Descargar con autenticación (blob) usando URL dinámica
-                                                            const pdfRes = await api.get(`${baseUrl}/facturas/${factura.nro}/descargar_pdf/`, {
+                                                            const pdfRes = await api.get(getPedidoEndpoint(pedido, `/facturas/${factura.nro}/descargar_pdf/`), {
                                                                 responseType: 'blob'
                                                             });
                                                             const url = window.URL.createObjectURL(new Blob([pdfRes.data]));
@@ -203,11 +206,7 @@ const MisPedidosView = () => {
                                                     const btn = e.currentTarget;
                                                     btn.disabled = true;
                                                     try {
-                                                        const tenantHost = isGlobal ? `${pedido.schema_name}.${getBaseDomain(window.location.hostname)}` : window.location.hostname;
-                                                        const apiPort = process.env.REACT_APP_DJANGO_PORT || '8001';
-                                                        const baseUrl = `${window.location.protocol}//${tenantHost}:${apiPort}/api`;
-                                                        
-                                                        await api.post(`${baseUrl}/pedidos/${pedido.id}/cambiar-estado/`, { estado: 'ENTREGADO' });
+                                                        await api.post(getPedidoEndpoint(pedido, `/pedidos/${pedido.id}/cambiar-estado/`), { estado: 'ENTREGADO' });
                                                         
                                                         // Refrescar lista localmente
                                                         setPedidos(prev => prev.map(p => (p.id === pedido.id && p.schema_name === pedido.schema_name) ? {...p, estado: 'ENTREGADO'} : p));

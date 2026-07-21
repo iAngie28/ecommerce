@@ -22,4 +22,6 @@ class HistorialPuntos(models.Model):
         ordering = ['-fecha']
 
     def __str__(self):
-        return f"{self.tipo_operacion} de {self.monto_puntos} pts en {self.cuenta.cliente.usuario.username}"
+        cliente = getattr(self.cuenta, 'cliente', None)
+        cliente_nombre = getattr(cliente, 'nombre', None) or getattr(cliente, 'correo', 'Cliente')
+        return f"{self.tipo_operacion} de {self.monto_puntos} pts en {cliente_nombre}"

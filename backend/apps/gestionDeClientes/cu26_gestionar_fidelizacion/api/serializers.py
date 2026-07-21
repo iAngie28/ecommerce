@@ -16,10 +16,11 @@ class CuentaPuntosSerializer(serializers.ModelSerializer):
         fields = ['id', 'cliente_nombre', 'saldo_actual', 'puntos_historicos', 'fecha_actualizacion', 'historial']
 
     def get_cliente_nombre(self, obj):
-        try:
-            return obj.cliente.usuario.get_full_name() or obj.cliente.usuario.username
-        except Exception:
+        cliente = getattr(obj, 'cliente', None)
+        if not cliente:
             return "Cliente Desconocido"
+
+        return getattr(cliente, 'nombre', None) or getattr(cliente, 'correo', None) or "Cliente Desconocido"
 
     def get_historial(self, obj):
         # Retorna solo los últimos 10 movimientos para no sobrecargar

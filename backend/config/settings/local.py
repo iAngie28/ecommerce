@@ -107,7 +107,8 @@ DATABASES = {
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 JWT_ALGORITHM = config('JWT_ALGORITHM', default='HS256')
-JWT_EXPIRATION_MINUTES = config('JWT_EXPIRATION_MINUTES', default=60, cast=int)
+JWT_EXPIRATION_MINUTES = config('JWT_EXPIRATION_MINUTES', default=1440, cast=int)
+JWT_REFRESH_EXPIRATION_DAYS = config('JWT_REFRESH_EXPIRATION_DAYS', default=7, cast=int)
 
 # ── CORREO ────────────────────────────────────────────────────────────────────
 EMAIL_HOST_USER     = config('EMAIL_HOST_USER', default='')

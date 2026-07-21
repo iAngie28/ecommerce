@@ -148,6 +148,13 @@ class PedidoService(BaseService):
         estado_anterior = pedido.estado
         pedido.estado = nuevo_estado
         pedido.save()
+
+        if nuevo_estado in ['PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO']:
+            try:
+                from apps.gestionDeClientes.cu26_gestionar_fidelizacion.services.fidelizacion_service import FidelizacionService
+                FidelizacionService.aplicar_canje_pendiente_pedido(pedido)
+            except Exception as e:
+                print(f"Error al aplicar canje pendiente del pedido: {str(e)}")
         
         # Notificar al cliente si el estado cambia a algo relevante (PROCESADO, ENVIADO, ENTREGADO, CANCELADO)
         if estado_anterior != nuevo_estado and nuevo_estado in ['PROCESADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO']:

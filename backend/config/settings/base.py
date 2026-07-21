@@ -45,11 +45,11 @@ TENANT_APPS = (
     'apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido',
     'apps.gestionDeVentasYFacturacion.cu14_generar_facturacion',
     'apps.gestionDeVentasYFacturacion.cu15_ver_historial_de_compras',
-    'apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist',
+    'apps.gestionDeVentasYFacturacion.cu25_gestionar_wishlist.apps.Cu25Config',
     'apps.gestionDeClientes.cu16_recomendar_productos',
     'apps.gestionDeClientes.cu17_analizar_comportamiento_del_cliente',
     'apps.gestionDeClientes.cu22_gestionar_prediccion_de_ventas',
-    'apps.gestionDeClientes.cu26_gestionar_fidelizacion',
+    'apps.gestionDeClientes.cu26_gestionar_fidelizacion.apps.Cu26Config',
     'apps.gestionDeReportes.cu18_gestionar_notificaciones.apps.Cu18Config',
     'apps.gestionDeReportes.cu19_generar_reportes_de_ventas.apps.Cu19Config',
     'apps.gestionDeReportes.cu20_gestionar_recordatorios.apps.Cu20Config',
@@ -139,9 +139,12 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 12,
 }
 
+JWT_EXPIRATION_MINUTES = config('JWT_EXPIRATION_MINUTES', default=1440, cast=int)
+JWT_REFRESH_EXPIRATION_DAYS = config('JWT_REFRESH_EXPIRATION_DAYS', default=7, cast=int)
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=JWT_EXPIRATION_MINUTES),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=JWT_REFRESH_EXPIRATION_DAYS),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 

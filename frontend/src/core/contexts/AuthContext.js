@@ -25,9 +25,9 @@ export const AuthProvider = ({ children }) => {
 
   // Fetch fresco de permisos al montar si hay token
   useEffect(() => {
-    if (user?.token) {
+    if (user?.token && String(user?.role || '').toLowerCase() !== 'cliente') {
       import('core/services/api').then(({ default: api }) => {
-        api.get('/usuarios/perfil/')
+        api.get('/usuarios/perfil/', { skipAuthRedirect: true })
           .then(res => {
             const permisos = res.data.permisos_efectivos || [];
             localStorage.setItem('user_permisos_efectivos', JSON.stringify(permisos));
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
           .catch(() => {});
       });
     }
-  }, [user?.token]);
+  }, [user?.token, user?.role]);
 
   const login = useCallback((accessToken, refreshToken, fullName, role = 'vendedor', is_superuser = false, is_staff = false) => {
     localStorage.setItem('access_token',  accessToken);

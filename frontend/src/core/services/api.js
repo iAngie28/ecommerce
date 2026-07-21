@@ -50,9 +50,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const shouldRedirectToLogin = !originalRequest?.skipAuthRedirect;
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
       !originalRequest.url?.includes('/token/refresh/')
     ) {
@@ -73,7 +75,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
         isRefreshing = false;
-        redirectToLogin();
+        if (shouldRedirectToLogin) redirectToLogin();
         return Promise.reject(error);
       }
 
@@ -87,7 +89,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        redirectToLogin();
+        if (shouldRedirectToLogin) redirectToLogin();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

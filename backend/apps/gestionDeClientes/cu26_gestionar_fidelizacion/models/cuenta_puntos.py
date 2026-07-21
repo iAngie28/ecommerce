@@ -14,4 +14,5 @@ class CuentaPuntos(models.Model):
         verbose_name_plural = 'Cuentas de Puntos'
 
     def __str__(self):
-        return f"Cuenta de {self.cliente.usuario.get_full_name()} - Saldo: {self.saldo_actual} pts"
+        cliente_nombre = getattr(self.cliente, 'nombre', None) or getattr(self.cliente, 'correo', 'Cliente')
+        return f"Cuenta de {cliente_nombre} - Saldo: {self.saldo_actual} pts"

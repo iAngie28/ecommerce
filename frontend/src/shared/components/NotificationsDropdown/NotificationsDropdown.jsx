@@ -26,7 +26,7 @@ const NotificationsDropdown = () => {
 
         try {
             setLoading(true);
-            const res = await api.get('/notificaciones/');
+            const res = await api.get('/notificaciones/', { skipAuthRedirect: true });
             const data = Array.isArray(res.data) ? res.data : res.data.results || [];
             setNotifications(data);
             setUnreadCount(data.filter(n => !n.leido).length);

@@ -3,7 +3,11 @@ from django.dispatch import receiver
 from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
 from .services.fidelizacion_service import FidelizacionService
 
-@receiver(post_save, sender=Pedido)
+@receiver(
+    post_save,
+    sender=Pedido,
+    dispatch_uid='cu26_procesar_puntos_pedido_entregado',
+)
 def procesar_puntos_pedido_entregado(sender, instance, created, **kwargs):
     """
     Se ejecuta automáticamente cada vez que se guarda un Pedido.
