@@ -214,7 +214,8 @@ const MisPedidosView = () => {
                                                         alert("¡Pedido finalizado con éxito!");
                                                     } catch (err) {
                                                         btn.disabled = false;
-                                                        alert("Error al confirmar entrega.");
+                                                        const msg = err.response?.data?.error || err.response?.data?.detail || "Error al confirmar entrega.";
+                                                        alert(msg);
                                                     }
                                                 }}
                                             >

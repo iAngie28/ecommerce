@@ -53,6 +53,7 @@ class FidelizacionViewSet(viewsets.ViewSet):
         for tenant in self._get_active_tenants():
             try:
                 with schema_context(tenant.schema_name):
+                    FidelizacionService.sincronizar_pedidos_entregados(cliente.id)
                     cuenta = CuentaPuntos.objects.filter(cliente_id=cliente.id).first()
                     if not cuenta:
                         continue

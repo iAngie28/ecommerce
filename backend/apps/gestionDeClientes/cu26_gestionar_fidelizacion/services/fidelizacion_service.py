@@ -11,8 +11,24 @@ class FidelizacionService:
 
     @staticmethod
     def obtener_o_crear_cuenta(cliente_id) -> CuentaPuntos:
+        FidelizacionService.sincronizar_pedidos_entregados(cliente_id)
         cuenta, created = CuentaPuntos.objects.get_or_create(cliente_id=cliente_id)
         return cuenta
+
+    @staticmethod
+    def sincronizar_pedidos_entregados(cliente_id):
+        """
+        Reprocesa pedidos entregados del cliente que aún no tienen acumulación.
+        Sirve como red de seguridad para pedidos marcados como ENTREGADO antes
+        de que el signal de fidelización estuviera funcionando correctamente.
+        """
+        pedidos = Pedido.objects.filter(
+            estado='ENTREGADO',
+            carrito__cliente_id=cliente_id
+        ).only('id')
+
+        for pedido in pedidos:
+            FidelizacionService.acumular_puntos_por_compra(pedido.id)
 
     @staticmethod
     @transaction.atomic
@@ -22,18 +38,39 @@ class FidelizacionService:
         Se usa `select_for_update` para evitar condiciones de carrera (Race Conditions).
         """
         try:
-            pedido = Pedido.objects.get(id=pedido_id)
+            pedido = Pedido.objects.select_related('carrito', 'carrito__cliente').get(id=pedido_id)
         except Pedido.DoesNotExist:
             return
 
+        if not pedido.carrito_id:
+            return
+
+        referencia = f"Pedido #{pedido.id}"
+
+        if HistorialPuntos.objects.filter(
+            cuenta__cliente_id=pedido.carrito.cliente_id,
+            tipo_operacion='ACUMULACION',
+            referencia=referencia
+        ).exists():
+            return
+
         # Calcular puntos (redondeo hacia abajo)
-        puntos_a_sumar = int(float(pedido.total) * FidelizacionService.PUNTOS_POR_BS)
+        puntos_a_sumar = int(float(pedido.carrito.total_carrito) * FidelizacionService.PUNTOS_POR_BS)
         
         if puntos_a_sumar <= 0:
             return
 
         # Bloquear fila de la cuenta para actualización segura
-        cuenta = CuentaPuntos.objects.select_for_update().get_or_create(cliente_id=pedido.cliente_id)[0]
+        cuenta = CuentaPuntos.objects.select_for_update().get_or_create(
+            cliente_id=pedido.carrito.cliente_id
+        )[0]
+
+        if HistorialPuntos.objects.filter(
+            cuenta=cuenta,
+            tipo_operacion='ACUMULACION',
+            referencia=referencia
+        ).exists():
+            return
         
         # Actualizar saldos
         cuenta.saldo_actual += puntos_a_sumar
@@ -45,7 +82,7 @@ class FidelizacionService:
             cuenta=cuenta,
             tipo_operacion='ACUMULACION',
             monto_puntos=puntos_a_sumar,
-            referencia=f"Pedido #{pedido.id}"
+            referencia=referencia
         )
 
     @staticmethod
@@ -59,6 +96,15 @@ class FidelizacionService:
             raise ValidationError("La cantidad de puntos a canjear debe ser mayor a 0.")
 
         cuenta = CuentaPuntos.objects.select_for_update().get(cliente_id=cliente_id)
+
+        if referencia:
+            canje_existente = HistorialPuntos.objects.filter(
+                cuenta=cuenta,
+                tipo_operacion='CANJE',
+                referencia=referencia
+            ).first()
+            if canje_existente:
+                return abs(canje_existente.monto_puntos) * FidelizacionService.VALOR_BS_POR_PUNTO
         
         if cuenta.saldo_actual < puntos_a_canjear:
             raise ValidationError(f"Saldo insuficiente. Tienes {cuenta.saldo_actual} puntos.")

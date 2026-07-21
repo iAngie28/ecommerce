@@ -4,6 +4,7 @@ ConfiguraciÃ³n base compartida por todos los entornos.
 Todas las settings de settings.py que NO son especÃ­ficas de entorno van aquÃ­.
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 from decouple import config
 
@@ -139,6 +140,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 

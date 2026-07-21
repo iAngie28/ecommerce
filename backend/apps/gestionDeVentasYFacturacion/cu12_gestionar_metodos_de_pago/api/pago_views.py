@@ -1,6 +1,8 @@
 import stripe
+import json
 from django.db import connection
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,11 +14,13 @@ import logging
 from apps.gestionDeVentasYFacturacion.cu13_gestionar_estado_de_pedido.models.pedido import Pedido
 from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito import Carrito
 from apps.gestionDeVentasYFacturacion.cu11_gestion_carrito_de_compras.models.carrito_item import CarritoItem
+from apps.gestionDeClientes.cu26_gestionar_fidelizacion.services.fidelizacion_service import FidelizacionService
 
 logger = logging.getLogger(__name__)
 
 class PagoViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    LOYALTY_OBSERVATION_KEY = 'fidelizacion_checkout'
 
     def _get_stripe_key(self):
         key = getattr(settings, 'STRIPE_SECRET_KEY', None)
@@ -25,6 +29,102 @@ class PagoViewSet(viewsets.ViewSet):
             return None
         stripe.api_key = key
         return key
+
+    def _to_positive_int(self, value):
+        try:
+            return max(0, int(float(value or 0)))
+        except (TypeError, ValueError):
+            return 0
+
+    def _read_observaciones(self, pedido):
+        if not pedido.observaciones:
+            return {}
+
+        try:
+            data = json.loads(pedido.observaciones)
+        except (TypeError, ValueError):
+            return {'nota': pedido.observaciones}
+
+        return data if isinstance(data, dict) else {'nota': str(data)}
+
+    def _guardar_fidelizacion_checkout(self, pedido, loyalty_data):
+        observaciones = self._read_observaciones(pedido)
+        observaciones[self.LOYALTY_OBSERVATION_KEY] = loyalty_data
+        pedido.observaciones = json.dumps(observaciones)
+
+    def _obtener_fidelizacion_checkout(self, pedido, metadata=None):
+        data = {}
+        observaciones = self._read_observaciones(pedido)
+        guardado = observaciones.get(self.LOYALTY_OBSERVATION_KEY)
+
+        if isinstance(guardado, dict):
+            data.update(guardado)
+
+        metadata_get = getattr(metadata, 'get', None)
+        if metadata_get:
+            for key in ('puntos_canjeados', 'descuento_puntos_centavos', 'descuento_puntos', 'referencia'):
+                value = metadata_get(key)
+                if value not in (None, ''):
+                    data[key] = value
+
+        return data
+
+    def _preparar_descuento_puntos(self, request, pedido, subtotal_centavos):
+        puntos_canjeados = self._to_positive_int(request.data.get('puntos_canjeados'))
+        if puntos_canjeados <= 0:
+            return None, None
+
+        if not pedido.carrito_id or not pedido.carrito.cliente_id:
+            return None, Response({'error': 'El pedido no tiene un cliente asociado para canjear puntos'}, status=400)
+
+        cuenta = FidelizacionService.obtener_o_crear_cuenta(pedido.carrito.cliente_id)
+        if cuenta.saldo_actual < puntos_canjeados:
+            return None, Response({
+                'error': f'Saldo insuficiente. Tienes {cuenta.saldo_actual} puntos.'
+            }, status=400)
+
+        descuento_centavos = int(round(
+            puntos_canjeados * FidelizacionService.VALOR_BS_POR_PUNTO * 100
+        ))
+
+        if descuento_centavos <= 0:
+            return None, Response({'error': 'El descuento por puntos debe ser mayor a 0'}, status=400)
+
+        if descuento_centavos > subtotal_centavos:
+            return None, Response({
+                'error': 'El descuento por puntos no puede superar el total del carrito'
+            }, status=400)
+
+        return {
+            'puntos_canjeados': puntos_canjeados,
+            'descuento_puntos_centavos': descuento_centavos,
+            'descuento_puntos': f'{descuento_centavos / 100:.2f}',
+            'referencia': f'Canje Pedido #{pedido.id}',
+        }, None
+
+    def _aplicar_canje_puntos_pedido(self, pedido, metadata=None):
+        loyalty_data = self._obtener_fidelizacion_checkout(pedido, metadata)
+        puntos_canjeados = self._to_positive_int(loyalty_data.get('puntos_canjeados'))
+
+        if puntos_canjeados <= 0:
+            return
+
+        try:
+            referencia = loyalty_data.get('referencia') or f'Canje Pedido #{pedido.id}'
+            descuento = FidelizacionService.canjear_puntos(
+                pedido.carrito.cliente_id,
+                puntos_canjeados,
+                referencia
+            )
+            print(
+                f"[POINTS] Canje aplicado para pedido {pedido.id}: "
+                f"{puntos_canjeados} pts = Bs. {descuento:.2f}"
+            )
+        except ValidationError as e:
+            detalle = e.messages[0] if hasattr(e, 'messages') and e.messages else str(e)
+            print(f"[WARN] No se pudo canjear puntos del pedido {pedido.id}: {detalle}")
+        except Exception as e:
+            print(f"[WARN] Error aplicando canje de puntos del pedido {pedido.id}: {str(e)}")
 
     @action(detail=False, methods=['post'], url_path='create-payment-intent')
     def create_payment_intent(self, request):
@@ -88,6 +188,7 @@ class PagoViewSet(viewsets.ViewSet):
 
             # Preparar items
             line_items = []
+            subtotal_centavos = 0
             if not hasattr(pedido, 'carrito') or not pedido.carrito:
                 print("[ERROR] El pedido no tiene carrito")
                 return Response({'error': 'El pedido no tiene un carrito asociado'}, status=400)
@@ -97,6 +198,8 @@ class PagoViewSet(viewsets.ViewSet):
                     print(f"[WARN] ADVERTENCIA: El producto {item.producto.nombre} no tiene precio.")
                     continue
                 monto_centavos = int(round(float(item.producto.precio) * 100))
+                cantidad = int(item.cantidad)
+                subtotal_centavos += monto_centavos * cantidad
                 line_items.append({
                     'price_data': {
                         'currency': 'bob',
@@ -105,26 +208,57 @@ class PagoViewSet(viewsets.ViewSet):
                         },
                         'unit_amount': monto_centavos,
                     },
-                    'quantity': item.cantidad,
+                    'quantity': cantidad,
                 })
 
             if not line_items:
                 return Response({'error': 'El carrito está vacío'}, status=400)
 
+            loyalty_data, loyalty_error = self._preparar_descuento_puntos(request, pedido, subtotal_centavos)
+            if loyalty_error:
+                return loyalty_error
+
+            session_metadata = {
+                'pedido_id': str(pedido.id),
+                'tenant': str(connection.schema_name)
+            }
+            session_kwargs = {
+                'payment_method_types': ['card'],
+                'line_items': line_items,
+                'mode': 'payment',
+                'success_url': request.data.get('success_url'),
+                'cancel_url': request.data.get('cancel_url'),
+                'metadata': session_metadata,
+            }
+
+            if loyalty_data:
+                coupon = stripe.Coupon.create(
+                    amount_off=loyalty_data['descuento_puntos_centavos'],
+                    currency='bob',
+                    duration='once',
+                    name=f"Descuento puntos pedido #{pedido.id}",
+                    metadata={
+                        'pedido_id': str(pedido.id),
+                        'tenant': str(connection.schema_name),
+                        'puntos_canjeados': str(loyalty_data['puntos_canjeados']),
+                    }
+                )
+                loyalty_data['stripe_coupon_id'] = coupon.id
+                session_kwargs['discounts'] = [{'coupon': coupon.id}]
+                session_metadata.update({
+                    'puntos_canjeados': str(loyalty_data['puntos_canjeados']),
+                    'descuento_puntos_centavos': str(loyalty_data['descuento_puntos_centavos']),
+                    'descuento_puntos': loyalty_data['descuento_puntos'],
+                    'referencia': loyalty_data['referencia'],
+                })
+
             # Crear sesión
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=line_items,
-                mode='payment',
-                success_url=request.data.get('success_url'),
-                cancel_url=request.data.get('cancel_url'),
-                metadata={
-                    'pedido_id': str(pedido.id),
-                    'tenant': str(connection.schema_name)
-                }
-            )
+            checkout_session = stripe.checkout.Session.create(**session_kwargs)
             
             pedido.stripe_session_id = checkout_session.id
+            if loyalty_data:
+                loyalty_data['stripe_session_id'] = checkout_session.id
+                self._guardar_fidelizacion_checkout(pedido, loyalty_data)
             pedido.save()
 
             print(f"[OK] Sesión de Stripe creada: {checkout_session.id}")
@@ -195,11 +329,11 @@ class PagoViewSet(viewsets.ViewSet):
             
             if pedido_id and tenant:
                 with schema_context(tenant):
-                    self._marcar_pagado(pedido_id)
+                    self._marcar_pagado(pedido_id, metadata)
 
         return Response(status=200)
 
-    def _marcar_pagado(self, pedido_id):
+    def _marcar_pagado(self, pedido_id, metadata=None):
         try:
             pedido = Pedido.objects.get(id=pedido_id)
             if pedido.estado == 'PENDIENTE':
@@ -245,5 +379,8 @@ class PagoViewSet(viewsets.ViewSet):
                         print(f"[WARN] Error al enviar notificación de pago al vendedor: {str(env)}")
                 except Exception as ef:
                     print(f"[WARN] Error al generar factura: {str(ef)}")
+
+            if pedido.estado == 'PAGADO':
+                self._aplicar_canje_puntos_pedido(pedido, metadata)
         except Exception as e:
             print(f"[ERROR] ERROR en _marcar_pagado: {str(e)}")
