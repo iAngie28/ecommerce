@@ -78,13 +78,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
         children: [
           Text('Mis Pedidos', style: AppTextStyles.h1),
           const SizedBox(height: 5),
-          Text('Historial de compras en todas tus tiendas', style: AppTextStyles.subtitle),
+          Text(
+            'Historial de compras en todas tus tiendas',
+            style: AppTextStyles.subtitle,
+          ),
           const SizedBox(height: 30),
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.accentTeal))
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.accentTeal),
+            )
           else if (_orders.isEmpty)
             const Center(child: Text('Aún no tienes pedidos realizados.'))
-          else              ListView.builder(
+          else
+            ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _orders.length,
@@ -126,22 +132,33 @@ class _OrderCardState extends State<_OrderCard> {
 
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
-      case 'ENTREGADO': return AppColors.success;
-      case 'ENVIADO': return AppColors.success;
-      case 'PAGADO': return AppColors.info;
-      case 'PROCESADO': return AppColors.warning;
-      case 'PENDIENTE': return AppColors.primary;
-      case 'CANCELADO': return AppColors.danger;
-      default: return AppColors.textMuted;
+      case 'ENTREGADO':
+        return AppColors.success;
+      case 'ENVIADO':
+        return AppColors.success;
+      case 'PAGADO':
+        return AppColors.info;
+      case 'PROCESADO':
+        return AppColors.warning;
+      case 'PENDIENTE':
+        return AppColors.primary;
+      case 'CANCELADO':
+        return AppColors.danger;
+      default:
+        return AppColors.textMuted;
     }
   }
 
-
-
   Widget _buildProgressBar(String currentStatus) {
     final statusUpper = currentStatus.toUpperCase();
-    final allStates = ['PENDIENTE', 'PAGADO', 'PROCESADO', 'ENVIADO', 'ENTREGADO'];
-    
+    final allStates = [
+      'PENDIENTE',
+      'PAGADO',
+      'PROCESADO',
+      'ENVIADO',
+      'ENTREGADO',
+    ];
+
     bool isPast(String state) {
       if (statusUpper == 'CANCELADO') return false;
       int currentIndex = allStates.indexOf(statusUpper);
@@ -181,18 +198,22 @@ class _OrderCardState extends State<_OrderCard> {
               Color color = Colors.transparent;
               if (isPast(state)) {
                 switch (state) {
-                  case 'PENDIENTE': color = AppColors.primary; break;
-                  case 'PAGADO': color = AppColors.info; break;
-                  case 'PROCESADO': color = AppColors.warning; break;
+                  case 'PENDIENTE':
+                    color = AppColors.primary;
+                    break;
+                  case 'PAGADO':
+                    color = AppColors.info;
+                    break;
+                  case 'PROCESADO':
+                    color = AppColors.warning;
+                    break;
                   case 'ENVIADO':
-                  case 'ENTREGADO': color = AppColors.success; break;
+                  case 'ENTREGADO':
+                    color = AppColors.success;
+                    break;
                 }
               }
-              return Expanded(
-                child: Container(
-                  color: color,
-                ),
-              );
+              return Expanded(child: Container(color: color));
             }).toList(),
           ),
         ),
@@ -204,13 +225,15 @@ class _OrderCardState extends State<_OrderCard> {
   Widget build(BuildContext context) {
     final order = widget.order;
     final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(order.fecha);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: _isExpanded ? AppColors.borderHighlight : AppColors.border),
+        border: Border.all(
+          color: _isExpanded ? AppColors.borderHighlight : AppColors.border,
+        ),
       ),
       child: Column(
         children: [
@@ -227,17 +250,38 @@ class _OrderCardState extends State<_OrderCard> {
                       color: _getStatusColor(order.estado).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.receipt_long, color: _getStatusColor(order.estado)),
+                    child: Icon(
+                      Icons.receipt_long,
+                      color: _getStatusColor(order.estado),
+                    ),
                   ),
                   const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(order.numero, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          order.numero,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text('Tienda: ${order.tenantName ?? 'General'}', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                        Text(dateStr, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        Text(
+                          'Tienda: ${order.tenantName ?? 'General'}',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          dateStr,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         // Etiquetas de progreso y barra
                         _buildProgressBar(order.estado),
@@ -248,24 +292,38 @@ class _OrderCardState extends State<_OrderCard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('BS. ${order.total}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark)),
+                      Text(
+                        'BS. ${order.total}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       if (order.estado.toUpperCase() == 'PENDIENTE')
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryDark,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             textStyle: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () async {
                             AppToast.showInfo(context, 'Iniciando pago...');
-                            final success = await widget.paymentRepository.processPaymentSheet(
-                              order.id,
-                              tenantHostOverride: order.schemaName,
-                            );
+                            final success = await widget.paymentRepository
+                                .processPaymentSheet(
+                                  order.id,
+                                  tenantHostOverride: order.schemaName,
+                                );
                             if (success) {
-                              AppToast.showSuccess(context, '¡Pago completado!');
+                              AppToast.showSuccess(
+                                context,
+                                '¡Pago completado!',
+                              );
                               widget.onReload();
                             }
                           },
@@ -274,40 +332,68 @@ class _OrderCardState extends State<_OrderCard> {
                       if (order.estado.toUpperCase() == 'PAGADO')
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             textStyle: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () async {
-                            AppToast.showInfo(context, 'Descargando factura...');
+                            AppToast.showInfo(
+                              context,
+                              'Descargando factura...',
+                            );
                             try {
                               // Usamos override de tenant si existe
-                              final res = await widget.apiClient.get('${ApiConstants.mainBaseUrl}/facturas/?pedido=${order.id}', requiresAuth: true, includeTenantHost: true, tenantHostOverride: order.schemaName);
+                              final res = await widget.apiClient.get(
+                                '${ApiConstants.mainBaseUrl}/facturas/?pedido=${order.id}',
+                                requiresAuth: true,
+                                includeTenantHost: true,
+                                tenantHostOverride: order.schemaName,
+                              );
                               if (res.statusCode == 200) {
                                 final data = jsonDecode(res.body);
                                 final list = data['results'] ?? data;
                                 if (list.isNotEmpty) {
                                   final factura = list[0];
                                   final nro = factura['nro'].toString();
-                                  
-                                  final pdfRes = await widget.apiClient.get('${ApiConstants.mainBaseUrl}/facturas/$nro/descargar_pdf/', requiresAuth: true, includeTenantHost: true, tenantHostOverride: order.schemaName);
-                                  
+
+                                  final pdfRes = await widget.apiClient.get(
+                                    '${ApiConstants.mainBaseUrl}/facturas/$nro/descargar_pdf/',
+                                    requiresAuth: true,
+                                    includeTenantHost: true,
+                                    tenantHostOverride: order.schemaName,
+                                  );
+
                                   if (pdfRes.statusCode == 200) {
                                     final bytes = pdfRes.bodyBytes;
-                                    final dir = await getApplicationDocumentsDirectory();
-                                    final file = File('${dir.path}/factura_$nro.pdf');
+                                    final dir =
+                                        await getApplicationDocumentsDirectory();
+                                    final file = File(
+                                      '${dir.path}/factura_$nro.pdf',
+                                    );
                                     await file.writeAsBytes(bytes);
-                                    
-                                    AppToast.showSuccess(context, 'Factura descargada');
+
+                                    AppToast.showSuccess(
+                                      context,
+                                      'Factura descargada',
+                                    );
                                     OpenFilex.open(file.path);
                                   } else {
                                     throw Exception('Error al descargar');
                                   }
                                 } else {
-                                  AppToast.showInfo(context, 'Factura en proceso. Intenta más tarde.');
+                                  AppToast.showInfo(
+                                    context,
+                                    'Factura en proceso. Intenta más tarde.',
+                                  );
                                 }
                               }
                             } catch (e) {
-                              AppToast.showError(context, 'Error al descargar factura');
+                              AppToast.showError(
+                                context,
+                                'Error al descargar factura',
+                              );
                             }
                           },
                           child: const Text('Factura'),
@@ -317,7 +403,10 @@ class _OrderCardState extends State<_OrderCard> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             textStyle: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () async {
@@ -325,19 +414,32 @@ class _OrderCardState extends State<_OrderCard> {
                               context: context,
                               builder: (c) => AlertDialog(
                                 title: const Text('Confirmar Entrega'),
-                                content: const Text('¿Confirmas que has recibido tu pedido?'),
+                                content: const Text(
+                                  '¿Confirmas que has recibido tu pedido?',
+                                ),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(c, false),
+                                    child: const Text('Cancelar'),
+                                  ),
                                   ElevatedButton(
-                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.success,
+                                    ),
                                     onPressed: () => Navigator.pop(c, true),
-                                    child: const Text('Confirmar', style: TextStyle(color: Colors.white)),
+                                    child: const Text(
+                                      'Confirmar',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
                                 ],
                               ),
                             );
                             if (confirm == true) {
-                              AppToast.showInfo(context, 'Actualizando estado...');
+                              AppToast.showInfo(
+                                context,
+                                'Actualizando estado...',
+                              );
                               try {
                                 // Asegurar que el host sea el dominio completo (ej: gerlexxtech2.157.x.x.nip.io)
                                 // Si schemaName ya tiene un punto, es el dominio completo; si no, construir uno.
@@ -353,23 +455,38 @@ class _OrderCardState extends State<_OrderCard> {
                                   includeTenantHost: true,
                                   tenantHostOverride: tenantHost,
                                 );
-                                if (res.statusCode == 200 || res.statusCode == 201) {
-                                  AppToast.showSuccess(context, '¡Pedido finalizado con éxito!');
+                                if (res.statusCode == 200 ||
+                                    res.statusCode == 201) {
+                                  AppToast.showSuccess(
+                                    context,
+                                    '¡Pedido finalizado con éxito!',
+                                  );
                                   widget.onReload();
                                 } else {
-                                  print('Error en cambiar-estado: ${res.statusCode} - ${res.body}');
-                                  AppToast.showError(context, 'Error al confirmar entrega. (${res.statusCode})');
+                                  print(
+                                    'Error en cambiar-estado: ${res.statusCode} - ${res.body}',
+                                  );
+                                  AppToast.showError(
+                                    context,
+                                    'Error al confirmar entrega. (${res.statusCode})',
+                                  );
                                 }
-                              } catch(e) {
+                              } catch (e) {
                                 print('Catch error en cambiar-estado: $e');
-                                AppToast.showError(context, 'Error de red al confirmar entrega.');
+                                AppToast.showError(
+                                  context,
+                                  'Error de red al confirmar entrega.',
+                                );
                               }
                             }
                           },
                           child: const Text('Marcar como Entregado'),
                         ),
                       const SizedBox(height: 10),
-                      Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.textMuted),
+                      Icon(
+                        _isExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: AppColors.textMuted,
+                      ),
                     ],
                   ),
                 ],
@@ -382,49 +499,119 @@ class _OrderCardState extends State<_OrderCard> {
               decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: AppColors.border)),
                 color: AppColors.bgSurface,
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Productos del Pedido:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondary)),
+                  const Text(
+                    'Productos del Pedido:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   if (order.items != null && order.items!.isNotEmpty)
-                    ...order.items!.map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: Text('${item.cantidad}x ${item.producto.nombre}', style: const TextStyle(fontSize: 13))),
-                          Text('Bs. ${item.subtotal}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                        ],
-                      ),
-                    )).toList()
+                    ...order.items!
+                        .map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.cantidad}x ${item.producto.nombre}',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                                Text(
+                                  'Bs. ${item.subtotal}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList()
                   else
-                    const Text('No se encontraron detalles de productos.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    const Text(
+                      'No se encontraron detalles de productos.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   if (order.puntosCanjeados > 0) ...[
                     const Divider(height: 22),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                        Text('Bs. ${order.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text(
+                          'Subtotal',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'Bs. ${order.subtotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Canje de ${order.puntosCanjeados} pts', style: const TextStyle(fontSize: 13, color: AppColors.successText)),
-                        Text('- Bs. ${order.descuentoPuntos.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.successText)),
+                        Text(
+                          'Canje de ${order.puntosCanjeados} pts',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.successText,
+                          ),
+                        ),
+                        Text(
+                          '- Bs. ${order.descuentoPuntos.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.successText,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark)),
-                        Text('Bs. ${order.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark)),
+                        const Text(
+                          'Total',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                        Text(
+                          'Bs. ${order.total.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -436,4 +623,3 @@ class _OrderCardState extends State<_OrderCard> {
     );
   }
 }
-

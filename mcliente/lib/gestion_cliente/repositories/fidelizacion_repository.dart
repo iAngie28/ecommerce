@@ -16,7 +16,9 @@ class FidelizacionRepository {
     return double.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
-  Future<Map<String, dynamic>> obtenerMiCuenta({bool includeTenantHost = false}) async {
+  Future<Map<String, dynamic>> obtenerMiCuenta({
+    bool includeTenantHost = false,
+  }) async {
     final response = await _apiClient.get(
       '${ApiConstants.mainBaseUrl}/fidelizacion/mi-cuenta/',
       requiresAuth: true,
@@ -47,7 +49,9 @@ class FidelizacionRepository {
     };
   }
 
-  Future<Map<String, double>> obtenerConfiguracion({bool includeTenantHost = false}) async {
+  Future<Map<String, double>> obtenerConfiguracion({
+    bool includeTenantHost = false,
+  }) async {
     final response = await _apiClient.get(
       '${ApiConstants.mainBaseUrl}/fidelizacion/configuracion/',
       requiresAuth: true,
@@ -55,10 +59,7 @@ class FidelizacionRepository {
     );
 
     if (response.statusCode != 200) {
-      return {
-        'PUNTOS_POR_BS': 0.1,
-        'VALOR_BS_POR_PUNTO': 0.05,
-      };
+      return {'PUNTOS_POR_BS': 0.1, 'VALOR_BS_POR_PUNTO': 0.05};
     }
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;

@@ -21,9 +21,10 @@ class ShopListScreen extends StatefulWidget {
 class _ShopListScreenState extends State<ShopListScreen> {
   final ApiClient _apiClient = ApiClient();
   final AuthRepository _authRepository = AuthRepository();
-  final FidelizacionRepository _fidelizacionRepository = FidelizacionRepository();
+  final FidelizacionRepository _fidelizacionRepository =
+      FidelizacionRepository();
   final SecureStorageService _storage = SecureStorageService();
-  
+
   List<dynamic> _shops = [];
   Map<String, int> _pointsByStore = {};
   bool _isLoading = true;
@@ -63,7 +64,10 @@ class _ShopListScreenState extends State<ShopListScreen> {
 
   Future<void> _cargarTiendas() async {
     try {
-      final shopsResponse = await _apiClient.get('${ApiConstants.mainBaseUrl}/tiendas-publicas/', requiresAuth: false);
+      final shopsResponse = await _apiClient.get(
+        '${ApiConstants.mainBaseUrl}/tiendas-publicas/',
+        requiresAuth: false,
+      );
       Map<String, int> pointsByStore = {};
 
       try {
@@ -71,8 +75,9 @@ class _ShopListScreenState extends State<ShopListScreen> {
         for (final tienda in cuenta['tiendas'] as List? ?? []) {
           if (tienda is Map && tienda['schema_name'] != null) {
             final rawPoints = tienda['saldo_actual'];
-            pointsByStore[tienda['schema_name'].toString()] =
-                rawPoints is int ? rawPoints : int.tryParse(rawPoints?.toString() ?? '') ?? 0;
+            pointsByStore[tienda['schema_name'].toString()] = rawPoints is int
+                ? rawPoints
+                : int.tryParse(rawPoints?.toString() ?? '') ?? 0;
           }
         }
       } catch (_) {}
@@ -99,7 +104,7 @@ class _ShopListScreenState extends State<ShopListScreen> {
     final schema = shop['schema_name'];
     final subdomain = shop['subdominio'] ?? schema;
     await _storage.saveTenantInfo(schema, subdomain);
-    
+
     // Navegar al catálogo de la tienda
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/tienda');
@@ -144,11 +149,16 @@ class _ShopListScreenState extends State<ShopListScreen> {
         children: [
           Text('Explorar Tiendas', style: AppTextStyles.h1),
           const SizedBox(height: 5),
-          Text('Encuentra los mejores productos en nuestra red', style: AppTextStyles.subtitle),
+          Text(
+            'Encuentra los mejores productos en nuestra red',
+            style: AppTextStyles.subtitle,
+          ),
           const SizedBox(height: 30),
-          
+
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.accentTeal))
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.accentTeal),
+            )
           else if (_shops.isEmpty)
             const Center(child: Text('No hay tiendas disponibles.'))
           else
@@ -156,10 +166,14 @@ class _ShopListScreenState extends State<ShopListScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
+                crossAxisCount: MediaQuery.of(context).size.width > 1200
+                    ? 4
+                    : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: MediaQuery.of(context).size.width > 800 ? 0.85 : 0.72,
+                childAspectRatio: MediaQuery.of(context).size.width > 800
+                    ? 0.85
+                    : 0.72,
               ),
               itemCount: _shops.length,
               itemBuilder: (context, index) {
@@ -201,17 +215,28 @@ class _ShopListScreenState extends State<ShopListScreen> {
                   color: AppColors.bgSearch,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
                 ),
-                child: shop['icono'] != null 
+                child: shop['icono'] != null
                     ? ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(14),
+                        ),
                         child: Image.network(shop['icono'], fit: BoxFit.cover),
                       )
                     : shop['logo_url'] != null
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                            child: Image.network(shop['logo_url'], fit: BoxFit.cover),
-                          )
-                        : const Icon(Icons.store, size: 50, color: AppColors.textMuted),
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(14),
+                        ),
+                        child: Image.network(
+                          shop['logo_url'],
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.store,
+                        size: 50,
+                        color: AppColors.textMuted,
+                      ),
               ),
             ),
             Padding(
@@ -221,29 +246,45 @@ class _ShopListScreenState extends State<ShopListScreen> {
                 children: [
                   if (shop['categoria_tienda'] != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: AppColors.accentTeal.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        shop['categoria_tienda'], 
-                        style: const TextStyle(color: AppColors.accentTeal, fontSize: 10, fontWeight: FontWeight.bold)
+                        shop['categoria_tienda'],
+                        style: const TextStyle(
+                          color: AppColors.accentTeal,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   Text(
-                    shop['nombre_comercial'] ?? shop['schema_name'] ?? 'Tienda', 
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryDark), 
-                    maxLines: 1, 
-                    overflow: TextOverflow.ellipsis
+                    shop['nombre_comercial'] ?? shop['schema_name'] ?? 'Tienda',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppColors.primaryDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: points > 0 ? AppColors.successBg : AppColors.bgSearch,
+                      color: points > 0
+                          ? AppColors.successBg
+                          : AppColors.bgSearch,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -251,7 +292,9 @@ class _ShopListScreenState extends State<ShopListScreen> {
                         Icon(
                           Icons.card_giftcard,
                           size: 15,
-                          color: points > 0 ? AppColors.successText : AppColors.textSlate,
+                          color: points > 0
+                              ? AppColors.successText
+                              : AppColors.textSlate,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -260,7 +303,9 @@ class _ShopListScreenState extends State<ShopListScreen> {
                                 ? 'Consultando puntos...'
                                 : '${_pointsFormat.format(points)} pts en esta tienda',
                             style: TextStyle(
-                              color: points > 0 ? AppColors.successText : AppColors.textSlate,
+                              color: points > 0
+                                  ? AppColors.successText
+                                  : AppColors.textSlate,
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
                             ),
@@ -275,7 +320,14 @@ class _ShopListScreenState extends State<ShopListScreen> {
                     children: const [
                       Icon(Icons.login, size: 14, color: AppColors.accentTeal),
                       SizedBox(width: 5),
-                      Text('Visitar tienda', style: TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text(
+                        'Visitar tienda',
+                        style: TextStyle(
+                          color: AppColors.accentTeal,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],

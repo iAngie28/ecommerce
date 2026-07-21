@@ -28,7 +28,7 @@ class PaymentRepository {
     final baseUrl = await _buildUrl(tenantHostOverride: tenantHostOverride);
     if (baseUrl == null) throw Exception('No hay tenant configurado.');
     final url = '${baseUrl}create-payment-intent/';
-    
+
     final response = await _apiClient.post(
       url,
       {
@@ -64,7 +64,7 @@ class PaymentRepository {
       if (paymentData['payment_required'] == false) {
         return true;
       }
-      
+
       final String clientSecret = paymentData['paymentIntent'];
       final String? customerId = paymentData['customer'];
       final String? ephemeralKey = paymentData['ephemeralKey'];
@@ -84,8 +84,11 @@ class PaymentRepository {
       await Stripe.instance.presentPaymentSheet();
 
       // 4. Confirmar el éxito al backend (opcional, el webhook también lo hará)
-      await confirmPaymentSuccess(pedidoId, tenantHostOverride: tenantHostOverride);
-      
+      await confirmPaymentSuccess(
+        pedidoId,
+        tenantHostOverride: tenantHostOverride,
+      );
+
       return true;
     } catch (e) {
       if (e is StripeException) {
@@ -106,13 +109,10 @@ class PaymentRepository {
     final url = '${baseUrl}confirm-success/';
     final schemaName = await _storage.getSchemaName();
     final tenant = tenantHostOverride ?? schemaName;
-    
+
     await _apiClient.post(
       url,
-      {
-        'pedido_id': pedidoId,
-        'tenant': tenant,
-      },
+      {'pedido_id': pedidoId, 'tenant': tenant},
       requiresAuth: true,
       includeTenantHost: true,
       tenantHostOverride: tenantHostOverride,
