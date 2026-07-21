@@ -73,6 +73,10 @@ class PagoViewSet(viewsets.ViewSet):
     def _preparar_descuento_puntos(self, request, pedido, subtotal_centavos):
         puntos_canjeados = self._to_positive_int(request.data.get('puntos_canjeados'))
         if puntos_canjeados <= 0:
+            loyalty_guardado = FidelizacionService.obtener_canje_pendiente_pedido(pedido)
+            puntos_canjeados = self._to_positive_int(loyalty_guardado.get('puntos_canjeados'))
+
+        if puntos_canjeados <= 0:
             return None, None
 
         if not pedido.carrito_id or not pedido.carrito.cliente_id:
@@ -169,22 +173,70 @@ class PagoViewSet(viewsets.ViewSet):
             if monto_centavos == 0:
                 return Response({'error': 'El monto del pedido es 0'}, status=400)
 
+            loyalty_data, loyalty_error = self._preparar_descuento_puntos(request, pedido, monto_centavos)
+            if loyalty_error:
+                return loyalty_error
+
+            metadata = {
+                'pedido_id': str(pedido.id),
+                'tenant': str(connection.schema_name)
+            }
+            monto_final_centavos = monto_centavos
+            if loyalty_data:
+                monto_final_centavos -= loyalty_data['descuento_puntos_centavos']
+                metadata.update({
+                    'puntos_canjeados': str(loyalty_data['puntos_canjeados']),
+                    'descuento_puntos_centavos': str(loyalty_data['descuento_puntos_centavos']),
+                    'descuento_puntos': loyalty_data['descuento_puntos'],
+                    'referencia': loyalty_data['referencia'],
+                })
+
+                FidelizacionService.guardar_canje_pendiente_pedido(
+                    pedido,
+                    loyalty_data['puntos_canjeados'],
+                    loyalty_data,
+                )
+
+            if monto_final_centavos <= 0:
+                self._marcar_pagado(pedido.id, metadata)
+                return Response({
+                    'payment_required': False,
+                    'mensaje': 'Pedido pagado completamente con puntos.',
+                    'amount': 0,
+                    'subtotal': monto_centavos,
+                    'discount': loyalty_data['descuento_puntos_centavos'] if loyalty_data else 0,
+                    'puntos_canjeados': loyalty_data['puntos_canjeados'] if loyalty_data else 0,
+                })
+
             # Crear el PaymentIntent
             intent = stripe.PaymentIntent.create(
-                amount=monto_centavos,
+                amount=monto_final_centavos,
                 currency='bob',
-                metadata={
-                    'pedido_id': str(pedido.id),
-                    'tenant': str(connection.schema_name)
-                },
+                metadata=metadata,
                 automatic_payment_methods={
                     'enabled': True,
                 },
             )
 
+            pedido.stripe_session_id = intent.id
+            if loyalty_data:
+                loyalty_data['stripe_payment_intent_id'] = intent.id
+                FidelizacionService.guardar_canje_pendiente_pedido(
+                    pedido,
+                    loyalty_data['puntos_canjeados'],
+                    loyalty_data,
+                    save=False
+                )
+            pedido.save()
+
             return Response({
                 'paymentIntent': intent.client_secret,
                 'publishableKey': settings.STRIPE_PUBLISHABLE_KEY,
+                'payment_required': True,
+                'amount': monto_final_centavos,
+                'subtotal': monto_centavos,
+                'discount': loyalty_data['descuento_puntos_centavos'] if loyalty_data else 0,
+                'puntos_canjeados': loyalty_data['puntos_canjeados'] if loyalty_data else 0,
             })
 
         except Pedido.DoesNotExist:

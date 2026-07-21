@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/layout/app_dashboard_layout.dart';
 import '../../core/widgets/layout/app_sidebar.dart';
 import '../../core/storage/secure_storage.dart';
+import '../../gestion_cliente/repositories/fidelizacion_repository.dart';
 import '../../gestion_usuario/repositories/auth_repository.dart';
 
 class ShopListScreen extends StatefulWidget {
@@ -19,11 +21,15 @@ class ShopListScreen extends StatefulWidget {
 class _ShopListScreenState extends State<ShopListScreen> {
   final ApiClient _apiClient = ApiClient();
   final AuthRepository _authRepository = AuthRepository();
+  final FidelizacionRepository _fidelizacionRepository = FidelizacionRepository();
   final SecureStorageService _storage = SecureStorageService();
   
   List<dynamic> _shops = [];
+  Map<String, int> _pointsByStore = {};
   bool _isLoading = true;
+  bool _isLoadingPoints = true;
   String _userName = 'Invitado';
+  final NumberFormat _pointsFormat = NumberFormat.decimalPattern('es_BO');
 
   @override
   void initState() {
@@ -57,17 +63,33 @@ class _ShopListScreenState extends State<ShopListScreen> {
 
   Future<void> _cargarTiendas() async {
     try {
-      final response = await _apiClient.get('${ApiConstants.mainBaseUrl}/tiendas-publicas/', requiresAuth: false);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final shopsResponse = await _apiClient.get('${ApiConstants.mainBaseUrl}/tiendas-publicas/', requiresAuth: false);
+      Map<String, int> pointsByStore = {};
+
+      try {
+        final cuenta = await _fidelizacionRepository.obtenerMiCuenta();
+        for (final tienda in cuenta['tiendas'] as List? ?? []) {
+          if (tienda is Map && tienda['schema_name'] != null) {
+            final rawPoints = tienda['saldo_actual'];
+            pointsByStore[tienda['schema_name'].toString()] =
+                rawPoints is int ? rawPoints : int.tryParse(rawPoints?.toString() ?? '') ?? 0;
+          }
+        }
+      } catch (_) {}
+
+      if (shopsResponse.statusCode == 200) {
+        final data = jsonDecode(shopsResponse.body);
         setState(() {
           _shops = data['results'] ?? data;
+          _pointsByStore = pointsByStore;
           _isLoading = false;
+          _isLoadingPoints = false;
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _isLoadingPoints = false;
       });
     }
   }
@@ -137,7 +159,7 @@ class _ShopListScreenState extends State<ShopListScreen> {
                 crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 0.85,
+                childAspectRatio: MediaQuery.of(context).size.width > 800 ? 0.85 : 0.72,
               ),
               itemCount: _shops.length,
               itemBuilder: (context, index) {
@@ -151,6 +173,9 @@ class _ShopListScreenState extends State<ShopListScreen> {
   }
 
   Widget _buildShopCard(dynamic shop) {
+    final schemaName = shop['schema_name']?.toString() ?? '';
+    final points = _pointsByStore[schemaName] ?? 0;
+
     return GestureDetector(
       onTap: () => _entrarTienda(shop),
       child: Container(
@@ -214,6 +239,38 @@ class _ShopListScreenState extends State<ShopListScreen> {
                     overflow: TextOverflow.ellipsis
                   ),
                   const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: points > 0 ? AppColors.successBg : AppColors.bgSearch,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.card_giftcard,
+                          size: 15,
+                          color: points > 0 ? AppColors.successText : AppColors.textSlate,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _isLoadingPoints
+                                ? 'Consultando puntos...'
+                                : '${_pointsFormat.format(points)} pts en esta tienda',
+                            style: TextStyle(
+                              color: points > 0 ? AppColors.successText : AppColors.textSlate,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Row(
                     children: const [
                       Icon(Icons.login, size: 14, color: AppColors.accentTeal),

@@ -48,6 +48,7 @@ class FidelizacionViewSet(viewsets.ViewSet):
         saldo_actual = 0
         puntos_historicos = 0
         historial = []
+        tiendas = []
         fecha_actualizacion = None
 
         for tenant in self._get_active_tenants():
@@ -56,6 +57,18 @@ class FidelizacionViewSet(viewsets.ViewSet):
                     FidelizacionService.sincronizar_pedidos_entregados(cliente.id)
                     FidelizacionService.sincronizar_canjes_pendientes(cliente.id)
                     cuenta = CuentaPuntos.objects.filter(cliente_id=cliente.id).first()
+                    saldo_tienda = cuenta.saldo_actual if cuenta else 0
+                    historicos_tienda = cuenta.puntos_historicos if cuenta else 0
+
+                    tiendas.append({
+                        'tenant_id': tenant.id,
+                        'schema_name': tenant.schema_name,
+                        'nombre_tienda': tenant.nombre_comercial or tenant.name or tenant.schema_name,
+                        'saldo_actual': saldo_tienda,
+                        'puntos_historicos': historicos_tienda,
+                        'fecha_actualizacion': cuenta.fecha_actualizacion if cuenta else None,
+                    })
+
                     if not cuenta:
                         continue
 
@@ -87,6 +100,7 @@ class FidelizacionViewSet(viewsets.ViewSet):
             'puntos_historicos': puntos_historicos,
             'fecha_actualizacion': fecha_actualizacion,
             'historial': historial[:10],
+            'tiendas': tiendas,
         }
 
     @action(detail=False, methods=['get'], url_path='mi-cuenta')

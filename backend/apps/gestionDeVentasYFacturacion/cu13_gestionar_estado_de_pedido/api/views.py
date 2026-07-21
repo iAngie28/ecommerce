@@ -172,6 +172,16 @@ class PedidoViewSet(BaseViewSet):
                 )
             
             pedido = self.get_service().crear_pedido_desde_carrito(carrito_id)
+            puntos_canjeados = request.data.get('puntos_canjeados')
+            if puntos_canjeados:
+                from apps.gestionDeClientes.cu26_gestionar_fidelizacion.services.fidelizacion_service import FidelizacionService
+                FidelizacionService.guardar_canje_pendiente_pedido(
+                    pedido,
+                    puntos_canjeados,
+                    {
+                        'descuento_puntos': request.data.get('descuento_puntos'),
+                    }
+                )
             serializer = self.get_serializer(pedido)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)

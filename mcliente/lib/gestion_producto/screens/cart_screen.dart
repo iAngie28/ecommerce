@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -13,6 +15,7 @@ import '../models/product_model.dart';
 import '../repositories/cart_repository.dart';
 import '../repositories/product_repository.dart';
 import '../../gestion_pago/repositories/payment_repository.dart';
+import '../../gestion_cliente/repositories/fidelizacion_repository.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -28,12 +31,38 @@ class _CartScreenState extends State<CartScreen> {
   final CartRepository _cartRepository = CartRepository();
   final ProductRepository _productRepository = ProductRepository();
   final PaymentRepository _paymentRepository = PaymentRepository();
+  final FidelizacionRepository _fidelizacionRepository = FidelizacionRepository();
+  final TextEditingController _pointsController = TextEditingController();
+  final NumberFormat _pointsFormat = NumberFormat.decimalPattern('es_BO');
+  int _saldoPuntos = 0;
+  double _valorPunto = 0.05;
+  int? _previewPoints;
+  double _previewDiscount = 0;
+  String? _loyaltyError;
+  bool _isLoadingPoints = false;
+  bool _isCheckingOut = false;
 
   @override
   void initState() {
     super.initState();
     _loadCart();
   }
+
+  @override
+  void dispose() {
+    _pointsController.dispose();
+    super.dispose();
+  }
+
+  int get _maxPointsByTotal {
+    final total = _cart?.total ?? 0;
+    if (_valorPunto <= 0) return 0;
+    return (total / _valorPunto).floor();
+  }
+
+  int get _maxRedeemablePoints => math.min(_saldoPuntos, _maxPointsByTotal);
+
+  double get _finalTotal => math.max((_cart?.total ?? 0) - _previewDiscount, 0);
 
   Future<void> _loadCart() async {
     setState(() => _isLoading = true);
@@ -43,10 +72,33 @@ class _CartScreenState extends State<CartScreen> {
         _cart = cart;
         _isLoading = false;
       });
+      await _loadLoyaltyData();
       _loadRecommendations();
     } catch (e) {
       setState(() => _isLoading = false);
       AppToast.showError(context, 'Error al cargar el carrito');
+    }
+  }
+
+  Future<void> _loadLoyaltyData() async {
+    if (_cart == null || _cart!.items.isEmpty) return;
+
+    setState(() => _isLoadingPoints = true);
+    try {
+      final cuenta = await _fidelizacionRepository.obtenerMiCuenta(includeTenantHost: true);
+      final configuracion = await _fidelizacionRepository.obtenerConfiguracion(includeTenantHost: true);
+
+      setState(() {
+        _saldoPuntos = cuenta['saldo_actual'] as int? ?? 0;
+        _valorPunto = configuracion['VALOR_BS_POR_PUNTO'] ?? 0.05;
+        _isLoadingPoints = false;
+
+        if (_previewPoints != null && _previewPoints! > _maxRedeemablePoints) {
+          _clearLoyaltyPreview();
+        }
+      });
+    } catch (_) {
+      setState(() => _isLoadingPoints = false);
     }
   }
 
@@ -65,11 +117,63 @@ class _CartScreenState extends State<CartScreen> {
     if (_cart == null) return;
     try {
       final updatedCart = await _cartRepository.removeItem(_cart!.id, productId);
-      setState(() => _cart = updatedCart);
+      setState(() {
+        _cart = updatedCart;
+        if (updatedCart.items.isEmpty) {
+          _clearLoyaltyPreview();
+        }
+      });
       AppToast.showSuccess(context, 'Producto removido');
+      await _loadLoyaltyData();
     } catch (e) {
       AppToast.showError(context, 'No se pudo remover el producto');
     }
+  }
+
+  void _useMaxPoints() {
+    if (_maxRedeemablePoints <= 0) return;
+    _pointsController.text = _maxRedeemablePoints.toString();
+    setState(() {
+      _loyaltyError = null;
+      _previewPoints = null;
+      _previewDiscount = 0;
+    });
+  }
+
+  void _previewLoyaltyDiscount() {
+    final points = int.tryParse(_pointsController.text.trim()) ?? 0;
+
+    if (points <= 0) {
+      setState(() {
+        _loyaltyError = 'Ingresa una cantidad de puntos mayor a cero.';
+        _previewPoints = null;
+        _previewDiscount = 0;
+      });
+      return;
+    }
+
+    if (points > _saldoPuntos) {
+      setState(() => _loyaltyError = 'Tienes ${_pointsFormat.format(_saldoPuntos)} puntos disponibles.');
+      return;
+    }
+
+    if (points > _maxPointsByTotal) {
+      setState(() => _loyaltyError = 'El descuento no puede superar el total del carrito.');
+      return;
+    }
+
+    setState(() {
+      _loyaltyError = null;
+      _previewPoints = points;
+      _previewDiscount = math.min(points * _valorPunto, _cart?.total ?? 0);
+    });
+  }
+
+  void _clearLoyaltyPreview() {
+    _pointsController.clear();
+    _loyaltyError = null;
+    _previewPoints = null;
+    _previewDiscount = 0;
   }
 
   Future<void> _processCheckout() async {
@@ -77,14 +181,19 @@ class _CartScreenState extends State<CartScreen> {
       AppToast.showInfo(context, 'Tu carrito está vacío');
       return;
     }
+    if (_isCheckingOut) return;
 
     try {
+      setState(() => _isCheckingOut = true);
       AppToast.showInfo(context, 'Procesando pedido...');
+      final pointsToRedeem = _previewPoints ?? 0;
       
       final pedidoResponse = await ApiClient().post(
         '${ApiConstants.mainBaseUrl}/pedidos/crear-desde-carrito/',
         {
           'carrito_id': _cart!.id,
+          if (pointsToRedeem > 0) 'puntos_canjeados': pointsToRedeem,
+          if (pointsToRedeem > 0) 'descuento_puntos': _previewDiscount,
         },
         requiresAuth: true,
         includeTenantHost: true,
@@ -104,7 +213,10 @@ class _CartScreenState extends State<CartScreen> {
       });
 
       // Intentamos procesar el pago nativo
-      final success = await _paymentRepository.processPaymentSheet(pedidoId);
+      final success = await _paymentRepository.processPaymentSheet(
+        pedidoId,
+        puntosCanjeados: pointsToRedeem,
+      );
       
       if (success) {
         AppToast.showSuccess(context, '¡Pedido realizado y pagado!');
@@ -115,6 +227,10 @@ class _CartScreenState extends State<CartScreen> {
       }
     } catch (e) {
       AppToast.showError(context, 'Error al procesar el pago: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingOut = false);
+      }
     }
   }
 
@@ -224,18 +340,32 @@ class _CartScreenState extends State<CartScreen> {
           ),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text('Total a pagar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
-                  Text('BS. ${_cart!.total}', style: AppTextStyles.h2.copyWith(color: AppColors.accentTeal)),
-                ],
+              _buildSummaryRow(
+                'Subtotal:',
+                'BS. ${_cart!.total.toStringAsFixed(2)}',
+                isStrong: true,
               ),
+              const SizedBox(height: 18),
+              _buildLoyaltyBox(),
+              if (_previewPoints != null) ...[
+                const SizedBox(height: 18),
+                _buildSummaryRow(
+                  'Descuento por puntos:',
+                  '- BS. ${_previewDiscount.toStringAsFixed(2)}',
+                  valueColor: AppColors.successText,
+                ),
+                const Divider(height: 28),
+                _buildSummaryRow(
+                  'Total estimado:',
+                  'BS. ${_finalTotal.toStringAsFixed(2)}',
+                  isStrong: true,
+                  valueColor: AppColors.accentTeal,
+                ),
+              ],
               const SizedBox(height: 25),
               AppButton.submit(
                 label: 'Proceder al Pago',
+                isLoading: _isCheckingOut,
                 onPressed: _processCheckout,
               ),
             ],
@@ -244,6 +374,179 @@ class _CartScreenState extends State<CartScreen> {
         if (_recommendations.isNotEmpty) _buildRecommendationsSection(),
         const SizedBox(height: 40),
       ],
+    );
+  }
+
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isStrong = false,
+    Color? valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isStrong ? 18 : 15,
+              fontWeight: isStrong ? FontWeight.bold : FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: (isStrong ? AppTextStyles.h2 : const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)).copyWith(
+            color: valueColor ?? AppColors.primaryDark,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoyaltyBox() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.accentTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.card_giftcard, color: AppColors.accentTeal, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Puntos MiQhatu', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                    Text(
+                      _isLoadingPoints
+                          ? 'Consultando saldo...'
+                          : '${_pointsFormat.format(_saldoPuntos)} pts disponibles en esta tienda',
+                      style: const TextStyle(color: AppColors.textSlate, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isLoadingPoints)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentTeal),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _pointsController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    suffixText: 'pts',
+                    filled: true,
+                    fillColor: AppColors.bgSearch,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  onChanged: (_) => setState(() {
+                    _loyaltyError = null;
+                    _previewPoints = null;
+                    _previewDiscount = 0;
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _maxRedeemablePoints > 0 ? _useMaxPoints : null,
+                child: const Text('Máx.'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _maxRedeemablePoints > 0 ? _previewLoyaltyDiscount : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentTeal,
+                  foregroundColor: AppColors.white,
+                ),
+                child: const Text('Calcular'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Flexible(
+                child: Text('Máximo usable en este carrito', style: TextStyle(color: AppColors.textSlate, fontSize: 12)),
+              ),
+              Text(
+                '${_pointsFormat.format(_maxRedeemablePoints)} pts',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark, fontSize: 12),
+              ),
+            ],
+          ),
+          if (_loyaltyError != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(_loyaltyError!, style: const TextStyle(color: AppColors.dangerText, fontSize: 12)),
+            ),
+          ],
+          if (_previewPoints != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.successBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.success.withOpacity(0.25)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Descuento estimado', style: TextStyle(color: AppColors.successText, fontSize: 12)),
+                        Text(
+                          'BS. ${_previewDiscount.toStringAsFixed(2)}',
+                          style: const TextStyle(color: AppColors.successText, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(_clearLoyaltyPreview),
+                    child: const Text('Quitar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

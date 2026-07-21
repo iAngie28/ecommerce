@@ -260,7 +260,10 @@ class _OrderCardState extends State<_OrderCard> {
                           ),
                           onPressed: () async {
                             AppToast.showInfo(context, 'Iniciando pago...');
-                            final success = await widget.paymentRepository.processPaymentSheet(order.id);
+                            final success = await widget.paymentRepository.processPaymentSheet(
+                              order.id,
+                              tenantHostOverride: order.schemaName,
+                            );
                             if (success) {
                               AppToast.showSuccess(context, '¡Pago completado!');
                               widget.onReload();
@@ -399,6 +402,32 @@ class _OrderCardState extends State<_OrderCard> {
                     )).toList()
                   else
                     const Text('No se encontraron detalles de productos.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  if (order.puntosCanjeados > 0) ...[
+                    const Divider(height: 22),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                        Text('Bs. ${order.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Canje de ${order.puntosCanjeados} pts', style: const TextStyle(fontSize: 13, color: AppColors.successText)),
+                        Text('- Bs. ${order.descuentoPuntos.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.successText)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark)),
+                        Text('Bs. ${order.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark)),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
