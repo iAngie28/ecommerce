@@ -17,6 +17,13 @@ export const normalizeCuentaPuntos = (data = {}) => ({
   puntos_historicos: toNumber(data.puntos_historicos, toNumber(data.saldo_actual)),
   fecha_actualizacion: data.fecha_actualizacion ?? null,
   historial: Array.isArray(data.historial) ? data.historial : [],
+  tiendas: Array.isArray(data.tiendas)
+    ? data.tiendas.map((tienda) => ({
+        ...tienda,
+        saldo_actual: toNumber(tienda.saldo_actual),
+        puntos_historicos: toNumber(tienda.puntos_historicos),
+      }))
+    : [],
 });
 
 export const normalizeConfiguracion = (data = {}) => ({

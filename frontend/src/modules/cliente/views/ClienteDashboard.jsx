@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Store, ExternalLink, Search } from 'lucide-react';
+import { Store, ExternalLink, Gift, Search } from 'lucide-react';
 import api from 'core/services/api';
+import { fidelizacionApi } from 'modules/cliente/fidelizacion/services/fidelizacionApi';
 import AppView from 'shared/widgets/AppView/AppView';
 
 const ClienteDashboard = () => {
     const [shops, setShops] = useState([]);
+    const [pointsByStore, setPointsByStore] = useState({});
+    const [loadingPoints, setLoadingPoints] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -21,12 +24,27 @@ const ClienteDashboard = () => {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
 
-                const res = await api.get('/tiendas-publicas/?page_size=100');
-                setShops(res.data.results || []);
+                const [shopsResult, pointsResult] = await Promise.allSettled([
+                    api.get('/tiendas-publicas/?page_size=100'),
+                    fidelizacionApi.obtenerMiCuenta(),
+                ]);
+
+                if (shopsResult.status === 'fulfilled') {
+                    setShops(shopsResult.value.data.results || []);
+                }
+
+                if (pointsResult.status === 'fulfilled') {
+                    const storePoints = {};
+                    pointsResult.value.tiendas.forEach((tienda) => {
+                        storePoints[tienda.schema_name] = tienda;
+                    });
+                    setPointsByStore(storePoints);
+                }
             } catch (err) {
                 console.error("Error fetching shops", err);
             } finally {
                 setLoading(false);
+                setLoadingPoints(false);
             }
         };
         fetchShops();
@@ -66,6 +84,7 @@ const ClienteDashboard = () => {
                     gap: '25px' 
                 }}>
                     {filteredShops.map(shop => {
+                        const puntosTienda = pointsByStore[shop.schema_name]?.saldo_actual || 0;
                         // Pasar tokens por URL al /sso del subdominio (cross-subdomain auth)
                         const ssoParams = new URLSearchParams({
                             token: localStorage.getItem('access_token') || '',
@@ -119,6 +138,25 @@ const ClienteDashboard = () => {
                                             {shop.categoria_tienda}
                                         </span>
                                     )}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '9px 10px',
+                                        borderRadius: '10px',
+                                        backgroundColor: puntosTienda > 0 ? '#ecfdf5' : '#f8fafc',
+                                        color: puntosTienda > 0 ? '#047857' : '#64748b',
+                                        fontSize: '13px',
+                                        fontWeight: 700,
+                                        margin: '2px 0 14px 0'
+                                    }}>
+                                        <Gift size={15} />
+                                        <span>
+                                            {loadingPoints
+                                                ? 'Consultando puntos...'
+                                                : `${puntosTienda.toLocaleString('es-BO')} pts en esta tienda`}
+                                        </span>
+                                    </div>
                                     <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', color: '#3b82f6', fontSize: '14px', fontWeight: 'bold' }}>
                                         Visitar Tienda <ExternalLink size={14} style={{ marginLeft: '6px' }} />
                                     </div>
